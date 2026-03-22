@@ -391,8 +391,7 @@ int main() {
   // testRapidJSON();
   // testGeoJSONParsingSmall();
   // testGeoJSONParsingBig();
-  //testIndexedParsing();
-  func();
-  
+  // testIndexedParsing();
+
   return 0;
 }

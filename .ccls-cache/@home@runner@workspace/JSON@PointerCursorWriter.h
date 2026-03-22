@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <cstring>
+#include "str_length.h"
+
 // ============================================================
 //  PointerCursor
 //  Wrapper autour de char*& pour exposer la même interface
@@ -28,16 +30,12 @@ public:
 
     size_t available() { return _end - _pos; }
     // Ecrit et avance
-    size_t write(uint8_t c) {
+    size_t write(char c) {
         if (_pos >= _end) return 0;
         *_pos = c;
         _pos++;
         
         return 1;
-    }
-
-    size_t write(const char *buf) {
-        return write(buf, strlen(buf));
     }
 
     size_t write(const char *buf, size_t size) {
@@ -53,6 +51,10 @@ public:
         return i;
     }
 
+    size_t write(const char *buf) {
+        return write(buf, str_length(buf));
+    }
+
     template<size_t N>
     size_t write(const char (&buf)[N]) {
         return write(buf, N - 1);
@@ -65,7 +67,7 @@ public:
 
     template <typename... Args>
     std::enable_if_t<(sizeof...(Args) > 0), size_t>
-    write(const char *format, Args &&...args) {
+    printf(const char *format, Args &&...args) {
         size_t len = snprintf(_pos, available(), format, std::forward<Args>(args)...);
         _pos += len;
         return len;

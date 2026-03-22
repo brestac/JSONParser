@@ -82,4 +82,8 @@ STREAM_CURSOR_OVERRIDE()\
 size_t toJSON(PointerCursorWriter writer, bool updates = true) override {\
   size_t mask = updates ? this->updated : 0;\
   return JSON::print(mask, writer, MACRO(__VA_ARGS__));\
+}\
+size_t toJSON(PointerCursorPrinter writer, bool updates = true) override {\
+  size_t mask = updates ? this->updated : 0;\
+  return JSON::print(mask, writer, MACRO(__VA_ARGS__));\
 }

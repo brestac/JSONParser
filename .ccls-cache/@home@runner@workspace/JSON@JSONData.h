@@ -3,6 +3,7 @@
 #include "ParseResult.h"
 #include "PointerCursor.h"
 #include "PointerCursorWriter.h"
+#include "PointerCursorPrinter.h"
 
 #ifdef ARDUINO
 #include "StreamCursor"
@@ -26,6 +27,7 @@ public:
   JSON::ParseResult fromJSON(char *input, size_t size);
 
   virtual size_t toJSON(PointerCursorWriter cursor, bool updates = true) = 0;
+  virtual size_t toJSON(PointerCursorPrinter cursor, bool updates = true) = 0;
   size_t toJSON(bool updates = true);
   size_t toJSON(char *output, size_t size, bool updates = true);
 
@@ -44,7 +46,7 @@ JSON::ParseResult JSONData::fromJSON(char *input, size_t size) {
 //  toJSON
 ////////////////////////////////////////////////////////////////////////////////
 size_t JSONData::toJSON(bool updates) {
-  PointerCursorWriter writer;
+  PointerCursorPrinter writer;
   return toJSON(writer, updates);
 }
 
