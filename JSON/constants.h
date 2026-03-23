@@ -10,6 +10,9 @@ namespace JSON {
     inline bool PRINT_BUFFER_AS_HEX = true;
     inline size_t DEBUG_COLUMN_WIDTH = 80;
     inline size_t RingBufferSize = 256;
+    inline size_t MAX_PRINTF_BUFFER_SIZE = 4096;
+    //inline size_t RingBufferCount = 4;
+    //inline size_t RingBufferMaxSize = RingBufferSize * RingBufferCount;
 
     constexpr size_t MAX_JSON_LENGTH = 1 << 24; // 16777216 bytes = 16MB
     constexpr size_t MAX_KEY_LENGTH = 1 << 8; // 255
@@ -17,6 +20,7 @@ namespace JSON {
     inline size_t MAX_ARRAY_LENGTH = 1 << 16; // 65536
     inline size_t MAX_KEY_VALUE_COUNT = 1 << 8; // 255
     inline size_t MAX_ITERATIONS = 1 << 16; // 65536
+    //inline size_t MAX_JSON_DEPTH = 1 << 8;    
 }
 
 static char JSON_SPACE_CHARACTERS[4] = {' ', '\t', '\n', '\r'};

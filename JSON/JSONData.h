@@ -6,6 +6,7 @@
 #include "PointerCursorPrinter.h"
 
 #ifdef ARDUINO
+#include <Stream.h>
 #include "StreamCursor"
 #endif
 
@@ -28,6 +29,9 @@ public:
 
   virtual size_t toJSON(PointerCursorWriter cursor, bool updates = true) = 0;
   virtual size_t toJSON(PointerCursorPrinter cursor, bool updates = true) = 0;
+#ifdef ARDUINO
+  virtual size_t toJSON(StreamCursor cursor, bool updates = true) = 0;
+#endif
   size_t toJSON(bool updates = true);
   size_t toJSON(char *output, size_t size, bool updates = true);
 
@@ -42,9 +46,24 @@ JSON::ParseResult JSONData::fromJSON(char *input, size_t size) {
   return fromJSON(cursor);
 }
 
+#ifdef ARDUINO
+template <typename T>
+enable_if_t<std::is_base_of<Stream, T>, JSON::ParseResult> fromJSON(T& cursor) {
+  StreamCursor streamCursor(cursor);
+  return fromJSON(streamCursor);
+}
+#endif
 ////////////////////////////////////////////////////////////////////////////////
 //  toJSON
 ////////////////////////////////////////////////////////////////////////////////
+#ifdef ARDUINO
+template <typename T>
+enable_if_t<std::is_base_of<Stream, T>, size_t> toJSON(T& cursor, bool updates = true) {
+  StreamCursor streamCursor(cursor);
+  return toJSON(streamCursor, updates);
+}
+#endif
+
 size_t JSONData::toJSON(bool updates) {
   PointerCursorPrinter writer;
   return toJSON(writer, updates);

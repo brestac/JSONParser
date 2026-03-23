@@ -67,6 +67,10 @@
 #define STREAM_CURSOR_OVERRIDE() \
 JSON::ParseResult fromJSON(StreamCursor& cursor) override {\
   return JSON::parse(this->updated, cursor, MACRO(__VA_ARGS__));\
+}\
+size_t toJSON(StreamCursor& cursor) override {\
+  size_t mask = updates ? this->updated : 0;\
+  return JSON::print(mask, cursor, MACRO(__VA_ARGS__));\
 }
 #else
 #define STREAM_CURSOR_OVERRIDE()
@@ -78,7 +82,6 @@ using JSONData::toJSON;\
 JSON::ParseResult fromJSON(PointerCursor cursor) override {\
   return JSON::parse(this->updated, cursor, MACRO(__VA_ARGS__));\
 }\
-STREAM_CURSOR_OVERRIDE()\
 size_t toJSON(PointerCursorWriter writer, bool updates = true) override {\
   size_t mask = updates ? this->updated : 0;\
   return JSON::print(mask, writer, MACRO(__VA_ARGS__));\
@@ -86,4 +89,5 @@ size_t toJSON(PointerCursorWriter writer, bool updates = true) override {\
 size_t toJSON(PointerCursorPrinter writer, bool updates = true) override {\
   size_t mask = updates ? this->updated : 0;\
   return JSON::print(mask, writer, MACRO(__VA_ARGS__));\
-}
+}\
+STREAM_CURSOR_OVERRIDE()\

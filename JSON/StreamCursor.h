@@ -1,8 +1,11 @@
 #pragma once
 
 #include "constants.h"
-#include <stream.h>
 #include "macros.h"
+
+#ifdef ARDUINO
+#include <Stream.h>
+#endif
 
 NAMESPACE_JSON_BEGIN
 
