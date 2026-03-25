@@ -213,18 +213,13 @@ void testArrayParsing() {
   std::printf("\n\nTEST ARRAY PARSING\n");
   std::printf("------------------------------------------------------------\n");
 
-  size_t p_length = 3;
   Personne personnes[3];
 
   const char *json = "[{\"nom\":\"Bob\",\"age\":40},{\"nom\":\"Alice\",\"age\":"
                      "30},{\"nom\":\"Roger\",\"age\":64}]";
   uint32_t mask = 0;
   JSON::ParseResult r = JSON::parse(mask, json, personnes);
-  for (int i = 0; i < p_length; i++) {
-    std::printf("Personne %d: ", i);
-    personnes[i].toJSON();
-    std::printf("\n");
-  }
+  std::printf("PASSED %s\n", personnes[0].nom == "Bob" && personnes[1].nom == "Alice" && personnes[2].nom == "Roger" ? "OK" : "FAILED");
 
   r.print();
 }
@@ -241,7 +236,7 @@ void testIndexedParsing() {
   printf("age = %d\n", age);
   printf("mask = %d\n", mask);
 }
-
+/*
 void testPerformance() {
   std::printf("\n\nTEST PERFORMANCE\n");
   std::printf("------------------------------------------------------------\n");
@@ -288,7 +283,7 @@ void testPerformance() {
               lineCount > 0 ? (double)elapsed / lineCount : 0.0);
   std::printf("Errors    : %d\n", errorCount);
 }
-
+*/
 void parseRapidJSON(const char *json) {
   rapidjson::Document d;
   d.Parse(json);
@@ -352,43 +347,17 @@ void testGeoJSONParsingBig() {
   free(json);
 }
 
-// void testRapidJSON() {
-//     // 1. Parse a JSON string into DOM.
-//     const char* json = "{\"project\":\"rapidjson\",\"stars\":10}";
-//     rapidjson::Document d;
-//     d.Parse(json);
-
-//     // 2. Modify it by DOM.
-//     rapidjson::Value& s = d["stars"];
-//     s.SetInt(s.GetInt() + 1);
-
-//     // 3. Stringify the DOM
-//     rapidjson::StringBuffer buffer;
-//     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-//     d.Accept(writer);
-
-//     // Output {"project":"rapidjson","stars":11}
-//     std::cout << buffer.GetString() << std::endl;
-// }
-
-void func() {
-  static int x = 0;
-  printf("x = %d\n", x);
-}
-
 int main() {
   // AFFICHAGE DE LA DATE ET DE L’HEURE COURANTE
   time_t now = time(nullptr);
   std::printf("TIME:%s COMPILER:%s", ctime(&now), __VERSION__);
   std::printf("------------------------------------------------------------\n");
   // TESTS
-  test_callback();
+  // test_callback();
   // test_parsing();
   // testIndexedParsing();
-  // testArrayParsing();
+  testArrayParsing();
   // testArrayCallback();
-  // testPerformance();
-  // testRapidJSON();
   // testGeoJSONParsingSmall();
   // testGeoJSONParsingBig();
 

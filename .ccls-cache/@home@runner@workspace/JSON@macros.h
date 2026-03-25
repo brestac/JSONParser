@@ -10,6 +10,22 @@
   #define PRINT_FUNC printf
 #endif
 
+#define COLOR_0 "\x1b[30m"
+#define COLOR_1 "\x1b[32m"
+#define COLOR_2 "\x1b[33m"
+#define COLOR_3 "\x1b[31m"
+#define COLOR_END "\x1b[0m"
+
+#if JSON_DEBUG_LEVEL == 0
+#define JSON_DEBUG_COLOR COLOR_0
+#elif JSON_DEBUG_LEVEL == 1
+#define JSON_DEBUG_COLOR COLOR_1
+#elif JSON_DEBUG_LEVEL == 2
+#define JSON_DEBUG_COLOR COLOR_2
+#elif JSON_DEBUG_LEVEL == 3
+#define JSON_DEBUG_COLOR COLOR_3
+#endif
+
 #if JSON_DEBUG_LEVEL == 1
 #define JSON_DEBUG_INFO(format, ...) PRINT_FUNC(format, ##__VA_ARGS__)
 #else
@@ -17,23 +33,23 @@
 #endif
 
 #if JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_TYPES(format, ...) print_demangled_types(format, ##__VA_ARGS__);
+#define JSON_DEBUG_TYPES(format, ...) print_demangled_types(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__);
 #elif JSON_DEBUG_LEVEL == 2
-#define JSON_DEBUG_TYPES(format, ...) print_demangled_types("\x1b[33m" format "\x1b[0m", ##__VA_ARGS__);
+#define JSON_DEBUG_TYPES(format, ...) print_demangled_types(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__);
 #elif JSON_DEBUG_LEVEL == 3
-#define JSON_DEBUG_TYPES(format, ...) print_demangled_types("\x1b[31m" format "\x1b[0m", ##__VA_ARGS__);
+#define JSON_DEBUG_TYPES(format, ...) print_demangled_types(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__);
 #else
 #define JSON_DEBUG_TYPES(format, ...)
 #endif
 
 #if JSON_DEBUG_LEVEL == 2 || JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_WARNING(format, ...) PRINT_FUNC("\x1b[33m" format "\x1b[0m", ##__VA_ARGS__)
+#define JSON_DEBUG_WARNING(format, ...) PRINT_FUNC(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_WARNING(format, ...)
 #endif
 
 #if JSON_DEBUG_LEVEL == 3 || JSON_DEBUG_LEVEL == 2 || JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_ERROR(format, ...) PRINT_FUNC("\x1b[31m" format "\x1b[0m", ##__VA_ARGS__)
+#define JSON_DEBUG_ERROR(format, ...) PRINT_FUNC(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_ERROR(format, ...)
 #endif

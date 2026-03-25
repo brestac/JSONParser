@@ -78,8 +78,7 @@ public:
 
 #ifdef ARDUINO
   // ── Constructeur StreamCursor ─────────────────────────────
-  // Disponible uniquement si Cursor = StreamCursor
-  template <size_t N, typename = std::enable_if_t< std::is_same_v<Cursor, StreamCursor>>>
+  // Used when Cursor = StreamCursor; never called for other cursor types.
   explicit JSONParserBase(StreamCursor &cursor)
       : keyMask(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0),
         _cursor(cursor), _key_start(nullptr), _key_length(0), _is_array(false),
@@ -1082,7 +1081,15 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
   // nUpdated += r.nUpdated;
   //_elapsed += r.elapsed;
 
+//#ifndef ARDUINO
+  //_cursor.set_position(r.length);
+#ifdef ARDUINO
+  if constexpr (!std::is_same_v<remove_cvref_t<Cursor>, StreamCursor>) {
+    _cursor.set_position(r.length);
+  }
+#else
   _cursor.set_position(r.length);
+#endif
 
   result |= ParseValueResult::VALUE_PARSED | ParseValueResult::VALUE_UPDATED |
             ParseValueResult::VALUE_CONVERTED;
@@ -1124,11 +1131,6 @@ void JSONParserBase<Cursor>::print_state(size_t iteration) {
     [[maybe_unused]] size_t col_pos = get_position() % length;
     [[maybe_unused]] const char *dots =
         (_cursor.size()) > max_length ? "..." : "";
-
-    // char json_string[length + 1];
-    // strncpy(json_string, _json_string + col_number * length, length);
-    // json_string[length] = '\0';
-    // str_replace(json_string, length, '\n', ' ');
 
     const char *color = (_state == ERROR) ? "\x1b[31m" : "\x1b[32m";
 

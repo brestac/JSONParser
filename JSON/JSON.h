@@ -4,9 +4,6 @@
 
 NAMESPACE_JSON_BEGIN
 
-template <typename... Args>
-using enable_parse = std::enable_if_t<key_value_checker_v<parsed_types, arguments_array_types, arguments_array_array_types, Args...>, int32_t >;
-
 template <typename Cursor>
 ParseResult resultForParser(JSONParserBase<Cursor> &parser, uint64_t duration) {
   return ParseResult(parser.parsed_length(), parser.nKeys, parser.nParsed, parser.nConverted, parser.nUpdated, parser.error(), duration, parser._state == JSONParserBase<Cursor>::ParserState::STOPPED);
