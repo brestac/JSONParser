@@ -15,7 +15,7 @@
 constexpr int get_last_bitwise_mask_index(uint32_t mask);
 
 template <typename Cursor, typename... Args>
-std::enable_if_t<is_cursor_writer_v<Cursor>, size_t>
+std::enable_if_t<is_cursor_v<Cursor>, size_t>
 constexpr print_to(Cursor output, const char *format, Args &&...args);
 
 template <typename Cursor, typename T, typename... Rest>
@@ -132,7 +132,7 @@ template <typename Cursor>
 }
 
 template <typename Cursor, typename... Args>
-std::enable_if_t<is_cursor_writer_v<Cursor>, size_t>
+std::enable_if_t<is_cursor_v<Cursor>, size_t>
 constexpr print_to(Cursor output, const char *format, Args &&...args) {
   return output.printf(format, std::forward<Args>(args)...);
 }

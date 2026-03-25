@@ -13,7 +13,7 @@ struct UnknownValueType : JSONData {
 
   constexpr UnknownValueType() = default;
 
-  JSON::ParseResult fromJSON(JSON::PointerCursor cursor) override;
+  JSON::ParseResult fromJSON(JSON::PointerCursorReader cursor) override;
   
 #ifdef ARDUINO
   size_t toJSON(JSON::StreamCursor& writer, bool updates) override {

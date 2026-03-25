@@ -84,7 +84,7 @@ size_t toJSON(StreamCursor& cursor, bool updates = true) override {\
 }
 #else
 #define STREAM_CURSOR_OVERRIDE(...)\
-JSON::ParseResult fromJSON(PointerCursor cursor) override {\
+JSON::ParseResult fromJSON(PointerCursorReader cursor) override {\
   return JSON::parse(this->updated, cursor, MACRO(__VA_ARGS__));\
 }\
 size_t toJSON(PointerCursorWriter writer, bool updates = true) override {\

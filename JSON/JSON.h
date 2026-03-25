@@ -9,7 +9,7 @@ template <typename Cursor>
 std::enable_if_t<is_cursor_v<Cursor>, JSON::ParseResult>
 _parse(Cursor& cursor, const JSONCallback &cb, int arrayIndex = -1);
 
-JSON::ParseResult parse(PointerCursor cursor, const JSONCallback &cb, int arrayIndex = -1);
+JSON::ParseResult parse(PointerCursorReader cursor, const JSONCallback &cb, int arrayIndex = -1);
   
 template <typename Cursor, typename... Args>
 std::enable_if_t<
@@ -20,7 +20,7 @@ std::enable_if_t<
 _parse(uint32_t &mask, const Cursor& cursor, Args &&...args);
 
 template <typename... Args>
-JSON::ParseResult parse(uint32_t &mask, PointerCursor cursor, Args &&...args);
+JSON::ParseResult parse(uint32_t &mask, PointerCursorReader cursor, Args &&...args);
   
 template <typename Cursor, typename T>
 std::enable_if_t<is_cursor_v<Cursor> && is_derived_json_data_container_v<T>, ParseResult>
@@ -28,7 +28,7 @@ _parse(uint32_t &mask, Cursor& cursor, T &jsonObjects);
 
 template <typename T>
 std::enable_if_t<is_derived_json_data_container_v<T>, JSON::ParseResult>
-parse(uint32_t &mask, PointerCursor cursor, T &jsonObjects);
+parse(uint32_t &mask, PointerCursorReader cursor, T &jsonObjects);
   
 template <typename Cursor>
 ParseResult parseResult(JSONParserBase<Cursor> &parser, uint64_t duration) {
@@ -55,7 +55,7 @@ _parse(Cursor& cursor, const JSONCallback &cb, int arrayIndex) {
   return parseResult(parser, end - start);
 }
 
-JSON::ParseResult parse(PointerCursor cursor, const JSONCallback& cb, int arrayIndex) {
+JSON::ParseResult parse(PointerCursorReader cursor, const JSONCallback& cb, int arrayIndex) {
   return _parse(cursor, cb, arrayIndex);
 }
   
@@ -83,7 +83,7 @@ _parse(uint32_t &mask, const Cursor& cursor, Args &&...args) {
 //  Parse With String
 ///////////////////////////////////////////////////////////
 template <typename... Args>
-JSON::ParseResult parse(uint32_t &mask, PointerCursor cursor, Args &&...args) {
+JSON::ParseResult parse(uint32_t &mask, PointerCursorReader cursor, Args &&...args) {
     return _parse(mask, cursor, std::forward<Args>(args)...);
 }
 
@@ -106,17 +106,17 @@ _parse(uint32_t &mask, Cursor& cursor, T &jsonObjects) {
 
 template <typename T>
 std::enable_if_t<is_derived_json_data_container_v<T>, JSON::ParseResult>
-parse(uint32_t &mask, PointerCursor cursor, T &jsonObjects) {
+parse(uint32_t &mask, PointerCursorReader cursor, T &jsonObjects) {
   return _parse(mask, cursor, jsonObjects);
 }
 NAMESPACE_JSON_END
 
-JSON::ParseResult UnknownValueType::fromJSON(JSON::PointerCursor cursor) {
+JSON::ParseResult UnknownValueType::fromJSON(JSON::PointerCursorReader cursor) {
   uint32_t m = 0;
   return JSON::parse(m, cursor);
 }
 
-JSON::ParseResult JSONCallbackObject::fromJSON(JSON::PointerCursor cursor) {
+JSON::ParseResult JSONCallbackObject::fromJSON(JSON::PointerCursorReader cursor) {
   return JSON::parse(cursor, this->callback, this->array_index);
 }
 

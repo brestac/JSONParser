@@ -229,8 +229,11 @@ constexpr bool is_derived_json_data_container_v =
 template <typename T, typename = void>
 struct is_cursor : std::false_type {};
 
+template <typename T>
+struct is_cursor<JSON::PointerCursor<T>> : std::true_type {};
+
 template <>
-struct is_cursor<JSON::PointerCursor> : std::true_type {};
+struct is_cursor<JSON::PointerCursorPrinter> : std::true_type {};
 
 #ifdef ARDUINO
 #include "StreamCursor.h"
@@ -241,22 +244,22 @@ struct is_cursor<JSON::StreamCursor> : std::true_type {};
 template<typename T>
 inline constexpr bool is_cursor_v = is_cursor<T>::value;
 
-template <typename T, typename = void>
-struct is_cursor_writer : std::false_type {};
+// template <typename T, typename = void>
+// struct is_cursor_writer : std::false_type {};
 
-template <>
-struct is_cursor_writer<JSON::PointerCursorWriter> : std::true_type {};
+// template <>
+// struct is_cursor_writer<JSON::PointerCursorWriter> : std::true_type {};
 
-#ifdef ARDUINO
-template <>
-struct is_cursor_writer<JSON::StreamCursor> : std::true_type {};
-#else
-template <>
-struct is_cursor_writer<JSON::PointerCursorPrinter> : std::true_type {};
-#endif
+// #ifdef ARDUINO
+// template <>
+// struct is_cursor_writer<JSON::StreamCursor> : std::true_type {};
+// #else
+// template <>
+// struct is_cursor_writer<JSON::PointerCursorPrinter> : std::true_type {};
+// #endif
 
-template<typename T>
-inline constexpr bool is_cursor_writer_v = is_cursor_writer<T>::value;
+// template<typename T>
+// inline constexpr bool is_cursor_writer_v = is_cursor_writer<T>::value;
 
 // ==========================================
 // Key Value checker

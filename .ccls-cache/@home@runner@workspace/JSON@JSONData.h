@@ -2,7 +2,7 @@
 
 #include "ParseResult.h"
 #include "PointerCursor.h"
-#include "PointerCursorWriter.h"
+//#include "PointerCursorWriter.h"
 
 #ifdef ARDUINO
 #include <Stream.h>
@@ -21,7 +21,7 @@ public:
   uint32_t updated = 0;
 
   virtual ~JSONData() = default;
-  virtual JSON::ParseResult fromJSON(PointerCursor cursor) = 0;
+  virtual JSON::ParseResult fromJSON(PointerCursorReader cursor) = 0;
   virtual size_t toJSON(PointerCursorWriter cursor, bool updates = true) = 0;
 
 #ifdef ARDUINO
@@ -42,7 +42,7 @@ public:
 //  fromJSON
 ////////////////////////////////////////////////////////////////////////////////
 JSON::ParseResult JSONData::fromJSON(char *input, size_t size) {
-  PointerCursor cursor(input, size);
+  PointerCursorReader cursor(input, size);
   return fromJSON(cursor);
 }
  

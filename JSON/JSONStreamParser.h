@@ -67,7 +67,7 @@ public:
   size_t nUpdated;
 
   // ── Constructeur PointerCursor (compatibilité JSONParser) ─
-  JSONParserBase(PointerCursor cursor)
+  JSONParserBase(PointerCursorReader cursor)
       : keyMask(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0),
         _cursor(cursor), _key_start(nullptr), _key_length(0), _is_array(false),
         _array_index(0), _nArgs(0) {
@@ -404,7 +404,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_numeric(V &arg_value) {
 
   char *start;
 
-  if constexpr (std::is_same_v<Cursor, PointerCursor>) {
+  if constexpr (std::is_same_v<Cursor, PointerCursorReader>) {
     start = const_cast<char *>(_cursor.ptr());
   } else {
     static char tmp[64];
@@ -1116,7 +1116,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_any(V arg_value) {
 
 template <typename Cursor>
 void JSONParserBase<Cursor>::print_state(size_t iteration) {
-  if constexpr (std::is_same_v<Cursor, PointerCursor>) {
+  if constexpr (std::is_same_v<Cursor, PointerCursorReader>) {
     size_t max_length = JSON::DEBUG_COLUMN_WIDTH;
     size_t length = std::min(_cursor.size(), max_length);
 
@@ -1177,7 +1177,7 @@ std::string_view JSONParserBase<Cursor>::get_state_name() {
 
 // JSONParser : version originale basée sur PointerCursor
 // (remplace la classe JSONParser existante — même interface)
-using JSONParser = JSONParserBase<JSON::PointerCursor>;
+using JSONParser = JSONParserBase<JSON::PointerCursorReader>;
 
 #ifdef ARDUINO
 using JSONStreamParser = JSONParserBase<JSON::StreamCursor>;
