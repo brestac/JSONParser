@@ -6,15 +6,12 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <cstring>
-#include <cstdio>
 
 // ============================================================
 //  PointerCursorPrinter
 // ============================================================
 
 NAMESPACE_JSON_BEGIN
-
-constexpr size_t MAX_PRINTF_BUFFER_SIZE = UINT32_MAX;
 
 class PointerCursorPrinter {
 public:
@@ -70,7 +67,7 @@ public:
     template <typename... Args>
     std::enable_if_t<(sizeof...(Args) > 0), size_t>
     printf(const char *format, Args &&...args) {
-        char buffer[MAX_PRINTF_BUFFER_SIZE];
+        char buffer[JSON::MAX_PRINTF_BUFFER_SIZE];
         size_t len = snprintf(buffer, sizeof(buffer), format, std::forward<Args>(args)...);
         return write(buffer, len);
     }

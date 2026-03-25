@@ -383,15 +383,15 @@ int main() {
   std::printf("TIME:%s COMPILER:%s", ctime(&now), __VERSION__);
   std::printf("------------------------------------------------------------\n");
   // TESTS
-  // test_callback();
+  test_callback();
   // test_parsing();
+  // testIndexedParsing();
   // testArrayParsing();
   // testArrayCallback();
   // testPerformance();
   // testRapidJSON();
   // testGeoJSONParsingSmall();
   // testGeoJSONParsingBig();
-  // testIndexedParsing();
 
   return 0;
 }

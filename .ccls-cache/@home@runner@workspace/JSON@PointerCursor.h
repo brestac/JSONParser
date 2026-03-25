@@ -20,7 +20,7 @@ public:
     explicit constexpr PointerCursor(const char *start, size_t len): _pos(start), _start(start), _end(start + len) {}
 
     // Accès direct au pointeur brut (pour strtod/strtol)
-    const char *ptr() const { return _pos; }
+    constexpr const char *ptr() const { return _pos; }
 
     // Avance le pointeur de n octets
     void advance(size_t n = 1) { _pos += n; }

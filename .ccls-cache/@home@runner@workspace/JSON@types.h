@@ -24,6 +24,9 @@
 #include "UnknownValueType.h"
 #include "utils.h"
 
+#ifdef ARDUINO
+#include "StreamCursor.h"
+#endif
 // ---------------------------------------------------------------------------
 //  équivalent C++17 de std::remove_cvref_t
 // ---------------------------------------------------------------------------
@@ -147,7 +150,7 @@ template <typename T> struct container_info<std::vector<T>> {
   using base_type = typename container_info<T>::base_type;
   static constexpr size_t dimensions = container_info<T>::dimensions + 1;
   static constexpr ContainerKind kind = ContainerKind::STD_VECTOR;
-  static constexpr size_t extent = _MAX_ARRAY_LENGTH;
+  static constexpr size_t extent = MAX_ARRAY_LENGTH;
   static constexpr bool is_container = true;
 };
 
@@ -244,13 +247,12 @@ struct is_cursor_writer : std::false_type {};
 template <>
 struct is_cursor_writer<JSON::PointerCursorWriter> : std::true_type {};
 
+#ifdef ARDUINO
+template <>
+struct is_cursor_writer<JSON::StreamCursor> : std::true_type {};
+#else
 template <>
 struct is_cursor_writer<JSON::PointerCursorPrinter> : std::true_type {};
-
-#ifdef ARDUINO
-#include "StreamCursorWriter.h"
-template <>
-struct is_cursor_writer<JSON::StreamCursorWriter> : std::true_type {};
 #endif
 
 template<typename T>

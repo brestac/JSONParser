@@ -16,7 +16,7 @@
 
 #ifdef ARDUINO
 #include <Stream.h>
-#include <StreamCursor.h>
+#include "StreamCursor.h"
 #endif
 
 #include "constants.h"

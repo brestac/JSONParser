@@ -117,11 +117,20 @@ JSON::ParseResult UnknownValueType::fromJSON(JSON::PointerCursor cursor) {
 }
 
 JSON::ParseResult JSONCallbackObject::fromJSON(JSON::PointerCursor cursor) {
-  return JSON::parse(cursor, callback, array_index);
+  return JSON::parse(cursor, this->callback, this->array_index);
 }
 
 #ifdef ARDUINO
 #include "StreamCursor.h"
+
+JSON::ParseResult UnknownValueType::fromJSON(JSON::StreamCursor& cursor) {
+  uint32_t m = 0;
+  return JSON::parse(m, cursor);
+}
+
+JSON::ParseResult JSONCallbackObject::fromJSON(JSON::StreamCursor& cursor) {
+  return JSON::parse(cursor, this.callback, this.array_index);
+}
 
 JSON::ParseResult JSON::parse(StreamCursor cursor, const JSONCallback& cb, int arrayIndex) {
   return _parse(cursor, const_cast<const JSONCallback&>(cb), arrayIndex);

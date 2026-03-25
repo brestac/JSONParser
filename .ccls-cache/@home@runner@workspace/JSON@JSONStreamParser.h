@@ -78,10 +78,9 @@ public:
 
 #ifdef ARDUINO
   // ── Constructeur StreamCursor ─────────────────────────────
-  // Disponible uniquement si Cursor = StreamCursor<N>
-  template <size_t N, typename = std::enable_if_t<
-                          std::is_same_v<Cursor, StreamCursor<N>>>>
-  explicit JSONParserBase(StreamCursor<N> &cursor)
+  // Disponible uniquement si Cursor = StreamCursor
+  template <size_t N, typename = std::enable_if_t< std::is_same_v<Cursor, StreamCursor>>>
+  explicit JSONParserBase(StreamCursor &cursor)
       : keyMask(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0),
         _cursor(cursor), _key_start(nullptr), _key_length(0), _is_array(false),
         _array_index(0), _nArgs(0) {
@@ -257,7 +256,7 @@ void JSONParserBase<Cursor>::set_state(ParserState s) {
 
 // ── parse_key ────────────────────────────────────────────────
 template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
-  if (!cursor_scan_char(_cursor, '"', true)) {
+  if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true)) {
     _key_start = nullptr;
     _key_length = 0;
     return false;
@@ -294,7 +293,7 @@ template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
 
   _cursor.advance(n); // consomme les caractères de la clé
 
-  if (!cursor_scan_char(_cursor, '"', true)) {
+  if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true)) {
     _key_start = nullptr;
     _key_length = 0;
     return false;
@@ -543,10 +542,10 @@ ParseValueResult JSONParserBase<Cursor>::parse_unknown_value() {
     if (escape) {
       escape = false;
     }
-    else if (ch == '\\' && inString) {
+    else if (ch == JSON_ESCAPE_CHARACTER && inString) {
       escape = true;
     }
-    else if (ch == '"') {
+    else if (ch == JSON_QUOTE_CHARACTER) {
       inString = !inString;
     }
     
@@ -555,15 +554,15 @@ ParseValueResult JSONParserBase<Cursor>::parse_unknown_value() {
         continue;
     }
 
-    if (ch == '{' || ch == '[') {
+    if (ch == JSON_START_CHARACTER || ch == JSON_ARRAY_START_CHARACTER) {
       depth++;
     }
-    else if (ch == '}' || ch == ']') {
+    else if (ch == JSON_END_CHARACTER || ch == JSON_ARRAY_END_CHARACTER) {
       if (depth == 0) {
         break;
       }
       depth--;
-    } else if (ch == ',' && depth == 0) {
+    } else if (ch == JSON_COMMA_CHARACTER && depth == 0) {
       break;
     }
 
@@ -1181,7 +1180,5 @@ std::string_view JSONParserBase<Cursor>::get_state_name() {
 using JSONParser = JSONParserBase<JSON::PointerCursor>;
 
 #ifdef ARDUINO
-// JSONStreamParser<N> : version stream avec ring buffer de taille N
-template <size_t N = 256>
-using JSONStreamParser = JSONParserBase<JSON::StreamCursor<N>>;
+using JSONStreamParser = JSONParserBase<JSON::StreamCursor>;
 #endif

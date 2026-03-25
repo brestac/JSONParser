@@ -64,21 +64,29 @@
 #define FROM_JSON(a,b,...) JSON::parse(a, b, MACRO(__VA_ARGS__))
 
 #ifdef ARDUINO
-#define STREAM_CURSOR_OVERRIDE() \
+#define STREAM_CURSOR_OVERRIDE(...)\
+template <typename T>\
+std::enable_if_t<std::is_base_of_v<Stream, T>, JSON::ParseResult> fromJSON(T& cursor) {\
+  StreamCursor streamCursor(cursor);\
+  return fromJSON(streamCursor);\
+}\
 JSON::ParseResult fromJSON(StreamCursor& cursor) override {\
   return JSON::parse(this->updated, cursor, MACRO(__VA_ARGS__));\
+}\
+template <typename T>\
+std::enable_if_t<std::is_base_of_v<Stream, T>, size_t> toJSON(T& cursor, bool updates = true) {\
+  StreamCursor streamCursor(cursor);\
+  return toJSON(streamCursor, updates);\
+}\
+size_t toJSON(StreamCursor& cursor, bool updates = true) override {\
+  size_t mask = updates ? this->updated : 0;\
+  return JSON::print(mask, cursor, MACRO(__VA_ARGS__));\
 }
 #else
-#define STREAM_CURSOR_OVERRIDE()
-#endif
-
-#define TO_JSON_FROM_JSON(...)\
-using JSONData::fromJSON;\
-using JSONData::toJSON;\
+#define STREAM_CURSOR_OVERRIDE(...)\
 JSON::ParseResult fromJSON(PointerCursor cursor) override {\
   return JSON::parse(this->updated, cursor, MACRO(__VA_ARGS__));\
 }\
-STREAM_CURSOR_OVERRIDE()\
 size_t toJSON(PointerCursorWriter writer, bool updates = true) override {\
   size_t mask = updates ? this->updated : 0;\
   return JSON::print(mask, writer, MACRO(__VA_ARGS__));\
@@ -87,3 +95,9 @@ size_t toJSON(PointerCursorPrinter writer, bool updates = true) override {\
   size_t mask = updates ? this->updated : 0;\
   return JSON::print(mask, writer, MACRO(__VA_ARGS__));\
 }
+#endif
+
+#define TO_JSON_FROM_JSON(...)\
+using JSONData::fromJSON;\
+using JSONData::toJSON;\
+STREAM_CURSOR_OVERRIDE(__VA_ARGS__)

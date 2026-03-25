@@ -8,20 +8,26 @@
 
 struct ParseResult;
 struct UnknownValueType : JSONData {
-
-  constexpr UnknownValueType() = default;
-  constexpr bool operator==(const UnknownValueType &other) const { return true; }
-  constexpr bool operator!=(const UnknownValueType &other) const { return false; }
-  JSON::ParseResult fromJSON(JSON::PointerCursor cursor);
-  
-  size_t toJSON(JSON::PointerCursorWriter writer, bool updates) {
-    return writer.write("null");
-  }
-
-  size_t toJSON(JSON::PointerCursorPrinter writer, bool updates) {
-    return writer.write("null");
-  }
-
   using JSONData::fromJSON;
   using JSONData::toJSON;
+
+  constexpr UnknownValueType() = default;
+
+  JSON::ParseResult fromJSON(JSON::PointerCursor cursor) override;
+  
+#ifdef ARDUINO
+  size_t toJSON(JSON::StreamCursor& writer, bool updates) override {
+    return writer.write("null");
+  }
+#else
+  size_t toJSON(JSON::PointerCursorWriter writer, bool updates) override {
+    return writer.write("null");
+  }
+  size_t toJSON(JSON::PointerCursorPrinter writer, bool updates) override {
+    return writer.write("null");
+  }
+#endif
+
+  constexpr bool operator==(const UnknownValueType &other) const { return true; }
+  constexpr bool operator!=(const UnknownValueType &other) const { return false; }
 };

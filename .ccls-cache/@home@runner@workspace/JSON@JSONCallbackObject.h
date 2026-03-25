@@ -14,7 +14,9 @@ struct JSONCallbackObject {
   int array_index;
 
   JSON::ParseResult fromJSON(JSON::PointerCursor cursor);
-
+#ifdef ARDUINO
+  JSON::ParseResult fromJSON(JSON::StreamCursor& cursor);
+#endif
   JSONCallbackObject() : callback(nullptr), key(), stop(false), array_index(-1) {}
   JSONCallbackObject(JSONCallback callback, JSONKey key) : callback(callback), key(key), stop(false), array_index(-1) {
     JSON_DEBUG_INFO("JSONCallbackObject created\n");

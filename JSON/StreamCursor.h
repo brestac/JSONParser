@@ -10,14 +10,14 @@
 NAMESPACE_JSON_BEGIN
 
 // ============================================================
-//  RingBuffer<N>
-//  Buffer circulaire de taille N (doit être une puissance de 2).
-//  Se remplit à la demande depuis un Stream Arduino.
+// RingBuffer<N>
+// Buffer circulaire de taille N (doit être une puissance de 2).
+// Se remplit à la demande depuis un Stream Arduino.
 // ============================================================
 
 template <size_t N>
 class RingBuffer {
-    static_assert(N >= 16,            "RingBuffer : N doit être >= 16");
+    static_assert(N >= 16,          "RingBuffer : N doit être >= 16");
     static_assert((N & (N - 1)) == 0, "RingBuffer : N doit être une puissance de 2");
 
 public:
@@ -62,29 +62,33 @@ public:
 
 private:
     static constexpr size_t MASK = N - 1;
+
     Stream &_stream;
     char    _buf[N];
-    size_t  _head;   // indice d'écriture absolu
-    size_t  _tail;   // indice de lecture absolu
+    size_t  _head;  // indice d'écriture absolu
+    size_t  _tail;  // indice de lecture absolu
 };
 
 // ============================================================
-//  StreamCursor<N>
-//  Curseur de lecture sur un RingBuffer.
-//  Remplace const char*& dans toutes les fonctions scan_*.
+// StreamCursor<N>
+// Curseur de lecture ET d'écriture sur un Stream Arduino.
 //
-//  N : taille du ring buffer (puissance de 2, >= 16).
-//      Doit être > au plus long token JSON attendu (max ~255 pour une clé,
-//      mais en pratique 64–512 suffisent pour les tokens structurels).
-//      Pour les valeurs de chaînes longues, scan_until() les lit
-//      caractère par caractère sans tout mettre en RAM.
+// Côté lecture  : RingBuffer non-bloquant, identique à l'existant.
+// Côté écriture : satisfait le concept is_cursor_writer_v utilisé
+//                 par JSON::print() et JSONData::toJSON().
+//                 Requiert deux méthodes :
+//                   size_t write(const char*)
+//                   size_t printf(const char* format, ...)
 // ============================================================
+
 class StreamCursor {
 public:
     explicit StreamCursor(Stream &stream)
-        : _ring(stream), _consumed(0), _eof(false) {}
+        : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {}
 
-    // --- Interface principale ---
+    // --------------------------------------------------------
+    // Méthodes de LECTURE (existantes, inchangées)
+    // --------------------------------------------------------
 
     // Caractère courant sans avancer (-1 = fin de flux)
     int peek(size_t offset = 0) {
@@ -112,10 +116,8 @@ public:
     // Nombre total d'octets consommés depuis la création du curseur
     size_t bytesConsumed() const { return _consumed; }
 
-    // Extrait au plus maxLen octets dans out[] en s'arrêtant sur l'un
-    // des caractères délimiteurs JSON (séparateurs de valeur).
-    // Utilisé pour isoler un token numérique avant strtod/strtol.
-    // Ne consomme PAS les octets (lecture seule via peek).
+    // Extrait au plus maxLen octets dans out[] en s'arrêtant sur un
+    // délimiteur JSON. Ne consomme PAS les octets (lecture seule via peek).
     // Retourne le nombre d'octets copiés.
     size_t peekToken(char *out, size_t maxLen) {
         static const char delimiters[] = { ',', '}', ']', ' ', '\t', '\n', '\r', '\0' };
@@ -135,10 +137,67 @@ public:
         return n;
     }
 
+    // --------------------------------------------------------
+    // Méthodes d'ÉCRITURE (nouvelles)
+    // Satisfont le concept is_cursor_writer_v de JSONPrinter.h
+    // --------------------------------------------------------
+
+    // Écrit une chaîne null-terminée dans le stream.
+    // Retourne le nombre d'octets écrits.
+    size_t write(const char *str) {
+        if (!str) return 0;
+        size_t n = _stream.print(str);
+        _written += n;
+        return n;
+    }
+
+    // Écrit une chaîne formatée (printf-style) dans le stream.
+    // Utilise un buffer de pile de 64 octets ; alloue dynamiquement
+    // si la chaîne formatée est plus longue.
+    // Retourne le nombre d'octets écrits.
+    size_t printf(const char *format, ...) {
+        va_list args;
+        va_start(args, format);
+
+        char    buf[64];
+        va_list args_copy;
+        va_copy(args_copy, args);
+        int needed = vsnprintf(buf, sizeof(buf), format, args);
+        va_end(args);
+
+        if (needed < 0) {
+            va_end(args_copy);
+            return 0;
+        }
+
+        size_t n = 0;
+        if (static_cast<size_t>(needed) < sizeof(buf)) {
+            // Tout tient dans le buffer de pile
+            n = _stream.print(buf);
+        } else {
+            // Allocation dynamique pour les chaînes longues
+            char *heap = new (std::nothrow) char[needed + 1];
+            if (heap) {
+                vsnprintf(heap, needed + 1, format, args_copy);
+                n = _stream.print(heap);
+                delete[] heap;
+            }
+        }
+        va_end(args_copy);
+
+        _written += n;
+        return n;
+    }
+
+    // Nombre total d'octets écrits depuis la création du curseur
+    size_t bytesWritten() const { return _written; }
+
 private:
-    RingBuffer<JSON::RingBufferSize> _ring;
-    size_t        _consumed;
-    bool          _eof;
+    RingBuffer<JSON::RING_BUFFER_SIZE> _ring;
+    Stream  &_stream;   // référence directe pour l'écriture
+    size_t   _consumed;
+    size_t   _written;
+    bool     _eof;
 };
 
 NAMESPACE_JSON_END
