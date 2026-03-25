@@ -25,7 +25,8 @@ std::enable_if_t<is_cursor_reader_v<Cursor>, ParseResult>
 _parse(Cursor& cursor, const JSONCallback &cb, int arrayIndex);
   
 template <typename Cursor, typename... Args>
-enable_parse<Cursor> _parse(uint32_t &mask, Cursor& cursor, Args &&...args);
+std::enable_if_t<is_cursor_reader_v<Cursor> && key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>, ParseResult>
+_parse(uint32_t &mask, Cursor& cursor, Args &&...args);
   
 template <typename Cursor, typename T>
 std::enable_if_t<is_cursor_reader_v<Cursor> && is_derived_json_data_container_v<T>, ParseResult>
@@ -52,7 +53,8 @@ _parse(Cursor& cursor, const JSONCallback &cb, int arrayIndex) {
 //  Parse With Cursor
 ///////////////////////////////////////////////////////////
 template <typename Cursor, typename... Args>
-enable_parse<Cursor> _parse(uint32_t &mask, Cursor& cursor, Args &&...args) {
+std::enable_if_t<is_cursor_reader_v<Cursor> && key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>, ParseResult>
+_parse(uint32_t &mask, Cursor& cursor, Args &&...args) {
   uint64_t start = now();
 
   JSONParserBase<Cursor> parser(cursor);
@@ -124,17 +126,20 @@ JSON::ParseResult JSONCallbackObject::fromJSON(JSON::PointerCursorReader cursor)
 
 template <typename... Args>
 JSON::ParseResult JSON::parse(uint32_t &mask, const PointerCursorReader &cursor, Args &&...args) {
-  return JSON::_parse(mask, cursor, std::forward<Args>(args)...);
+  PointerCursorReader c = cursor;
+  return JSON::_parse(mask, c, std::forward<Args>(args)...);
 }
 
 template <typename T>
 std::enable_if_t<is_derived_json_data_container_v<T>, JSON::ParseResult>
 JSON::parse(uint32_t &mask, const PointerCursorReader& cursor, T &jsonObjects) {
-  return JSON::_parse(mask, cursor, jsonObjects);
+  PointerCursorReader c = cursor;
+  return JSON::_parse(mask, c, jsonObjects);
 }
 
 JSON::ParseResult JSON::parse(const PointerCursorReader& cursor, const JSONCallback& cb, int arrayIndex) {
-  return JSON::_parse(cursor, const_cast<const JSONCallback&>(cb), arrayIndex);
+  PointerCursorReader c = cursor;
+  return JSON::_parse(c, cb, arrayIndex);
 }
 
 #endif

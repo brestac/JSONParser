@@ -337,7 +337,7 @@ struct key_value_checker<CastableTypeList, TypeList,
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList/*,
           typename ArrayArrayTypeList*/>
 struct key_value_checker<CastableTypeList, TypeList, ArrayTypeList/*, ArrayArrayTypeList*/>
-    : std::false_type {};
+    : std::true_type {};
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename Key, typename Value,
