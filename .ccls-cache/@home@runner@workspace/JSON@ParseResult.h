@@ -14,7 +14,7 @@ namespace JSON {
     bool error;
     uint64_t elapsed;
     bool stopped;
-
+  
     ParseResult(size_t length, size_t nKeys, size_t nParsed, size_t nConverted, size_t nUpdated, bool error, uint64_t elapsed, bool stopped = false) : length(length), nKeys(nKeys), nParsed(nParsed), nConverted(nConverted), nUpdated(nUpdated), error(error), elapsed(elapsed), stopped(stopped) {}
     operator size_t() const { return length; }
 

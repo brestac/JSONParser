@@ -44,8 +44,7 @@ public:
       : JSONData(), nom(nom), age(age), taille(taille), ville(ville), ptr(ptr),
         flag(flag), enfant(enfant) {}
 
-  TO_JSON_FROM_JSON(nom, age, taille, ville, ptr, flag, buffer, liste, listef, enfant,
-                    enfants, coordinates);
+  TO_JSON_FROM_JSON(nom, age, taille, ville, ptr, flag, buffer, liste, listef, enfant, enfants, coordinates);
 };
 
 struct Properties : public JSONData {
