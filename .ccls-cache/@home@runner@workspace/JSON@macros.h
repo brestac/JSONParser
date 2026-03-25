@@ -4,6 +4,7 @@
 #define NAMESPACE_JSON_END }
 
 #ifdef ARDUINO
+  #include <Stream.h>
   #define PRINT_FUNC Serial.printf
 #else
   #define PRINT_FUNC printf
@@ -65,6 +66,13 @@
 
 #ifdef ARDUINO
 #define STREAM_CURSOR_OVERRIDE(...)\
+JSON::ParseResult fromJSON(PointerCursorReader cursor) override {\
+  return JSON::_parse(this->updated, cursor, MACRO(__VA_ARGS__));\
+}\
+size_t toJSON(PointerCursorWriter writer, bool updates = true) override {\
+  size_t mask = updates ? this->updated : 0;\
+  return JSON::print(mask, writer, MACRO(__VA_ARGS__));\
+}\
 template <typename T>\
 std::enable_if_t<std::is_base_of_v<Stream, T>, JSON::ParseResult> fromJSON(T& cursor) {\
   StreamCursor streamCursor(cursor);\

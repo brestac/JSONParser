@@ -57,8 +57,15 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, 
   if (mask == 0 || mask & (1 << idx)) {
     len += output.write("\"");
     len += output.write(key);
-    len += output.write("\":"); 
-    len += print_value_to(output, value);
+    len += output.write("\":");
+
+    size_t vlen = print_value_to(output, value);
+    len += vlen;
+    // PointerCursorWriter uses an independent _pos per copy; after print_value_to
+    // passes a copy, the local cursor hasn't advanced, so sync it manually.
+    if constexpr (std::is_same_v<remove_cvref_t<Cursor>, JSON::PointerCursorWriter>) {
+      output.advance(vlen);
+    }
 
     if constexpr (sizeof...(Rest) > 0) {
       if (mask == 0 || idx < last_idx) {
@@ -66,7 +73,6 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, 
       }
     }
   }
-  // print_demangled_type("print_key_value_pair type: %s\n", value);
 
   len += print_key_value_pair(mask, ++idx, last_idx, output,
                        std::forward<Rest>(rest)...);
@@ -160,7 +166,11 @@ size_t constexpr print_array_to(Cursor output, T &array) {
   len += output.write("[");
 
   for (size_t i = 0; i < N; i++) {
-    len += print_value_to(output, array[i]);
+    size_t vlen = print_value_to(output, array[i]);
+    len += vlen;
+    if constexpr (std::is_same_v<remove_cvref_t<Cursor>, JSON::PointerCursorWriter>) {
+      output.advance(vlen);
+    }
     if (i < N - 1) {
       len += output.write(",");
     }
@@ -198,7 +208,12 @@ constexpr print_json(uint32_t mask, Cursor output, Args &&...args) {
 
   len += output.write("{");
 
-  len += print_key_value_pair(mask, 0, last_index, output, std::forward<Args>(args)...);
+  size_t inner = print_key_value_pair(mask, 0, last_index, output, std::forward<Args>(args)...);
+  len += inner;
+  // Sync PointerCursorWriter's local _pos after print_key_value_pair wrote via a copy.
+  if constexpr (std::is_same_v<remove_cvref_t<Cursor>, JSON::PointerCursorWriter>) {
+    output.advance(inner);
+  }
 
   len += output.write("}");
 

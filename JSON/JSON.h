@@ -1,4 +1,5 @@
 #include "JSONStreamParser.h"
+#include "JSONPrinter.h"
 #include "macros.h"
 
 NAMESPACE_JSON_BEGIN
@@ -19,6 +20,17 @@ std::enable_if_t<is_derived_json_data_container_v<T>, ParseResult>
 parse(uint32_t &mask, const PointerCursorReader& cursor, T &jsonObjects);
 
 ParseResult parse(const PointerCursorReader &cursor, const JSONCallback& cb, int arrayIndex = -1);
+
+#ifdef ARDUINO
+ParseResult parse(StreamCursor& cursor, const JSONCallback& cb, int arrayIndex = -1);
+
+template <typename... Args>
+ParseResult parse(uint32_t &mask, StreamCursor& cursor, Args &&...args);
+
+template <typename T>
+std::enable_if_t<is_derived_json_data_container_v<T>, ParseResult>
+parse(uint32_t &mask, StreamCursor& cursor, T &jsonObjects);
+#endif
 
 template <typename Cursor>
 std::enable_if_t<is_cursor_reader_v<Cursor>, ParseResult>
@@ -95,7 +107,7 @@ JSON::ParseResult UnknownValueType::fromJSON(JSON::StreamCursor& cursor) {
 }
 
 JSON::ParseResult JSONCallbackObject::fromJSON(JSON::StreamCursor& cursor) {
-  return JSON::_parse(cursor, this.callback, this.array_index);
+  return JSON::_parse(cursor, this->callback, this->array_index);
 }
 
 JSON::ParseResult JSON::parse(StreamCursor& cursor, const JSONCallback& cb, int arrayIndex) {

@@ -241,8 +241,10 @@ struct is_cursor_reader<JSON::PointerCursorReader> : std::true_type {};
 template <>
 struct is_cursor_writer<JSON::PointerCursorWriter> : std::true_type {};
 
+#ifndef ARDUINO
 template <>
 struct is_cursor_writer<JSON::PointerCursorPrinter> : std::true_type {};
+#endif
 
 #ifdef ARDUINO
 #include "StreamCursor.h"
