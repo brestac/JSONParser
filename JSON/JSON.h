@@ -115,7 +115,7 @@ JSON::ParseResult JSON::parse(StreamCursor& cursor, const JSONCallback& cb, int 
 
 template <typename... Args>
 JSON::ParseResult JSON::parse(uint32_t &mask, StreamCursor& cursor, Args &&...args) {
-    return JSON::_parse(mask, cursor, std::forward<Args>(args)...);
+  return JSON::_parse(mask, cursor, std::forward<Args>(args)...);
 }
 
 template <typename T>
@@ -124,17 +124,16 @@ JSON::parse(uint32_t &mask, StreamCursor& cursor, T &jsonObjects) {
   return JSON::_parse(mask, cursor, jsonObjects);
 }
 
-#else
+#endif // ARDUINO
 
-JSON::ParseResult UnknownValueType::fromJSON(const JSON:: PointerCursorReader& cursor) {
+// PointerCursorReader-based implementations are compiled on ALL platforms.
+// On Arduino, callers may parse JSON stored in a char buffer (e.g. from an
+// HTTP response) using a PointerCursorReader without going through StreamCursor.
+
+JSON::ParseResult UnknownValueType::fromJSON(const JSON::PointerCursorReader& cursor) {
   uint32_t m = 0;
   const PointerCursorReader c = cursor;
   return JSON::_parse(m, c);
-}
-
-JSON::ParseResult JSONCallbackObject::fromJSON(const JSON:: PointerCursorReader& cursor) {
-  const PointerCursorReader c = cursor;
-  return JSON::_parse(c, this->callback, this->array_index);
 }
 
 template <typename... Args>
@@ -150,9 +149,16 @@ JSON::parse(uint32_t &mask, const PointerCursorReader& cursor, T &jsonObjects) {
   return JSON::_parse(mask, c, jsonObjects);
 }
 
+#ifndef ARDUINO
+// Callback-based PointerCursorReader parse and JSONCallbackObject::fromJSON are
+// desktop-only: on Arduino, JSONCallbackObject does not declare fromJSON(PointerCursorReader).
 JSON::ParseResult JSON::parse(const PointerCursorReader& cursor, const JSONCallback& cb, int arrayIndex) {
   const PointerCursorReader c = cursor;
   return JSON::_parse(c, cb, arrayIndex);
 }
 
+JSON::ParseResult JSONCallbackObject::fromJSON(const JSON::PointerCursorReader& cursor) {
+  const PointerCursorReader c = cursor;
+  return JSON::_parse(c, this->callback, this->array_index);
+}
 #endif
