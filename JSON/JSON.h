@@ -1,3 +1,5 @@
+#pragma once
+
 #include "JSONStreamParser.h"
 #include "JSONPrinter.h"
 #include "macros.h"

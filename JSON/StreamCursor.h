@@ -84,7 +84,9 @@ private:
 class StreamCursor {
 public:
     explicit StreamCursor(Stream &stream)
-        : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {}
+        : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
+            JSON_DEBUG_INFO("StreamCursor created\n");
+        }
 
     // --------------------------------------------------------
     // Méthodes de LECTURE (existantes, inchangées)

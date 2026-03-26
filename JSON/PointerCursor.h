@@ -109,14 +109,22 @@ public:
   // constexpr PointerCursor(char *buffer, size_t size)
   //     : PointerCursor(static_cast<const char *>(buffer), size) {}
   constexpr PointerCursor(const char *buffer)
-      : PointerCursor(buffer, str_length(buffer)) {}
+      : PointerCursor(buffer, str_length(buffer)) {
+        JSON_DEBUG_INFO("PointerCursor created with buffer %p size %zu\n", buffer, str_length(buffer));
+      }
   constexpr PointerCursor(std::string_view sv)
-      : PointerCursor(sv.data(), sv.length()) {}
+      : PointerCursor(sv.data(), sv.length()) {
+        JSON_DEBUG_INFO("PointerCursor created with string_view %p size %zu\n", sv.data(), sv.length());
+      }
   template <size_t N>
-  constexpr PointerCursor(char (&buffer)[N]) : PointerCursor(buffer, N - 1) {}
+  constexpr PointerCursor(char (&buffer)[N]) : PointerCursor(buffer, N - 1) {
+    JSON_DEBUG_INFO("PointerCursor created with buffer %p size %zu\n", buffer, N - 1);
+  }
   template <size_t N>
   constexpr PointerCursor(const char(buffer)[N])
-      : PointerCursor(buffer, N - 1) {}
+      : PointerCursor(buffer, N - 1) {
+        JSON_DEBUG_INFO("PointerCursor created with buffer %p size %zu\n", buffer, N - 1);
+      }
 
 private:
   T *_pos;
