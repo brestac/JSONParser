@@ -38,9 +38,38 @@ size_t print_object_pointer_to(Cursor output, void *value);
 
 namespace JSON {
   template <typename Cursor, typename... Args>
-  enable_if_t<key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>, size_t>   
+  enable_if_t<is_cursor_writer_v<Cursor> &&
+              key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>, size_t>
   print(uint32_t mask, Cursor output, Args &&...args) {
     return print_json(mask, output, std::forward<Args>(args)...);
+  }
+
+  // Convenience overload for raw char buffers (char[N] or char*).
+  //
+  // A forwarding reference is used so the array is NOT decayed before template
+  // argument deduction: char buf[256] arrives as Buffer = char (&)[256] (size
+  // known at compile-time), while an already-decayed char* arrives as
+  // Buffer = char*.  A single overload handles both without ambiguity.
+  //
+  // For char*: the caller is responsible for ensuring the buffer is at least
+  // JSON::MAX_PRINTF_BUFFER_SIZE bytes.
+  template <typename Buffer, typename... Args>
+  enable_if_t<
+      (std::is_array_v<std::remove_reference_t<Buffer>> ||
+       std::is_same_v<std::decay_t<Buffer>, char *>) &&
+          key_value_checker_v<parsed_types, arguments_types,
+                              arguments_array_types, Args...>,
+      size_t>
+  print(uint32_t mask, Buffer &&buffer, Args &&...args) {
+    if constexpr (std::is_array_v<std::remove_reference_t<Buffer>>) {
+      constexpr size_t N =
+          sizeof(std::remove_reference_t<Buffer>) / sizeof(char);
+      PointerCursorWriter c(buffer, N);
+      return print_json(mask, c, std::forward<Args>(args)...);
+    } else {
+      PointerCursorWriter c(buffer, JSON::MAX_PRINTF_BUFFER_SIZE);
+      return print_json(mask, c, std::forward<Args>(args)...);
+    }
   }
 } // namespace JSON
 

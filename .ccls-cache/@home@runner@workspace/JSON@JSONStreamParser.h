@@ -346,7 +346,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_string(V &arg_value) {
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
 
-  if constexpr (std::is_same_v<remove_cvref_t<Cursor>, const PointerCursorReader>) {
+  if constexpr (std::is_same_v<remove_cvref_t<Cursor>, PointerCursorReader>) {
     // Peek ahead to find closing quote without advancing, detecting escapes.
     const char *str_start = _cursor.ptr();
     size_t n = 0;

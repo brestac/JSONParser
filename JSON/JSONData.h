@@ -51,8 +51,7 @@ JSON::ParseResult JSONData::fromJSON(char *input, size_t size) {
 ////////////////////////////////////////////////////////////////////////////////
 #ifdef ARDUINO
 size_t JSONData::toJSON(bool updates) {
-  HardwareSerial serial;
-  StreamCursor writer(serial);
+  StreamCursor writer(Serial);
   return toJSON(writer, updates);
 }
 #else

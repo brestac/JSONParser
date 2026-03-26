@@ -1,0 +1,55 @@
+-2410-ESP-01/JSON/JSON.h:4,
+                 from /Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/settings.h:4,
+                 from /Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/AsyncHTTP.h:8,
+                 from /Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/HLK-2410-ESP-01.ino:8:
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h: In instantiation of 'constexpr size_t print_json(uint32_t, Cursor, Args&& ...) [with Cursor = char*; Args = {const char (&)[10], unsigned int&}; size_t = unsigned int; uint32_t = unsigned int]':
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:43:22:   required from 'std::enable_if_t<key_value_checker_v<type_list<bool, int, float, double, std::basic_string_view<char, std::char_traits<char> >, NullType>, type_list<UnknownValueType>, type_list<signed char, short int, int, unsigned char, short unsigned int, unsigned int, char, float, UnknownValueType>, Args ...>, unsigned int> JSON::print(uint32_t, Cursor, Args&& ...) [with Cursor = char*; Args = {const char (&)[10], unsigned int&}; std::enable_if_t<key_value_checker_v<type_list<bool, int, float, double, std::basic_string_view<char, std::char_traits<char> >, NullType>, type_list<UnknownValueType>, type_list<signed char, short int, int, unsigned char, short unsigned int, unsigned int, char, float, UnknownValueType>, Args ...>, unsigned int> = unsigned int; uint32_t = unsigned int]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/HLK-2410-ESP-01.ino:199:62:   required from here
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:207:17: error: request for member 'write' in 'output', which is of non-class type 'char*'
+  207 |   len += output.write("{");
+      |          ~~~~~~~^~~~~
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:216:17: error: request for member 'write' in 'output', which is of non-class type 'char*'
+  216 |   len += output.write("}");
+      |          ~~~~~~~^~~~~
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h: In instantiation of 'constexpr size_t print_key_value_pair(uint32_t, size_t, int&, Cursor, const char*, T&, Rest&& ...) [with Cursor = char*; T = unsigned int; Rest = {}; size_t = unsigned int; uint32_t = unsigned int]':
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:209:38:   required from 'constexpr size_t print_json(uint32_t, Cursor, Args&& ...) [with Cursor = char*; Args = {const char (&)[10], unsigned int&}; size_t = unsigned int; uint32_t = unsigned int]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:43:22:   required from 'std::enable_if_t<key_value_checker_v<type_list<bool, int, float, double, std::basic_string_view<char, std::char_traits<char> >, NullType>, type_list<UnknownValueType>, type_list<signed char, short int, int, unsigned char, short unsigned int, unsigned int, char, float, UnknownValueType>, Args ...>, unsigned int> JSON::print(uint32_t, Cursor, Args&& ...) [with Cursor = char*; Args = {const char (&)[10], unsigned int&}; std::enable_if_t<key_value_checker_v<type_list<bool, int, float, double, std::basic_string_view<char, std::char_traits<char> >, NullType>, type_list<UnknownValueType>, type_list<signed char, short int, int, unsigned char, short unsigned int, unsigned int, char, float, UnknownValueType>, Args ...>, unsigned int> = unsigned int; uint32_t = unsigned int]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/HLK-2410-ESP-01.ino:199:62:   required from here
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:57:19: error: request for member 'write' in 'output', which is of non-class type 'char*'
+   57 |     len += output.write("\"");
+      |            ~~~~~~~^~~~~
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:58:19: error: request for member 'write' in 'output', which is of non-class type 'char*'
+   58 |     len += output.write(key);
+      |            ~~~~~~~^~~~~
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:59:19: error: request for member 'write' in 'output', which is of non-class type 'char*'
+   59 |     len += output.write("\":");
+      |            ~~~~~~~^~~~~
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h: In instantiation of 'constexpr size_t print_value_to(Cursor, T&) [with Cursor = char*; T = unsigned int; size_t = unsigned int]':
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:61:33:   required from 'constexpr size_t print_key_value_pair(uint32_t, size_t, int&, Cursor, const char*, T&, Rest&& ...) [with Cursor = char*; T = unsigned int; Rest = {}; size_t = unsigned int; uint32_t = unsigned int]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:209:38:   required from 'constexpr size_t print_json(uint32_t, Cursor, Args&& ...) [with Cursor = char*; Args = {const char (&)[10], unsigned int&}; size_t = unsigned int; uint32_t = unsigned int]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:43:22:   required from 'std::enable_if_t<key_value_checker_v<type_list<bool, int, float, double, std::basic_string_view<char, std::char_traits<char> >, NullType>, type_list<UnknownValueType>, type_list<signed char, short int, int, unsigned char, short unsigned int, unsigned int, char, float, UnknownValueType>, Args ...>, unsigned int> JSON::print(uint32_t, Cursor, Args&& ...) [with Cursor = char*; Args = {const char (&)[10], unsigned int&}; std::enable_if_t<key_value_checker_v<type_list<bool, int, float, double, std::basic_string_view<char, std::char_traits<char> >, NullType>, type_list<UnknownValueType>, type_list<signed char, short int, int, unsigned char, short unsigned int, unsigned int, char, float, UnknownValueType>, Args ...>, unsigned int> = unsigned int; uint32_t = unsigned int]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/HLK-2410-ESP-01.ino:199:62:   required from here
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:100:20: error: no matching function for call to 'print_to(char*&, const char [5], long long int)'
+  100 |     return print_to(output, "%lld", (long long)value);
+      |            ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:141:11: note: candidate: 'template<class Cursor, class ... Args> constexpr std::enable_if_t<is_cursor_writer_v<Cursor>, unsigned int> print_to(Cursor, const char*, Args&& ...)'
+  141 | constexpr print_to(Cursor output, const char *format, Args &&...args) {
+      |           ^~~~~~~~
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:141:11: note:   template argument deduction/substitution failed:
+In file included from /Users/romain/Library/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0/bits/move.h:57,
+                 from /Users/romain/Library/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0/bits/stl_pair.h:59,
+                 from /Users/romain/Library/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0/bits/stl_algobase.h:64,
+                 from /Users/romain/Library/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0/bits/specfun.h:45,
+                 from /Users/romain/Library/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0/cmath:1927,
+                 from /Users/romain/Library/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0/math.h:36,
+                 from /Users/romain/Library/Arduino15/packages/esp8266/hardware/esp8266/3.1.2/cores/esp8266/Arduino.h:34,
+                 from /Users/romain/Library/Caches/arduino/sketches/F7206D072E1622058537E6E137EA7197/sketch/HLK-2410-ESP-01.ino.cpp:1:
+/Users/romain/Library/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0/type_traits: In substitution of 'template<bool _Cond, class _Tp> using enable_if_t = typename std::enable_if::type [with bool _Cond = false; _Tp = unsigned int]':
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:141:11:   required by substitution of 'template<class Cursor, class ... Args> constexpr std::enable_if_t<is_cursor_writer_v<Cursor>, unsigned int> print_to(Cursor, const char*, Args&& ...) [with Cursor = char*; Args = {long long int}]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:100:20:   required from 'constexpr size_t print_value_to(Cursor, T&) [with Cursor = char*; T = unsigned int; size_t = unsigned int]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:61:33:   required from 'constexpr size_t print_key_value_pair(uint32_t, size_t, int&, Cursor, const char*, T&, Rest&& ...) [with Cursor = char*; T = unsigned int; Rest = {}; size_t = unsigned int; uint32_t = unsigned int]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:209:38:   required from 'constexpr size_t print_json(uint32_t, Cursor, Args&& ...) [with Cursor = char*; Args = {const char (&)[10], unsigned int&}; size_t = unsigned int; uint32_t = unsigned int]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/JSON/JSONPrinter.h:43:22:   required from 'std::enable_if_t<key_value_checker_v<type_list<bool, int, float, double, std::basic_string_view<char, std::char_traits<char> >, NullType>, type_list<UnknownValueType>, type_list<signed char, short int, int, unsigned char, short unsigned int, unsigned int, char, float, UnknownValueType>, Args ...>, unsigned int> JSON::print(uint32_t, Cursor, Args&& ...) [with Cursor = char*; Args = {const char (&)[10], unsigned int&}; std::enable_if_t<key_value_checker_v<type_list<bool, int, float, double, std::basic_string_view<char, std::char_traits<char> >, NullType>, type_list<UnknownValueType>, type_list<signed char, short int, int, unsigned char, short unsigned int, unsigned int, char, float, UnknownValueType>, Args ...>, unsigned int> = unsigned int; uint32_t = unsigned int]'
+/Volumes/GAMMA/DEVELOPPEMENT/Arduino/HLK-2410-ESP-01/HLK-2410-ESP-01.ino:199:62:   required from here
+/Users/romain/Library/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0/type_traits:2554:11: error: no type named 'type' in 'struct std::enable_if<false, unsigned int>'
+ 2554 |     using enable_if_t = typename enable_if<_Cond, _Tp>::type;

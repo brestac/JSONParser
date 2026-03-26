@@ -2,6 +2,7 @@
 
 #include "constants.h"
 #include "macros.h"
+#include "utils.h"
 
 #ifdef ARDUINO
 #include <Stream.h>
@@ -83,9 +84,9 @@ private:
 
 class StreamCursor {
 public:
-    explicit StreamCursor(Stream &stream)
+    StreamCursor(Stream &stream)
         : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
-            JSON_DEBUG_INFO("StreamCursor created\n");
+            JSON_DEBUG_TYPES("StreamCursor created from %s\n", stream);
         }
 
     // --------------------------------------------------------
