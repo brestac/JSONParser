@@ -91,12 +91,12 @@ args = "Arduino tests"
 name = "Desktop tests"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "make && ./main"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "make desktop-test && ./desktop-test"
 
 [[workflows.workflow]]
 name = "Arduino tests"

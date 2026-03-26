@@ -430,7 +430,7 @@ int main() {
   testArrayParsing();
   testArrayCallback();
   testGeoJSONParsingSmall();
-  // testGeoJSONParsingBig();   // requires tests/canada.json
+  testGeoJSONParsingBig();   // requires tests/canada.json
 
   std::printf("\n============================================================\n");
   std::printf("Results: %d passed, %d failed\n", passed, failed);
