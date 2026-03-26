@@ -233,10 +233,10 @@ template <typename T, typename = void>
 struct is_cursor_writer : std::false_type {};
 
 template <typename Cursor>
-struct is_cursor_reader<Cursor> : std::is_same<JSON::PointerCursorReader, remove_cvref_t<Cursor>> {};
+struct is_cursor_reader<Cursor> : std::is_same<const JSON:: PointerCursorReader, remove_cvref_t<Cursor>> {};
 
 template <>
-struct is_cursor_reader<JSON::PointerCursorReader> : std::true_type {};
+struct is_cursor_reader<const JSON:: PointerCursorReader> : std::true_type {};
 
 template <>
 struct is_cursor_writer<JSON::PointerCursorWriter> : std::true_type {};

@@ -126,32 +126,32 @@ JSON::parse(uint32_t &mask, StreamCursor& cursor, T &jsonObjects) {
 
 #else
 
-JSON::ParseResult UnknownValueType::fromJSON(const JSON::PointerCursorReader& cursor) {
+JSON::ParseResult UnknownValueType::fromJSON(const JSON:: PointerCursorReader& cursor) {
   uint32_t m = 0;
-  PointerCursorReader c = cursor;
+  const PointerCursorReader c = cursor;
   return JSON::_parse(m, c);
 }
 
-JSON::ParseResult JSONCallbackObject::fromJSON(const JSON::PointerCursorReader& cursor) {
-  PointerCursorReader c = cursor;
+JSON::ParseResult JSONCallbackObject::fromJSON(const JSON:: PointerCursorReader& cursor) {
+  const PointerCursorReader c = cursor;
   return JSON::_parse(c, this->callback, this->array_index);
 }
 
 template <typename... Args>
 JSON::ParseResult JSON::parse(uint32_t &mask, const PointerCursorReader &cursor, Args &&...args) {
-  PointerCursorReader c = cursor;
+  const PointerCursorReader c = cursor;
   return JSON::_parse(mask, c, std::forward<Args>(args)...);
 }
 
 template <typename T>
 std::enable_if_t<is_derived_json_data_container_v<T>, JSON::ParseResult>
 JSON::parse(uint32_t &mask, const PointerCursorReader& cursor, T &jsonObjects) {
-  PointerCursorReader c = cursor;
+  const PointerCursorReader c = cursor;
   return JSON::_parse(mask, c, jsonObjects);
 }
 
 JSON::ParseResult JSON::parse(const PointerCursorReader& cursor, const JSONCallback& cb, int arrayIndex) {
-  PointerCursorReader c = cursor;
+  const PointerCursorReader c = cursor;
   return JSON::_parse(c, cb, arrayIndex);
 }
 

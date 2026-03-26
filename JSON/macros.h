@@ -83,7 +83,7 @@
 #ifdef ARDUINO
 #define STREAM_CURSOR_OVERRIDE(...)\
 JSON::ParseResult fromJSON(const PointerCursorReader& cursor) override {\
-  PointerCursorReader _c = cursor;\
+  const PointerCursorReader _c = cursor;\
   return JSON::_parse(this->updated, _c, MACRO(__VA_ARGS__));\
 }\
 size_t toJSON(PointerCursorWriter& writer, bool updates = true) override {\

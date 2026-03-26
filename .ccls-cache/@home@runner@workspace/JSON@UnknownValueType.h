@@ -13,7 +13,7 @@ struct UnknownValueType : JSONData {
 
   constexpr UnknownValueType() = default;
 
-  JSON::ParseResult fromJSON(const JSON::PointerCursorReader& cursor) override;
+  JSON::ParseResult fromJSON(const JSON:: PointerCursorReader& cursor) override;
 
   size_t toJSON(JSON::PointerCursorWriter& writer, bool updates) override {
     return writer.write("null");
