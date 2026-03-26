@@ -6,3 +6,4 @@ replit.nix
 rapidjson/
 tests/
 main
+arduino-test

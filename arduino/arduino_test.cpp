@@ -2,6 +2,7 @@
 // Tests the Arduino/Stream code paths of the JSON library on desktop.
 // Compile with:  make arduino-test
 // Run with:      ./arduino-test
+#define JSON_DEBUG_LEVEL 1
 
 #define ARDUINO 1
 #include "JSON/JSON.h"
@@ -167,6 +168,26 @@ static void test_roundtrip() {
     check(diff > -0.1f && diff < 0.1f, "roundtrip temperature ≈ 19.8");
 }
 
+static void test_print_to_buffer() {
+    printf("\n--- Test: print ---\n");
+    Sensor s;
+    s.id          = 7;
+    s.temperature = 36.6f;
+    s.active      = true;
+
+    char buf[256] = {};
+    s.toJSON(buf, sizeof(buf));
+    printf("  Serialized: %s\n", buf);
+}
+
+static void test_print_to_serial() {
+    printf("\n--- Test: print ---\n");
+    Sensor s;
+    s.id          = 7;
+    s.temperature = 36.6f;
+    s.active      = true;
+    s.toJSON(Serial);
+}
 // ----------------------------------------------------------------
 // main
 // ----------------------------------------------------------------
@@ -179,6 +200,9 @@ int main() {
     test_parse_via_stream_template();
     test_serialize_to_stream();
     test_roundtrip();
+
+    test_print_to_buffer();
+    test_print_to_serial();
 
     printf("\n=== Results: %d passed, %d failed ===\n", passed, failed);
     return failed == 0 ? 0 : 1;

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "JSONStreamParser.h"
 #include "JSONPrinter.h"
 #include "macros.h"
@@ -124,13 +126,15 @@ JSON::parse(uint32_t &mask, StreamCursor& cursor, T &jsonObjects) {
 
 #else
 
-JSON::ParseResult UnknownValueType::fromJSON(JSON::PointerCursorReader cursor) {
+JSON::ParseResult UnknownValueType::fromJSON(const JSON::PointerCursorReader& cursor) {
   uint32_t m = 0;
-  return JSON::_parse(m, cursor);
+  PointerCursorReader c = cursor;
+  return JSON::_parse(m, c);
 }
 
-JSON::ParseResult JSONCallbackObject::fromJSON(JSON::PointerCursorReader cursor) {
-  return JSON::_parse(cursor, this->callback, this->array_index);
+JSON::ParseResult JSONCallbackObject::fromJSON(const JSON::PointerCursorReader& cursor) {
+  PointerCursorReader c = cursor;
+  return JSON::_parse(c, this->callback, this->array_index);
 }
 
 template <typename... Args>

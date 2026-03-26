@@ -22,8 +22,7 @@ template <typename Cursor, typename T, typename... Rest>
 size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, Cursor output, const char *key, T &value, Rest &&...rest);
 
 template <typename Cursor, typename... Args>
-std::enable_if_t<key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>, size_t>
-constexpr print_json(uint32_t mask, Cursor output, Args &&...args);
+constexpr size_t print_json(uint32_t mask, Cursor output, Args &&...args);
 
 template <typename Cursor, typename T>
 size_t constexpr print_array_to(Cursor output, T &array);
@@ -197,8 +196,7 @@ size_t constexpr print_hex_to(Cursor output, T (&value)[N]) {
 }
 
 template <typename Cursor, typename... Args>
-std::enable_if_t<key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>, size_t>
-constexpr print_json(uint32_t mask, Cursor output, Args &&...args) {
+constexpr size_t print_json(uint32_t mask, Cursor output, Args &&...args) {
   static_assert(sizeof...(Args) % 2 == 0,
                 "Le nombre d'arguments doit être pair");
 

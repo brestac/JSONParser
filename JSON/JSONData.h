@@ -2,11 +2,11 @@
 
 #include "ParseResult.h"
 #include "PointerCursor.h"
-//#include "PointerCursorWriter.h"
 
 #ifdef ARDUINO
-#include <Stream.h>
 #include "StreamCursor.h"
+//#include <HardwareSerial.h>
+#include <Stream.h>
 #else
 #include "PointerCursorPrinter.h"
 #endif
@@ -21,14 +21,14 @@ public:
   uint32_t updated = 0;
 
   virtual ~JSONData() = default;
-  virtual JSON::ParseResult fromJSON(PointerCursorReader cursor) = 0;
-  virtual size_t toJSON(PointerCursorWriter cursor, bool updates = true) = 0;
+  virtual JSON::ParseResult fromJSON(const PointerCursorReader& cursor) = 0;
+  virtual size_t toJSON(PointerCursorWriter& cursor, bool updates = true) = 0;
 
 #ifdef ARDUINO
-  virtual JSON::ParseResult fromJSON(StreamCursor& cursor) = 0;
+  virtual JSON::ParseResult fromJSON(StreamCursor &cursor) = 0;
   virtual size_t toJSON(StreamCursor& cursor, bool updates = true) = 0;
 #else
-  virtual size_t toJSON(PointerCursorPrinter cursor, bool updates = true) = 0;
+  virtual size_t toJSON(PointerCursorPrinter& cursor, bool updates = true) = 0;
 #endif
 
   JSON::ParseResult fromJSON(char *input, size_t size);
@@ -42,10 +42,10 @@ public:
 //  fromJSON
 ////////////////////////////////////////////////////////////////////////////////
 JSON::ParseResult JSONData::fromJSON(char *input, size_t size) {
-  PointerCursorReader cursor(input, size);
+  const PointerCursorReader cursor(input, size);
   return fromJSON(cursor);
 }
- 
+
 ////////////////////////////////////////////////////////////////////////////////
 //  toJSON
 ////////////////////////////////////////////////////////////////////////////////

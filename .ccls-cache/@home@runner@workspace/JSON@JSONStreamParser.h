@@ -334,9 +334,11 @@ size_t JSONParserBase<Cursor>::scan_digits(size_t max_length) {
 }
 
 // ── parse_string ─────────────────────────────────────────────
-// Collecte les caractères entre guillemets dans un buffer local,
-// puis construit une string_view dessus avant d'assigner.
-// Taille max = MAX_VALUE_LENGTH.
+// For PointerCursorReader without escape sequences: constructs a string_view
+// pointing directly into the input buffer (zero-copy, avoids static buffer
+// aliasing when the same field is parsed into multiple struct instances).
+// For StreamCursor or strings containing escape sequences: copies into a
+// static buffer (single-parser use only; char[] targets always copy safely).
 template <typename Cursor>
 template <typename V>
 ParseValueResult JSONParserBase<Cursor>::parse_string(V &arg_value) {
@@ -344,7 +346,37 @@ ParseValueResult JSONParserBase<Cursor>::parse_string(V &arg_value) {
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
 
-  // Buffer local sur la stack pour la valeur de chaîne
+  if constexpr (std::is_same_v<remove_cvref_t<Cursor>, PointerCursorReader>) {
+    // Peek ahead to find closing quote without advancing, detecting escapes.
+    const char *str_start = _cursor.ptr();
+    size_t n = 0;
+    bool has_escape = false;
+    while (n < JSON::MAX_VALUE_LENGTH) {
+      int c = _cursor.peek(n);
+      if (c < 0)
+        return ParseValueResult::NO_RESULT;
+      char ch = static_cast<char>(c);
+      if (ch == JSON_QUOTE_CHARACTER)
+        break;
+      if (ch == JSON_ESCAPE_CHARACTER) {
+        has_escape = true;
+        break;
+      }
+      n++;
+    }
+    if (!has_escape) {
+      // Zero-copy path: string_view points directly into the JSON input buffer.
+      _cursor.advance(n);
+      if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
+        return ParseValueResult::NO_RESULT;
+      std::string_view parsed_value(str_start, n);
+      return ParseValueResult::VALUE_PARSED |
+             assign_parsed_value_to_value(parsed_value, arg_value);
+    }
+    // Escape present: fall through to copy path below.
+  }
+
+  // Copy path: used for StreamCursor or when escape sequences are present.
   static char val_buf[JSON::MAX_VALUE_LENGTH + 1];
   size_t n = 0;
 
