@@ -458,6 +458,11 @@ ParseValueResult JSONParserBase<Cursor>::parse_numeric(V &arg_value) {
     JSON_DEBUG_INFO("JSONParserBase::parse_numeric integer %d\n", parsed_value);
   }
 
+  // check if parsed_value have been parsed as Infinity
+  if (parsed_value == std::numeric_limits<Type>::infinity()) {
+    return parse_infinity(arg_value);
+  }
+
   size_t consumed = static_cast<size_t>(end - start);
 
   if (consumed == 0)
