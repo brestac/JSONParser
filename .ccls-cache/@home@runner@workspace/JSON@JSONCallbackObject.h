@@ -28,11 +28,17 @@ struct JSONCallbackObject {
 
   void run(JSONValue value, int arrayIndex) {
     if (callback) {
+      JSON_DEBUG_INFO("JSONCallbackObject running callback with key %.*s array_index=%d\n", (int)key.length(), key.data(), arrayIndex);
       key.setArrayIndex(arrayIndex);
       callback(key, value, stop);
       if (stop) {
         JSON_DEBUG_INFO("JSONCallbackObject stopped\n");
       }
     }
+  }
+
+  void setArrayIndex(int index) {
+    array_index = index;
+    JSON_DEBUG_INFO("JSONCallbackObject setArrayIndex %d\n", index);
   }
 };

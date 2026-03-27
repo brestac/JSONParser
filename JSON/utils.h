@@ -5,11 +5,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
+#include <tuple>
 
 #ifdef __GXX_RTTI
 #include <typeinfo>
 #include <memory>
-#include <tuple>
 #include <cxxabi.h>
 #endif
 // include for ntohs
@@ -259,11 +259,10 @@ uint64_t now() {
       .count();
 }
 
-void str_replace(char *str, size_t size, char old_char, char new_char) {
-  for (size_t i = 0; i < size; i++) {
-    if (str[i] == old_char) {
-      str[i] = new_char;
-    }
-  }
-}
-
+// void str_replace(char *str, size_t size, char old_char, char new_char) {
+//   for (size_t i = 0; i < size; i++) {
+//     if (str[i] == old_char) {
+//       str[i] = new_char;
+//     }
+//   }
+// }

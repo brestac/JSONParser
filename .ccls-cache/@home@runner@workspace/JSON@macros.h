@@ -7,7 +7,7 @@
   #include <Stream.h>
   #define PRINT_FUNC Serial.printf
 #else
-  #define PRINT_FUNC printf
+  #define PRINT_FUNC ::printf
 #endif
 
 #define COLOR_0 "\x1b[30m"

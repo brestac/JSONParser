@@ -15,7 +15,7 @@ template <typename... Args>
 ParseResult parse(uint32_t &mask, const PointerCursorReader& cursor, Args &&...args);
 
 template <typename T>
-std::enable_if_t<is_derived_json_data_container_v<T>, ParseResult>
+std::enable_if_t<is_derived_json_data_container_v<remove_cvref_t<T>>, ParseResult>
 parse(uint32_t &mask, const PointerCursorReader& cursor, T &jsonObjects);
 
 ParseResult parse(const PointerCursorReader &cursor, const JSONCallback& cb, int arrayIndex = -1);
@@ -26,9 +26,9 @@ ParseResult parse(StreamCursor& cursor, const JSONCallback& cb, int arrayIndex =
 template <typename... Args>
 ParseResult parse(uint32_t &mask, StreamCursor& cursor, Args &&...args);
 
-template <typename T>
-std::enable_if_t<is_derived_json_data_container_v<T>, ParseResult>
-parse(uint32_t &mask, StreamCursor& cursor, T &jsonObjects);
+// template <typename T>
+// std::enable_if_t<is_derived_json_data_container_v<T>, ParseResult>
+// parse(uint32_t &mask, StreamCursor& cursor, T &jsonObjects);
 #endif
 
 template <typename Cursor>
@@ -40,7 +40,7 @@ std::enable_if_t<is_cursor_reader_v<Cursor> && key_value_checker_v<parsed_types,
 _parse(uint32_t &mask, Cursor& cursor, Args &&...args);
   
 template <typename Cursor, typename T>
-std::enable_if_t<is_cursor_reader_v<Cursor> && is_derived_json_data_container_v<T>, ParseResult>
+std::enable_if_t<is_cursor_reader_v<Cursor> && is_derived_json_data_container_v<remove_cvref_t<T>>, ParseResult>
 _parse(uint32_t &mask, Cursor& cursor, T &jsonObjects);
 
 ////////////////////////////////////////////////////////////
@@ -82,7 +82,7 @@ _parse(uint32_t &mask, Cursor& cursor, Args &&...args) {
 //  Parse Top level array With Cursor
 ///////////////////////////////////////////////////////////
 template <typename Cursor, typename T>
-std::enable_if_t<is_cursor_reader_v<Cursor> && is_derived_json_data_container_v<T>, JSON::ParseResult>
+std::enable_if_t<is_cursor_reader_v<Cursor> && is_derived_json_data_container_v<remove_cvref_t<T>>, JSON::ParseResult>
 _parse(uint32_t &mask, Cursor& cursor, T &jsonObjects) {
   uint64_t start = now();
 
@@ -143,7 +143,7 @@ JSON::ParseResult JSON::parse(uint32_t &mask, const PointerCursorReader &cursor,
 }
 
 template <typename T>
-std::enable_if_t<is_derived_json_data_container_v<T>, JSON::ParseResult>
+std::enable_if_t<is_derived_json_data_container_v<remove_cvref_t<T>>, JSON::ParseResult>
 JSON::parse(uint32_t &mask, const PointerCursorReader& cursor, T &jsonObjects) {
   const PointerCursorReader c = cursor;
   return JSON::_parse(mask, c, jsonObjects);

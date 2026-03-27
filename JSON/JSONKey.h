@@ -99,7 +99,7 @@ struct JSONKey {
 
   const char *data() const { return _key.data(); }
 
-  int index() const { return _index; }
+  const char *getKey() const { return _key.data(); }
 
   int getIndex() const { return _index; }
 

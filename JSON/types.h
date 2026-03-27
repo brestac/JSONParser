@@ -46,15 +46,24 @@
 //   Type checker
 // ---------------------------------------------------------------------------
 
-template <class... Args> constexpr bool args_exist = (sizeof...(Args) > 0);
+template <size_t N, class... Args>
+decltype(auto) getNthArg(Args&&... args) {
+    return std::get<N>(std::forward_as_tuple(std::forward<Args>(args)...));
+}
 
-// template <class... Args> constexpr bool no_args = sizeof...(Args) == 0;
+template <typename... Args>
+struct first_arg_type;
+
+template <typename First, typename... Rest>
+struct first_arg_type<First, Rest...> {
+    using type = First;
+};
+
+template <typename... Args>
+using first_arg_type_t = typename first_arg_type<Args...>::type;
 
 template <class... Args>
-constexpr bool args_are_pairs = (sizeof...(Args) % 2) == 0;
-
-template <class... Args>
-constexpr bool args_are_valid = args_exist<Args...> &&args_are_pairs<Args...>;
+constexpr bool args_are_pairs = (sizeof...(Args) > 0) && (sizeof...(Args) % 2) == 0;
 
 // template <typename T>
 // constexpr bool is_not_pointer = !std::is_pointer<T>::value;
@@ -215,7 +224,7 @@ template <typename T>
 struct is_derived_json_data<T *> : is_derived_json_data<T> {};
 
 template <typename T>
-inline constexpr bool is_derived_json_data_v = is_derived_json_data<T>::value;
+inline constexpr bool is_derived_json_data_v = is_derived_json_data<remove_cvref_t<T>>::value;
 
 template <typename T>
 constexpr bool is_derived_json_data_container_v =
@@ -354,8 +363,11 @@ struct key_value_checker<CastableTypeList, TypeList, ArrayTypeList,
                             ArrayTypeList /*, ArrayArrayTypeList*/, Rest...>> {
 };
 
-template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
-          /*typename ArrayArrayTypeList,*/ typename... Args>
-bool constexpr key_value_checker_v = args_are_pairs<Args...>
-    &&key_value_checker<CastableTypeList, TypeList, ArrayTypeList /*,
-ArrayArrayTypeList*/, Args...>::value;
+template <class... Args>
+constexpr bool arg_is_valid = false;
+
+template <class Arg>
+constexpr bool arg_is_valid<Arg> = std::is_same_v<JSONCallback, remove_cvref_t<Arg>> || is_derived_json_data_container_v<remove_cvref_t<Arg>>;
+
+template <typename CastableTypeList, typename TypeList, typename ArrayTypeList, typename... Args>
+bool constexpr key_value_checker_v = arg_is_valid<Args...> || key_value_checker<CastableTypeList, TypeList, ArrayTypeList, Args...>::value;
