@@ -52,11 +52,12 @@ struct NullType {};
 struct InfinityType {};
 struct NaNType {};
 struct UnknownValueType;
+struct JSONCallbackObject;
 
 using parsed_types =
     type_list<bool, int, float, double, std::string_view, NullType>;
 
-using arguments_types = type_list<UnknownValueType /*, JSONCallbackObject*/>;
+using arguments_types = type_list<UnknownValueType, JSONCallbackObject>;
 using arguments_array_types =
     type_list<int8_t, int16_t, int32_t, uint8_t, uint16_t, uint32_t, char,
               float, UnknownValueType>;

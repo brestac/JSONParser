@@ -37,8 +37,12 @@ struct JSONCallbackObject {
     }
   }
 
-  void setArrayIndex(int index) {
-    array_index = index;
-    JSON_DEBUG_INFO("JSONCallbackObject setArrayIndex %d\n", index);
+  void setArrayIndex(int anIndex) {
+    this->array_index = anIndex;
+    JSON_DEBUG_INFO("JSONCallbackObject setArrayIndex %d\n", anIndex);
+  }
+
+  void setKey(JSONKey aKey) {
+    this->key = aKey;
   }
 };

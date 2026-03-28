@@ -93,15 +93,14 @@ public:
 
   // ── API publique (identique à JSONParser) ─────────────────
 
-  void parse(JSONCallback& cb);
+  //void parse(const JSONCallbackObject& cb);
   
   template <typename T>
   enable_if_t<is_derived_json_data_container_v<T>, void>
-  parse(T jsonObjects);
+  parse(T& jsonObjects);
   
   template <typename... Args>
-  enable_if_t<args_are_pairs<Args...>, void>
-  parse(Args &&...args);
+  void parse(Args &&...args);
 
   size_t parsed_length() { return _cursor.bytesConsumed(); }
   ParserState get_state() { return _state; }
@@ -206,11 +205,12 @@ private:
   // ── Méthodes de parsing (logique identique à JSONParser) ───
 
   bool parse_key();
-  ParseValueResult parse_value(const JSONCallback &callback);
+
+  ParseValueResult parse_value(JSONCallbackObject& cb);
 
   template <class... Args>
-  //enable_if_t<args_are_pairs<Args...>, ParseValueResult>
-  ParseValueResult parse_value(Args &&...args);
+  enable_if_t<args_are_pairs<Args...>, ParseValueResult>
+  parse_value(Args &&...args);
 
   template <typename V> ParseValueResult parse_string(V &v);
   template <typename V, typename Type> ParseValueResult parse_numeric(V &v);
@@ -221,7 +221,7 @@ private:
   template <typename V> ParseValueResult parse_null(V &v);
   template <typename V> ParseValueResult parse_nan(V &v);
   template <typename V> ParseValueResult parse_infinity(V &v);
-  ParseValueResult parse_array(JSONCallback &cb);
+  //ParseValueResult parse_array(JSONCallbackObject &cb);
   ParseValueResult parse_array(UnknownValueType);
 
   template <typename V> ParseValueResult parse_object(V &v);
@@ -623,18 +623,27 @@ ParseValueResult JSONParserBase<Cursor>::parse_unknown_value() {
 
 // ── parse_value (callback) ────────────────────────────────────
 template <typename Cursor>
-ParseValueResult
-JSONParserBase<Cursor>::parse_value(const JSONCallback &callback) {
+ParseValueResult JSONParserBase<Cursor>::parse_value(JSONCallbackObject& cb) {
+  JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value with callback\n");
+
   JSONKey parsed_key(_key_start, _key_length);
-  JSONCallbackObject cb(callback, parsed_key);
+  cb.setKey(parsed_key);
+
+  if (_is_top_level_array) {
+    JSON_DEBUG_INFO("JSONParserBase<Cursor>::parse_value top level array\n");
+    return ParseValueResult::KEY_FOUND | parse_array(cb);
+  }
+  
+  //cb.setArrayIndex(_array_index);
   return ParseValueResult::KEY_FOUND | parse_into_value(cb);
 }
 
 // ── parse_value (args) ────────────────────────────────────────
 template <typename Cursor>
 template <class... Args>
-//enable_if_t<args_are_pairs<Args...>, ParseValueResult>
-ParseValueResult JSONParserBase<Cursor>::parse_value(Args &&...args) {
+enable_if_t<args_are_pairs<Args...>, ParseValueResult>
+JSONParserBase<Cursor>::parse_value(Args &&...args) {
+  JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value\n");
   JSONKey parsed_key(_key_start, _key_length);
   return searchValueArgumentForKey(0, parsed_key, std::forward<Args>(args)...);
 }
@@ -683,15 +692,15 @@ ParseValueResult JSONParserBase<Cursor>::parse_into_value(V &arg_value) {
   }
 }
 
-template <typename Cursor>
-void JSONParserBase<Cursor>::parse(JSONCallback& cb) {
+// template <typename Cursor>
+// void JSONParserBase<Cursor>::parse(const JSONCallbackObject& cb) {
    
-}
+// }
 
 template <typename Cursor>
 template <typename T>
 enable_if_t<is_derived_json_data_container_v<T>, void>
-JSONParserBase<Cursor>::parse(T jsonObjects) {
+JSONParserBase<Cursor>::parse(T& jsonObjects) {
   JSON_DEBUG_INFO("JSONParserBase::parse with derived JSONData objects\n");
   _is_top_level_array = true;
   parse_array(jsonObjects);
@@ -701,29 +710,26 @@ JSONParserBase<Cursor>::parse(T jsonObjects) {
 // ── parse (boucle principale) ─────────────────────────────────
 template <typename Cursor>
 template <typename... Args>
-enable_if_t<args_are_pairs<Args...>, void>
-JSONParserBase<Cursor>::parse(Args &&...args) {
+void JSONParserBase<Cursor>::parse(Args &&...args) {
 
-  _nArgs = (sizeof...(Args));
-
-  n");
-#ifdef __EXCEPTIONS
-  static_assert(false, "Invalid parameters");
-#endif
-}
-
-  _nArgs = nArgs;
+  _nArgs = sizeof...(Args);
   size_t iteration = 0;
 
   while (!_cursor.eof() && iteration <= JSON::MAX_ITERATIONS) {
     iteration++;
-#if JSON_DEBUG_L  parse_array(arg);
-            _state = END;
-            break;
-          }
-        }
+#if JSON_DEBUG_LEVEL > 0
+    print_state(iteration);
+#endif
+    switch (_state) {
+    case IDLE:
+      skip_spaces();
+
+      if (is_array_start()) {
+        _is_top_level_array = true;
+        _state = VALUE;
+        continue;
       }
-      
+
       if (is_object_start()) {
         _cursor.advance();
         _state = KEY;
@@ -758,7 +764,9 @@ JSONParserBase<Cursor>::parse(Args &&...args) {
         _state = END;
         continue;
       }
+      
       ParseValueResult r = parse_value(std::forward<Args>(args)...);
+      
       if (!r.key()) {
         parse_unknown_value();
         set_state(COMMA);
@@ -797,8 +805,7 @@ JSONParserBase<Cursor>::parse(Args &&...args) {
       return;
 
     case STOPPED:
-      JSON_DEB
-UG_INFO("JSONParserBase: stopped by callback\n");
+      JSON_DEBUG_INFO("JSONParserBase: stopped by callback\n");
       return;
 
     default:
@@ -1013,15 +1020,14 @@ constexpr To JSONParserBase<Cursor>::clamp_to_max(From v) {
   if constexpr (std::is_signed_v<To>) {
     if (static_cast<From>(std::numeric_limits<To>::min()) > v)
       return std::numeric_limits<To>::min();
-  }
-  return static_cast<To>(v);
+  // }
+  return static_cast<To>(// v);
 }
 
-// ── parse_array ───────────────────────────────────────────────
-
+// ── parse_array ────────────────────────────────────────Object───────
+// 
 template <typename Cursor>
-ParseValueResult JSONParserBase<Cursor>::parse_array(JSONCallback &cb) {
-  JSON_DEBUG_INFO("JSONParserBase::parse_top_level_array with callback\n");
+ParseValueResult JSONParserBase<Cursor>::parse_a//  with callback\n");
   JSONCallbackObject cb_obj(cb, JSONKey("$ROOT"));
   return parse_array(cb_obj);
 }
@@ -1081,7 +1087,7 @@ JSONParserBase<Cursor>::parse_into_array_at_index(JSONCallbackObject cb, size_t 
   cb.setArrayIndex(index);
 
   if (_is_top_level_array) {
-    JSON_DEBUG_INFO("JSONParserBase::parse_into_array_at_index top level array " "index=%zu\n", index );
+   JSON_DEBUG_INFO("JSONParserBase::parse_into_array_at_index top level array " "index=%zu\n", index );
     return parse_object(cb);
   }
   

@@ -49,15 +49,18 @@ _parse(uint32_t &mask, Cursor& cursor, Args &&...args);
 template <typename Cursor>
 std::enable_if_t<is_cursor_reader_v<Cursor>, ParseResult>
 _parse(Cursor& cursor, const JSONCallback &cb, int arrayIndex) {
-  uint64_t start = now();
+  // uint64_t start = now();
 
-  JSONParserBase<Cursor> parser(cursor);
-  parser.setArrayIndex(arrayIndex);
-  parser.parse(cb);
+  // JSONParserBase<Cursor> parser(cursor);
+  // parser.setArrayIndex(arrayIndex);
+  // parser.parse(cb);
 
-  uint64_t end = now();
+  // uint64_t end = now();
 
-  return resultForParser(parser, end - start);
+  // return resultForParser(parser, end - start);
+  uint32_t mask = 0;
+  JSONCallbackObject cb_obj(cb, "$ROOT");
+  return _parse(mask, cursor, cb_obj);
 }
 
 ////////////////////////////////////////////////////////////
@@ -69,7 +72,7 @@ _parse(uint32_t &mask, Cursor& cursor, Args &&...args) {
   uint64_t start = now();
 
   JSONParserBase<Cursor> parser(cursor);
-  parser._automask = are_keys(std::forward<Args>(args)...);
+  parser._automask = are_generic_keys(std::forward<Args>(args)...);
   parser.parse(std::forward<Args>(args)...);
   mask = parser.keyMask;
 

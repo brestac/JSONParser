@@ -1,9 +1,1 @@
-.agents/
-.ccls-cache/
-.git/
-.replit
-replit.nix
-rapidjson/
-tests/
-main
-arduino-test
+

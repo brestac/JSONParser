@@ -41,13 +41,18 @@ bool constexpr is_key(const char *raw_key) {
   return (get_json_key(raw_key, str_length(raw_key)).length() > 0) && (get_json_key_index(raw_key, str_length(raw_key)) == -1);
 }
 
-inline bool are_keys() {
+inline bool are_generic_keys() {
   return true;
 }
 
+template <typename Value>
+constexpr bool are_generic_keys(Value) {
+  return false;
+}
+
 template <typename Key, typename Value, typename... Rest>
-constexpr bool are_keys(Key key, Value value, Rest... rest) {
-  return (is_key(key)) && (are_keys(rest...));
+constexpr bool are_generic_keys(Key key, Value value, Rest... rest) {
+  return (is_key(key)) && (are_generic_keys(rest...));
 }
 
 constexpr uint32_t hash32(const char *str, size_t len) {

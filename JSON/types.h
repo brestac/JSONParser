@@ -48,6 +48,8 @@
 
 template <size_t N, class... Args>
 decltype(auto) getNthArg(Args&&... args) {
+    static_assert(N < sizeof...(Args), "Index out of bounds");
+
     return std::get<N>(std::forward_as_tuple(std::forward<Args>(args)...));
 }
 
@@ -63,7 +65,7 @@ template <typename... Args>
 using first_arg_type_t = typename first_arg_type<Args...>::type;
 
 template <class... Args>
-constexpr bool args_are_pairs = (sizeof...(Args) > 0) && (sizeof...(Args) % 2) == 0;
+constexpr bool args_are_pairs = /*(sizeof...(Args) > 0) &&*/ (sizeof...(Args) % 2) == 0;
 
 // template <typename T>
 // constexpr bool is_not_pointer = !std::is_pointer<T>::value;
@@ -367,7 +369,7 @@ template <class... Args>
 constexpr bool arg_is_valid = false;
 
 template <class Arg>
-constexpr bool arg_is_valid<Arg> = std::is_same_v<JSONCallback, remove_cvref_t<Arg>> || is_derived_json_data_container_v<remove_cvref_t<Arg>>;
+constexpr bool arg_is_valid<Arg> = std::is_same_v<JSONCallbackObject, remove_cvref_t<Arg>> || is_derived_json_data_container_v<remove_cvref_t<Arg>>;
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList, typename... Args>
 bool constexpr key_value_checker_v = arg_is_valid<Args...> || key_value_checker<CastableTypeList, TypeList, ArrayTypeList, Args...>::value;
