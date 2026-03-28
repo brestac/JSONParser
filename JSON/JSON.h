@@ -39,9 +39,9 @@ template <typename Cursor, typename... Args>
 std::enable_if_t<is_cursor_reader_v<Cursor> && key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>, ParseResult>
 _parse(uint32_t &mask, Cursor& cursor, Args &&...args);
   
-template <typename Cursor, typename T>
-std::enable_if_t<is_cursor_reader_v<Cursor> && is_derived_json_data_container_v<remove_cvref_t<T>>, ParseResult>
-_parse(uint32_t &mask, Cursor& cursor, T &jsonObjects);
+// template <typename Cursor, typename T>
+// std::enable_if_t<is_cursor_reader_v<Cursor> && is_derived_json_data_container_v<remove_cvref_t<T>>, ParseResult>
+// _parse(uint32_t &mask, Cursor& cursor, T &jsonObjects);
 
 ////////////////////////////////////////////////////////////
 //  Parse With Callback
@@ -81,19 +81,19 @@ _parse(uint32_t &mask, Cursor& cursor, Args &&...args) {
 ////////////////////////////////////////////////////////////
 //  Parse Top level array With Cursor
 ///////////////////////////////////////////////////////////
-template <typename Cursor, typename T>
-std::enable_if_t<is_cursor_reader_v<Cursor> && is_derived_json_data_container_v<remove_cvref_t<T>>, JSON::ParseResult>
-_parse(uint32_t &mask, Cursor& cursor, T &jsonObjects) {
-  uint64_t start = now();
+// template <typename Cursor, typename T>
+// std::enable_if_t<is_cursor_reader_v<Cursor> && is_derived_json_data_container_v<remove_cvref_t<T>>, JSON::ParseResult>
+// _parse(uint32_t &mask, Cursor& cursor, T &jsonObjects) {
+  // uint64_t start = now();
 
-  JSONParserBase<Cursor> parser(cursor);
-  parser.parse_array(jsonObjects);
-  mask = parser.keyMask;
+  // JSONParserBase<Cursor> parser(cursor);
+  // parser.parse_array(jsonObjects);
+  // mask = parser.keyMask;
 
-  uint64_t end = now();
+  // uint64_t end = now();
 
-  return resultForParser(parser, end - start);
-}
+//   return _parse(mask, cursor, "$ROOT", jsonObjects);
+// }
 
 NAMESPACE_JSON_END
 

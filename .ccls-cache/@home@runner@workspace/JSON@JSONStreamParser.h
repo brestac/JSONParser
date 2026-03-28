@@ -93,7 +93,15 @@ public:
 
   // ── API publique (identique à JSONParser) ─────────────────
 
-  template <typename... Args> void parse(Args &&...args);
+  void parse(JSONCallback& cb);
+  
+  template <typename T>
+  enable_if_t<is_derived_json_data_container_v<T>, void>
+  parse(T jsonObjects);
+  
+  template <typename... Args>
+  enable_if_t<args_are_pairs<Args...>, void>
+  parse(Args &&...args);
 
   size_t parsed_length() { return _cursor.bytesConsumed(); }
   ParserState get_state() { return _state; }
@@ -561,7 +569,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_numeric(V &arg_value) {
 template <typename Cursor>
 ParseValueResult JSONParserBase<Cursor>::parse_unknown_value() {
   JSON_DEBUG_INFO("JSONParserBase::parse_unknown_value\n");
-  [[maybe_unused]] size_t iterations = 0;
+  size_t iterations = 0;
   int depth = 0;
   bool inString = false;
   bool escape = false;
@@ -675,21 +683,30 @@ ParseValueResult JSONParserBase<Cursor>::parse_into_value(V &arg_value) {
   }
 }
 
+template <typename Cursor>
+void JSONParserBase<Cursor>::parse(JSONCallback& cb) {
+   
+}
+
+template <typename Cursor>
+template <typename T>
+enable_if_t<is_derived_json_data_container_v<T>, void>
+JSONParserBase<Cursor>::parse(T jsonObjects) {
+  JSON_DEBUG_INFO("JSONParserBase::parse with derived JSONData objects\n");
+  _is_top_level_array = true;
+  parse_array(jsonObjects);
+  _state = END;
+}
+
 // ── parse (boucle principale) ─────────────────────────────────
 template <typename Cursor>
 template <typename... Args>
-void JSONParserBase<Cursor>::parse(Args &&...args) {
+enable_if_t<args_are_pairs<Args...>, void>
+JSONParserBase<Cursor>::parse(Args &&...args) {
 
-constexpr size_t nArgs = sizeof...(Args);
+  _nArgs = (sizeof...(Args));
 
-if constexpr (args_are_pairs<Args...>) {
-  JSON_DEBUG_INFO("JSONParserBase::parse %zu parameter pairs\n", nArgs);
-} else if constexpr (nArgs == 0) {
-  JSON_DEBUG_INFO("JSONParserBase::parse with no args (skip)\n");
-} else if constexpr (nArgs == 1){
-  JSON_DEBUG_INFO("JSONParserBase::parse with callback\n");
-} else {
-  JSON_DEBUG_ERROR("JSONParserBase::parse invalid parameters\n");
+  n");
 #ifdef __EXCEPTIONS
   static_assert(false, "Invalid parameters");
 #endif
@@ -700,19 +717,7 @@ if constexpr (args_are_pairs<Args...>) {
 
   while (!_cursor.eof() && iteration <= JSON::MAX_ITERATIONS) {
     iteration++;
-#if JSON_DEBUG_LEVEL > 0
-    print_state(iteration);
-#endif
-    switch (_state) {
-    case IDLE:
-      skip_spaces();
-
-      if constexpr (nArgs == 1) {
-        auto arg = getNthArg<0>(std::forward<Args>(args)...);
-        using arg_type = remove_cvref_t<decltype(arg)>;
-        if constexpr (std::is_same_v<arg_type, JSONCallback> || is_derived_json_data_container_v<arg_type>) {
-          if (is_array_start()) {
-           parse_array(arg);
+#if JSON_DEBUG_L  parse_array(arg);
             _state = END;
             break;
           }
@@ -792,7 +797,8 @@ if constexpr (args_are_pairs<Args...>) {
       return;
 
     case STOPPED:
-      JSON_DEBUG_INFO("JSONParserBase: stopped by callback\n");
+      JSON_DEB
+UG_INFO("JSONParserBase: stopped by callback\n");
       return;
 
     default:
