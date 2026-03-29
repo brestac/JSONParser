@@ -157,7 +157,7 @@ public:
 
   template <typename V> ParseValueResult parse_into_value(V &arg_value);
 
-  ParseValueResult parse_into_array_at_index(JSONCallbackObject cb,
+  ParseValueResult parse_into_array_at_index(JSONCallbackObject& cb,
                                              size_t index);
 
   template <typename T, size_t N2>
@@ -569,7 +569,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_numeric(V &arg_value) {
 template <typename Cursor>
 ParseValueResult JSONParserBase<Cursor>::parse_unknown_value() {
   JSON_DEBUG_INFO("JSONParserBase::parse_unknown_value\n");
-  size_t iterations = 0;
+  [[maybe_unused]] size_t iterations = 0;
   int depth = 0;
   bool inString = false;
   bool escape = false;
@@ -634,7 +634,6 @@ ParseValueResult JSONParserBase<Cursor>::parse_value(JSONCallbackObject& cb) {
     return ParseValueResult::KEY_FOUND | parse_array(cb);
   }
   
-  //cb.setArrayIndex(_array_index);
   return ParseValueResult::KEY_FOUND | parse_into_value(cb);
 }
 
@@ -1076,11 +1075,13 @@ JSONParserBase<Cursor>::parse_array(V &arg_value) {
 }
 
 template <typename Cursor>
-ParseValueResult
+ParseValueResult 
+JSONParserBase<Cursor>::parse_into_array_at_index(JSONCallbackObject& cb, size_t index) {
+ValueResult
 JSONParserBase<Cursor>::parse_into_array_at_index(JSONCallbackObject cb, size_t index) {
   cb.setArrayIndex(index);
 
-  if (_is_top_level_array) {
+  if (_top_level_array) {
    JSON_DEBUG_INFO("JSONParserBase::parse_into_array_at_index top level array " "index=%zu\n", index );
     return parse_object(cb);
   }

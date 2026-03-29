@@ -1,4 +1,4 @@
-#define JSON_DEBUG_LEVEL 1
+#define JSON_DEBUG_LEVEL 0
 
 #include <array>
 #include <chrono>
@@ -422,11 +422,12 @@ int main() {
   std::printf("TIME:%s COMPILER:%s", ctime(&now), __VERSION__);
   std::printf("------------------------------------------------------------\n");
 
-  test_callback();
+  //test_callback();
+  testArrayCallback();
+  
   // test_parsing();
   // testIndexedParsing();
   // testArrayParsing();
-  // testArrayCallback();
   // testGeoJSONParsingSmall();
   // testGeoJSONParsingBig();   // requires tests/canada.json
 
