@@ -1,12 +1,10 @@
 #pragma once
-// ---------------------------------------------------------------------------
-//   CallBack Object
-// ---------------------------------------------------------------------------
-struct JSONKey;
-struct JSONValue;
-h"
-#include "JSONKey.h"
+
+#include <functional>
+
+#include "ParseResult.h"
 #include "JSONValue.h"
+#include "JSONKey.h"
 
 using JSONCallback = std::function<void(JSONKey, JSONValue, bool &)>;
 

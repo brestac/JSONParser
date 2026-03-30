@@ -119,11 +119,11 @@ JSON::ParseResult JSON::parse(uint32_t &mask, StreamCursor& cursor, Args &&...ar
   return JSON::_parse(mask, cursor, std::forward<Args>(args)...);
 }
 
-template <typename T>
-std::enable_if_t<is_derived_json_data_container_v<T>, JSON::ParseResult>
-JSON::parse(uint32_t &mask, StreamCursor& cursor, T &jsonObjects) {
-  return JSON::_parse(mask, cursor, jsonObjects);
-}
+// template <typename T>
+// std::enable_if_t<is_derived_json_data_container_v<T>, JSON::ParseResult>
+// JSON::parse(uint32_t &mask, StreamCursor& cursor, T &jsonObjects) {
+//   return JSON::_parse(mask, cursor, jsonObjects);
+// }
 
 #endif // ARDUINO
 

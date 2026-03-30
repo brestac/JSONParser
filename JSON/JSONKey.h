@@ -1,7 +1,8 @@
 #pragma once
 
-//#include <string_view>
-#include <cstdlib>
+#include <string_view>
+
+#include "str_length.h"
 #include "StreamScanner.h"
 #include "str_length.h"
 // ---------------------------------------------------------------------------
