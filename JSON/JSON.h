@@ -18,10 +18,10 @@ template <typename T>
 std::enable_if_t<is_derived_json_data_container_v<remove_cvref_t<T>>, ParseResult>
 parse(uint32_t &mask, const PointerCursorReader& cursor, T &jsonObjects);
 
-ParseResult parse(const PointerCursorReader &cursor, const JSONCallback& cb, int arrayIndex = -1);
+ParseResult parse(const PointerCursorReader &cursor, const JSONCallback& cb);
 
 #ifdef ARDUINO
-ParseResult parse(StreamCursor& cursor, const JSONCallback& cb, int arrayIndex = -1);
+ParseResult parse(StreamCursor& cursor, const JSONCallback& cb);
 
 template <typename... Args>
 ParseResult parse(uint32_t &mask, StreamCursor& cursor, Args &&...args);
@@ -33,7 +33,7 @@ ParseResult parse(uint32_t &mask, StreamCursor& cursor, Args &&...args);
 
 template <typename Cursor>
 std::enable_if_t<is_cursor_reader_v<Cursor>, ParseResult>
-_parse(Cursor& cursor, const JSONCallback &cb, int arrayIndex);
+_parse(Cursor& cursor, const JSONCallback &cb);
   
 template <typename Cursor, typename... Args>
 std::enable_if_t<is_cursor_reader_v<Cursor> && key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>, ParseResult>
@@ -48,7 +48,7 @@ _parse(uint32_t &mask, Cursor& cursor, Args &&...args);
 ///////////////////////////////////////////////////////////
 template <typename Cursor>
 std::enable_if_t<is_cursor_reader_v<Cursor>, ParseResult>
-_parse(Cursor& cursor, const JSONCallback &cb, int arrayIndex) {
+_parse(Cursor& cursor, const JSONCallback &cb) {
   // uint64_t start = now();
 
   // JSONParserBase<Cursor> parser(cursor);
@@ -109,11 +109,11 @@ JSON::ParseResult UnknownValueType::fromJSON(JSON::StreamCursor& cursor) {
 }
 
 JSON::ParseResult JSONCallbackObject::fromJSON(JSON::StreamCursor& cursor) {
-  return JSON::_parse(cursor, this->callback, this->array_index);
+  return JSON::_parse(cursor, this->callback);
 }
 
-JSON::ParseResult JSON::parse(StreamCursor& cursor, const JSONCallback& cb, int arrayIndex) {
-  return JSON::_parse(cursor, const_cast<const JSONCallback&>(cb), arrayIndex);
+JSON::ParseResult JSON::parse(StreamCursor& cursor, const JSONCallback& cb) {
+  return JSON::_parse(cursor, const_cast<const JSONCallback&>(cb));
 }
 
 template <typename... Args>
@@ -155,13 +155,14 @@ JSON::parse(uint32_t &mask, const PointerCursorReader& cursor, T &jsonObjects) {
 #ifndef ARDUINO
 // Callback-based PointerCursorReader parse and JSONCallbackObject::fromJSON are
 // desktop-only: on Arduino, JSONCallbackObject does not declare fromJSON(PointerCursorReader).
-JSON::ParseResult JSON::parse(const PointerCursorReader& cursor, const JSONCallback& cb, int arrayIndex) {
+JSON::ParseResult JSON::parse(const PointerCursorReader& cursor, const JSONCallback& cb) {
   const PointerCursorReader c = cursor;
-  return JSON::_parse(c, cb, arrayIndex);
+  return JSON::_parse(c, cb);
 }
 
 JSON::ParseResult JSONCallbackObject::fromJSON(const JSON::PointerCursorReader& cursor) {
+  uint32_t mask = 0;
   const PointerCursorReader c = cursor;
-  return JSON::_parse(c, this->callback, this->array_index);
+  return JSON::_parse(mask, c, *this);
 }
 #endif

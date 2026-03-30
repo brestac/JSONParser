@@ -104,7 +104,16 @@ struct JSONKey {
 
   const char *data() const { return _key.data(); }
 
-  const char *getKey() const { return _key.data(); }
+  void setKey(const char *key, size_t len) {
+    _key = get_json_key(key, len);
+    _index = get_json_key_index(key, len);
+    _hash = hash32(_key);
+    JSON_DEBUG_INFO("JSONKey setKey %.*s index=%d\n", (int)length(), data(), _index);
+  }
+
+  void setKey(std::string_view key) {
+    setKey(key.data(), key.length());
+  }
 
   int getIndex() const { return _index; }
 
@@ -112,7 +121,10 @@ struct JSONKey {
 
   int getArrayIndex() const { return _array_index; }
 
-  void setArrayIndex(int index) { _array_index = index; }
+  void setArrayIndex(int index) {
+    _array_index = index;
+    JSON_DEBUG_INFO("JSONKey setArrayIndex %d\n", index);
+  }
 
   bool is_indexed() const { return _index >= 0; }
 };

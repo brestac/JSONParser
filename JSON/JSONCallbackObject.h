@@ -11,7 +11,6 @@ struct JSONCallbackObject {
   JSONCallback callback;
   JSONKey key;
   bool stop;
-  int array_index;
 
 #ifdef ARDUINO
   JSON::ParseResult fromJSON(JSON::StreamCursor& cursor);
@@ -21,15 +20,13 @@ struct JSONCallbackObject {
     return cursor.write("null");
   }
 #endif
-  JSONCallbackObject() : callback(nullptr), key(), stop(false), array_index(-1) {}
-  JSONCallbackObject(JSONCallback callback, JSONKey key) : callback(callback), key(key), stop(false), array_index(-1) {
+  JSONCallbackObject(JSONCallback callback, JSONKey key) : callback(callback), key(key), stop(false) {
     JSON_DEBUG_INFO("JSONCallbackObject created\n");
   }
 
-  void run(JSONValue value, int arrayIndex) {
+  void run(JSONValue value) {
     if (callback) {
-      JSON_DEBUG_INFO("JSONCallbackObject running callback with key %.*s array_index=%d\n", (int)key.length(), key.data(), arrayIndex);
-      key.setArrayIndex(arrayIndex);
+      JSON_DEBUG_INFO("JSONCallbackObject running callback with key %.*s _array_index=%d\n", (int)key.length(), key.data(), key.getArrayIndex());
       callback(key, value, stop);
       if (stop) {
         JSON_DEBUG_INFO("JSONCallbackObject stopped\n");
@@ -38,11 +35,17 @@ struct JSONCallbackObject {
   }
 
   void setArrayIndex(int anIndex) {
-    this->array_index = anIndex;
     JSON_DEBUG_INFO("JSONCallbackObject setArrayIndex %d\n", anIndex);
-  }
+    this->key.setArrayIndex(anIndex);
+}
 
   void setKey(JSONKey aKey) {
-    this->key = aKey;
+    JSON_DEBUG_INFO("JSONCallbackObject setKey %.*s\n", (int)aKey.length(), aKey.data());
+    this->key.setKey(aKey);
+  }
+
+  void setKey(const char *key, size_t len) {
+    JSON_DEBUG_INFO("JSONCallbackObject setKey %.*s\n", (int)len, key);
+    this->key.setKey(key, len);
   }
 };

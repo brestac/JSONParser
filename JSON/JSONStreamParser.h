@@ -7,22 +7,6 @@
 //
 // L'implémentation est partagée via JSONParserBase<Cursor>, templatisée
 // uniquement sur le type de curseur. L'API publique est identique à
-// JSONParser.
-//
-// Utilisation :
-//
-//   #include "JSONStreamParser.h"
-//
-//   // Avec un ring buffer de 256 octets (défaut) :
-//   JSONStreamParser<> parser(wifiClient);
-//
-//   // Avec un ring buffer de 512 octets :
-//   JSONStreamParser<512> parser(serial);
-//
-//   uint32_t mask = 0;
-//   float temp = 0;
-//   char  name[32] = {};
-//   parser.parse("temperature", temp, "name", name);
 
 #include <functional>
 #include <string_view>
@@ -69,8 +53,7 @@ public:
   // ── Constructeur PointerCursor (compatibilité JSONParser) ─
   JSONParserBase(const PointerCursorReader cursor)
       : keyMask(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0),
-        _cursor(cursor), _key_start(nullptr), _key_length(0), _is_top_level_array(false),
-        _array_index(0), _nArgs(0) {
+        _cursor(cursor), _key_start(nullptr), _key_length(0), _is_top_level_array(false), _nArgs(0) {
     _state = IDLE;
     _automask = false;
     JSON_DEBUG_INFO("JSONParserBase(pointer) created\n");
@@ -81,8 +64,7 @@ public:
   // Used when Cursor = StreamCursor; never called for other cursor types.
   explicit JSONParserBase(StreamCursor &cursor)
       : keyMask(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0),
-        _cursor(cursor), _key_start(nullptr), _key_length(0), _is_top_level_array(false),
-        _array_index(0), _nArgs(0) {
+        _cursor(cursor), _key_start(nullptr), _key_length(0), _is_top_level_array(false), _nArgs(0) {
     _state = IDLE;
     _automask = false;
     JSON_DEBUG_INFO("JSONParserBase(stream) created\n");
@@ -92,8 +74,6 @@ public:
   ~JSONParserBase() = default;
 
   // ── API publique (identique à JSONParser) ─────────────────
-
-  //void parse(const JSONCallbackObject& cb);
   
   template <typename T>
   enable_if_t<is_derived_json_data_container_v<T>, void>
@@ -105,7 +85,6 @@ public:
   size_t parsed_length() { return _cursor.bytesConsumed(); }
   ParserState get_state() { return _state; }
   bool error() { return _state == ERROR; }
-  void setArrayIndex(int i) { _array_index = i; }
 
   // ── Méthodes d'assignation (identiques à JSONParser) ──────
   // (reprises telles quelles — logique pure, pas d'accès au curseur)
@@ -182,7 +161,6 @@ private:
   char *_key_start;
   size_t _key_length;
   bool _is_top_level_array;
-  size_t _array_index;
   uint8_t _nArgs;
 
   void reset();
@@ -221,7 +199,6 @@ private:
   template <typename V> ParseValueResult parse_null(V &v);
   template <typename V> ParseValueResult parse_nan(V &v);
   template <typename V> ParseValueResult parse_infinity(V &v);
-  //ParseValueResult parse_array(JSONCallbackObject &cb);
   ParseValueResult parse_array(UnknownValueType);
 
   template <typename V> ParseValueResult parse_object(V &v);
@@ -626,8 +603,7 @@ template <typename Cursor>
 ParseValueResult JSONParserBase<Cursor>::parse_value(JSONCallbackObject& cb) {
   JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value with callback\n");
 
-  JSONKey parsed_key(_key_start, _key_length);
-  cb.setKey(parsed_key);
+  cb.setKey(_key_start, _key_length);
 
   if (_is_top_level_array) {
     JSON_DEBUG_INFO("JSONParserBase<Cursor>::parse_value top level array\n");
@@ -690,11 +666,6 @@ ParseValueResult JSONParserBase<Cursor>::parse_into_value(V &arg_value) {
     return ParseValueResult::NO_RESULT;
   }
 }
-
-// template <typename Cursor>
-// void JSONParserBase<Cursor>::parse(const JSONCallbackObject& cb) {
-   
-// }
 
 template <typename Cursor>
 template <typename T>
@@ -949,7 +920,7 @@ template <typename Cursor>
 template <typename PV>
 ParseValueResult
 JSONParserBase<Cursor>::assign_callback_object(PV pv, JSONCallbackObject &cb) {
-  cb.run(pv, _array_index);
+  cb.run(pv);
   if (cb.stop)
     _state = STOPPED;
   return ParseValueResult::VALUE_UPDATED;
@@ -1077,12 +1048,9 @@ JSONParserBase<Cursor>::parse_array(V &arg_value) {
 template <typename Cursor>
 ParseValueResult 
 JSONParserBase<Cursor>::parse_into_array_at_index(JSONCallbackObject& cb, size_t index) {
-ValueResult
-JSONParserBase<Cursor>::parse_into_array_at_index(JSONCallbackObject cb, size_t index) {
   cb.setArrayIndex(index);
 
-  if (_top_level_array) {
-   JSON_DEBUG_INFO("JSONParserBase::parse_into_array_at_index top level array " "index=%zu\n", index );
+  if (_is_top_level_array) {
     return parse_object(cb);
   }
   

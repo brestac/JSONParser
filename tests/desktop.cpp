@@ -182,7 +182,6 @@ void testArrayCallback() {
   JSON::ParseResult pr = JSON::parse(
       json, [&personnes, p_length](JSONKey key, JSONValue value, bool &stop) {
         int arrayIndex = key.getArrayIndex();
-        std::printf("In callback:  key:%s arrayIndex:%d\n", key.getKey(), arrayIndex);
         if (arrayIndex >= (int)p_length || arrayIndex < 0)
           return;
 
@@ -422,14 +421,14 @@ int main() {
   std::printf("TIME:%s COMPILER:%s", ctime(&now), __VERSION__);
   std::printf("------------------------------------------------------------\n");
 
-  //test_callback();
+  test_callback();
   testArrayCallback();
   
-  // test_parsing();
-  // testIndexedParsing();
-  // testArrayParsing();
-  // testGeoJSONParsingSmall();
-  // testGeoJSONParsingBig();   // requires tests/canada.json
+  test_parsing();
+  testIndexedParsing();
+  testArrayParsing();
+  testGeoJSONParsingSmall();
+  testGeoJSONParsingBig();   // requires tests/canada.json
 
   std::printf("\n============================================================\n");
   std::printf("Results: %d passed, %d failed\n", passed, failed);
