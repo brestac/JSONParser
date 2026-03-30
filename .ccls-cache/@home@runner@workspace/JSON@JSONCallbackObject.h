@@ -2,8 +2,8 @@
 // ---------------------------------------------------------------------------
 //   CallBack Object
 // ---------------------------------------------------------------------------
-#include "JSONKey.h"
-#include "JSONValue.h"
+struct JSONKey;
+struct JSONValue;
 
 using JSONCallback = std::function<void(JSONKey, JSONValue, bool &)>;
 

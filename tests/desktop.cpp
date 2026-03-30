@@ -1,4 +1,57 @@
+/*
+text - Code exécutable
+
+Code machine des fonctions
+Instructions du programme
+Constantes littérales dans le code
+Stocké dans : segment .text (read-only, exécutable)
+En mémoire : chargé une seule fois, partagé entre processus
+
+data - Données initialisées
+
+Variables globales/statiques avec valeur initiale
+Constantes globales
+Stocké dans : segment .data (read-write)
+En mémoire : copié depuis l'exécutable au démarrage
+
+bss - Données non-initialisées
+
+Variables globales/statiques sans valeur initiale (ou = 0)
+BSS = "Block Started by Symbol"
+Stocké dans : segment .bss (read-write)
+En mémoire : initialisé à zéro au démarrage, ne prend pas de place dans le fichier
+
+dec - Total en décimal
+
+text + data + bss en base 10
+
+hex - Total en hexadécimal
+
+text + data + bss en base 16
+
+## Segments mémoire typiques
+```
+Adresses basses
+┌─────────────┐
+│    .text    │ ← Code (read-only, executable)
+├─────────────┤
+│   .rodata   │ ← Constantes (read-only)
+├─────────────┤
+│    .data    │ ← Variables initialisées (read-write)
+├─────────────┤
+│    .bss     │ ← Variables non-initialisées (read-write)
+├─────────────┤
+│    heap     │ ← malloc/new (croît vers le haut)
+│     ↓       │
+│             │
+│     ↑       │
+│    stack    │ ← Variables locales (croît vers le bas)
+└─────────────┘
+Adresses hautes
+
+*/
 #define JSON_DEBUG_LEVEL 0
+#define __ENABLE_TESTS__ 1
 
 #include <array>
 #include <chrono>
@@ -6,8 +59,10 @@
 #include <ctime>
 #include <cstring>
 #include <vector>
+#include <string_view>
 
-#include "JSON/JSON.h"
+#if __ENABLE_TESTS__ == 1
+#include "JSON/JSONParser.h"
 #include "JSON/JSONPrinter.h"
 
 // RapidJSON
@@ -436,3 +491,7 @@ int main() {
 
   return failed == 0 ? 0 : 1;
 }
+
+#else
+int main() { return 0;}
+#endif

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string_view>
+//#include <string_view>
 #include <cstdlib>
 #include "StreamScanner.h"
 #include "str_length.h"

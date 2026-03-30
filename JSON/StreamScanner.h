@@ -20,7 +20,6 @@
 #endif
 
 #include "constants.h"
-//#include "scanner.h"
 #include "PointerCursor.h"
 
 NAMESPACE_JSON_BEGIN

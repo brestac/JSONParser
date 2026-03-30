@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <tuple>
+#include <chrono>
 
 #ifdef __GXX_RTTI
 #include <typeinfo>
@@ -19,11 +20,10 @@
 #include <arpa/inet.h>
 #endif
 
-#include <chrono>
-
 #include "macros.h"
 #include "StreamScanner.h"
 #include "constants.h"
+#include "PointerCursor.h"
 
 template <typename T, typename... Args>
 void print_demangled_type(const char *format, T &value, Args &&...args);

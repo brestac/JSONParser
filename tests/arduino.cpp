@@ -2,10 +2,14 @@
 // Tests the Arduino/Stream code paths of the JSON library on desktop.
 // Compile with:  make arduino-test
 // Run with:      ./arduino-test
-#define JSON_DEBUG_LEVEL 1
-
+#define JSON_DEBUG_LEVEL 0
+#define __ENABLE_TESTS__ 1
 #define ARDUINO 1
-#include "JSON/JSON.h"
+
+#if __ENABLE_TESTS__ == 1
+
+#include "JSON/JSONParser.h"
+#include "JSON/JSONPrinter.h"
 
 // ----------------------------------------------------------------
 // Test structs
@@ -207,3 +211,7 @@ int main() {
     printf("\n=== Results: %d passed, %d failed ===\n", passed, failed);
     return failed == 0 ? 0 : 1;
 }
+
+#else
+int main() { return 0;}
+#endif
