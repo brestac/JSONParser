@@ -1,4 +1,10 @@
 #pragma once
+#include <type_traits>
+#include <variant>
+#ifdef __EXCEPTIONS
+#include <stdexcept>
+#endif
+#include "constants.h"
 #include "utils.h"
 // ---------------------------------------------------------------------------
 //   JSONValue

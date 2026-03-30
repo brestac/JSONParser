@@ -6,8 +6,6 @@
 #endif
 
 #include <array>
-#include <cstring> // memcpy
-#include <functional>
 #include <stdint.h>
 #include <string_view>
 #include <type_traits>
@@ -15,18 +13,11 @@
 
 #include "constants.h"
 #include "macros.h"
-//#include "scanner.h"
 #include "JSONCallbackObject.h"
 #include "JSONData.h"
 #include "JSONKey.h"
 #include "ParseValueResult.h"
-#include "StreamScanner.h"
 #include "UnknownValueType.h"
-#include "utils.h"
-
-#ifdef ARDUINO
-#include "StreamCursor.h"
-#endif
 // ---------------------------------------------------------------------------
 //  équivalent C++17 de std::remove_cvref_t
 // ---------------------------------------------------------------------------

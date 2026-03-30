@@ -5,14 +5,9 @@
 
 #ifdef ARDUINO
 #include "StreamCursor.h"
-//#include <HardwareSerial.h>
-#include <Stream.h>
 #else
 #include "PointerCursorPrinter.h"
 #endif
-
-#include <stddef.h>
-#include <stdint.h>
 
 using namespace JSON;
 

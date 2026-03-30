@@ -2,6 +2,8 @@
 // ---------------------------------------------------------------------------
 //   CallBack Object
 // ---------------------------------------------------------------------------
+#include <functional>
+#include "ParseResult.h"
 #include "JSONKey.h"
 #include "JSONValue.h"
 

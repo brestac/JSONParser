@@ -1,16 +1,6 @@
 #pragma once
 
-#ifdef __EXCEPTIONS
-#include <stdexcept>
-#endif
-#include <string_view>
-#include <type_traits>
-
-#include "macros.h"
 #include "types.h"
-#include "utils.h"
-#include "JSONData.h"
-#include "str_length.h"
 
 constexpr int get_last_bitwise_mask_index(uint32_t mask);
 

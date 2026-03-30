@@ -8,15 +8,7 @@
 // L'implémentation est partagée via JSONParserBase<Cursor>, templatisée
 // uniquement sur le type de curseur. L'API publique est identique à
 
-#include <functional>
-#include <string_view>
-
-#include "JSONData.h"
-#include "StreamScanner.h"
-#include "constants.h"
-#include "macros.h"
 #include "types.h"
-#include "utils.h"
 
 using namespace std;
 using namespace JSON;

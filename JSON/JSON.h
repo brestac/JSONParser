@@ -2,7 +2,6 @@
 
 #include "JSONStreamParser.h"
 #include "JSONPrinter.h"
-#include "macros.h"
 
 NAMESPACE_JSON_BEGIN
 

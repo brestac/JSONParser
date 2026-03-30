@@ -1,6 +1,8 @@
 #pragma once
 
-#include "JSONStreamParser.h"
+#include <string_view>
+#include <cstdlib>
+#include "StreamScanner.h"
 #include "str_length.h"
 // ---------------------------------------------------------------------------
 //   JSONKey

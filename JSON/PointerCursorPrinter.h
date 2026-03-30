@@ -3,8 +3,6 @@
 #include "constants.h"
 #include "macros.h"
 
-#include <stddef.h>
-#include <stdint.h>
 #include <cstring>
 
 // ============================================================

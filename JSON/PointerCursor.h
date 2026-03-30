@@ -3,8 +3,6 @@
 #include "constants.h"
 #include "macros.h"
 #include "str_length.h"
-
-#include <stddef.h>
 // ============================================================
 //  PointerCursor
 //  Wrapper autour de const char*& pour exposer la même interface
