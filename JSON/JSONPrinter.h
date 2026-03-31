@@ -119,13 +119,13 @@ size_t constexpr print_value_to(Cursor output, T &value) {
     return print_to(output, "%lld", (long long)value);
   } else if constexpr (std::is_same_v<remove_cvref_t<T>, std::string_view>) {
     return print_to(output, "\"%.*s\"", (int)value.length(), value.data());
-   } else if constexpr (std::is_base_of_v<JSONData, remove_cvref_t<T>>) {
+   } else if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<T>>) {
     return print_object_pointer_to(output, (void *)&value);
    } else if constexpr (std::is_pointer_v<T>) {
      if (value == nullptr) {
        return output.write("null");
      } else {
-       if constexpr (std::is_base_of_v<JSONData, remove_cvref_t<std::remove_pointer_t<T>>>) {
+       if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<std::remove_pointer_t<T>>>) {
          return print_object_pointer_to(output, value);       
        } else {
          return print_to(output, "%p", value);
@@ -145,8 +145,8 @@ template <typename Cursor>
 #ifdef __EXCEPTIONS
   try {
 #endif
-    JSONData *jsonData = static_cast<JSONData *>(value);
-    return jsonData->toJSON(output);
+    JSONObject *jsonObject = static_cast<JSONObject *>(value);
+    return jsonObject->toJSON(output);
 #ifdef __EXCEPTIONS
   }
   catch (const std::exception &e) {

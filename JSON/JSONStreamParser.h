@@ -644,7 +644,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_into_value(V &arg_value) {
     return parse_array(arg_value);
   } else if constexpr (std::is_same_v<remove_cvref_t<V>, UnknownValueType>) {
     return parse_any(arg_value);
-  } else if constexpr (std::is_base_of_v<JSONData, remove_cvref_t<V>>) {
+  } else if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<V>>) {
     return parse_object(arg_value);
   } else if constexpr (std::is_pointer_v<V>) {
     ParseValueResult result = parse_null(arg_value);
@@ -663,7 +663,7 @@ template <typename Cursor>
 template <typename T>
 enable_if_t<is_derived_json_data_container_v<T>, void>
 JSONParserBase<Cursor>::parse(T& jsonObjects) {
-  JSON_DEBUG_INFO("JSONParserBase::parse with derived JSONData objects\n");
+  JSON_DEBUG_INFO("JSONParserBase::parse with derived JSONObject objects\n");
   _is_top_level_array = true;
   parse_array(jsonObjects);
   _state = END;
@@ -992,7 +992,7 @@ constexpr To JSONParserBase<Cursor>::clamp_to_max(From v) {
 // template <typename T>
 // enable_if_t<is_derived_json_data_container_v<T>, ParseValueResult>
 // JSONParserBase<Cursor>::parse_array(T &arg_value) {
-//   JSON_DEBUG_INFO("JSONParserBase::parse_array with derived JSONData objects\n");
+//   JSON_DEBUG_INFO("JSONParserBase::parse_array with derived JSONObject objects\n");
 //   return parse_array(arg_value);
 // }
 

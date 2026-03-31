@@ -123,6 +123,6 @@ size_t toJSON(PointerCursorPrinter& writer, bool updates = true) override {\
 #endif
 
 #define TO_JSON_FROM_JSON(...)\
-using JSONData::fromJSON;\
-using JSONData::toJSON;\
+using JSONObject::fromJSON;\
+using JSONObject::toJSON;\
 STREAM_CURSOR_OVERRIDE(__VA_ARGS__)

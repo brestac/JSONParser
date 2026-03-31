@@ -14,7 +14,7 @@
 #include "constants.h"
 #include "macros.h"
 #include "JSONCallbackObject.h"
-#include "JSONData.h"
+#include "JSONObject.h"
 #include "JSONKey.h"
 #include "ParseValueResult.h"
 #include "UnknownValueType.h"
@@ -208,10 +208,10 @@ template <typename T>
 inline constexpr bool is_char_array_array_v = is_char_array_array<T>::value;
 
 // ==========================================
-// JSONData
+// JSONObject
 // ==========================================
 template <typename T>
-struct is_derived_json_data : std::is_base_of<JSONData, remove_cvref_t<T>> {};
+struct is_derived_json_data : std::is_base_of<JSONObject, remove_cvref_t<T>> {};
 
 template <typename T>
 struct is_derived_json_data<T *> : is_derived_json_data<T> {};

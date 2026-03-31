@@ -101,7 +101,7 @@ static bool near(float a, float b, float tol = 0.01f) {
 // Structs
 // ----------------------------------------------------------------
 
-struct Personne : public JSONData {
+struct Personne : public JSONObject {
 public:
   std::string_view nom = "";
   uint8_t age = 0U;
@@ -118,21 +118,21 @@ public:
   float coordinates[4][2];
   vector<std::array<float, 2>> coordinates2;
 
-  Personne() : JSONData() {}
+  Personne() : JSONObject() {}
   Personne(std::string_view nom, int age, float taille, std::string_view ville,
            char *ptr, bool flag, Personne *enfant)
-      : JSONData(), nom(nom), age(age), taille(taille), ville(ville), ptr(ptr),
+      : JSONObject(), nom(nom), age(age), taille(taille), ville(ville), ptr(ptr),
         flag(flag), enfant(enfant) {}
 
   TO_JSON_FROM_JSON(nom, age, taille, ville, ptr, flag, buffer, liste, listef, enfant, enfants, coordinates);
 };
 
-struct Properties : public JSONData {
+struct Properties : public JSONObject {
   std::string_view name = "";
   TO_JSON_FROM_JSON(name);
 };
 
-struct Geometry : public JSONData {
+struct Geometry : public JSONObject {
   std::string_view type = "";
   using coordinate = std::array<float, 2>;
   using shape = std::vector<coordinate>;
@@ -140,14 +140,14 @@ struct Geometry : public JSONData {
   TO_JSON_FROM_JSON(type, coordinates);
 };
 
-struct Feature : public JSONData {
+struct Feature : public JSONObject {
   std::string_view type = "";
   Properties properties;
   Geometry geometry;
   TO_JSON_FROM_JSON(type, properties, geometry);
 };
 
-struct FeatureCollection : public JSONData {
+struct FeatureCollection : public JSONObject {
   std::string_view type = "";
   std::vector<Feature> features;
   TO_JSON_FROM_JSON(type, features);

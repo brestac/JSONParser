@@ -76,7 +76,7 @@ private:
 //
 // Côté lecture  : RingBuffer non-bloquant, identique à l'existant.
 // Côté écriture : satisfait le concept is_cursor_writer_v utilisé
-//                 par JSON::print() et JSONData::toJSON().
+//                 par JSON::print() et JSONObject::toJSON().
 //                 Requiert deux méthodes :
 //                   size_t write(const char*)
 //                   size_t printf(const char* format, ...)

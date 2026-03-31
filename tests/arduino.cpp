@@ -15,14 +15,14 @@
 // Test structs
 // ----------------------------------------------------------------
 
-struct Sensor : public JSONData {
+struct Sensor : public JSONObject {
     int   id          = 0;
     float temperature = 0.0f;
     bool  active      = false;
     TO_JSON_FROM_JSON(id, temperature, active);
 };
 
-struct Config : public JSONData {
+struct Config : public JSONObject {
     int   version  = 0;
     float interval = 0.0f;
     TO_JSON_FROM_JSON(version, interval);
