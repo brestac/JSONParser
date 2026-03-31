@@ -58,37 +58,6 @@ using first_arg_type_t = typename first_arg_type<Args...>::type;
 template <class... Args>
 constexpr bool args_are_pairs = /*(sizeof...(Args) > 0) &&*/ (sizeof...(Args) % 2) == 0;
 
-// template <typename T>
-// constexpr bool is_not_pointer = !std::is_pointer<T>::value;
-
-// template <class T>
-// constexpr bool is_char_value = std::is_same_v<base_array_type<T>, char>;
-
-// template <class T>
-// constexpr bool is_char_array_v = is_array_value<T> &&is_char_value<T>;
-
-// template <class T>
-// constexpr bool is_char_array_array_v = is_array_value<T>
-//     &&is_array_value<base_array_type<T>> &&is_char_value<base_array_type<T>>;
-
-// template <class T>
-// struct is_vector : std::false_type {};
-
-// template <class T>
-// struct is_vector<std::vector<T>> : std::true_type {};
-
-// template <class T>
-// constexpr bool is_vector_v = is_vector<T>::value;
-
-template <class T>
-struct is_std_array : std::false_type {};
-
-template <class T, size_t N>
-struct is_std_array<std::array<T, N>> : std::true_type {};
-
-// template <class T>
-// constexpr bool is_std_array_v = is_std_array<T>::value;
-
 template <typename T, typename From, typename = void>
 struct is_static_castable_from : std::false_type {};
 
