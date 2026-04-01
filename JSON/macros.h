@@ -31,7 +31,7 @@
 #else
 #define JSON_DEBUG_INFO(format, ...)
 #endif
-
+/*
 #if JSON_DEBUG_LEVEL == 1
 #define JSON_DEBUG_TYPES(format, ...) print_demangled_types(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__);
 #elif JSON_DEBUG_LEVEL == 2
@@ -41,7 +41,7 @@
 #else
 #define JSON_DEBUG_TYPES(format, ...)
 #endif
-
+*/
 #if JSON_DEBUG_LEVEL == 2 || JSON_DEBUG_LEVEL == 1
 #define JSON_DEBUG_WARNING(format, ...) PRINT_FUNC(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__)
 #else

@@ -9,6 +9,7 @@
 // uniquement sur le type de curseur. L'API publique est identique à
 
 #include "types.h"
+#include "demangled.h"
 
 using namespace std;
 using namespace JSON;

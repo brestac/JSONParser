@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "demangled.h"
 
 constexpr int get_last_bitwise_mask_index(uint32_t mask);
 

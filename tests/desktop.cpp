@@ -60,16 +60,16 @@ Adresses hautes
 #include <cstring>
 #include <vector>
 #include <string_view>
+#include <iostream>
 
 #if __ENABLE_TESTS__ == 1
-#include "JSON/JSONParser.h"
-#include "JSON/JSONPrinter.h"
+#include "../JSON/JSONParser.h"
+#include "../JSON/JSONPrinter.h"
 
 // RapidJSON
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
-#include <iostream>
+#include "../rapidjson/document.h"
+#include "../rapidjson/stringbuffer.h"
+#include "../rapidjson/writer.h"
 
 // ---------------------------------------------------------------------------
 using namespace std;

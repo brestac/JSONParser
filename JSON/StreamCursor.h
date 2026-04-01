@@ -2,7 +2,7 @@
 
 #include "constants.h"
 #include "macros.h"
-#include "utils.h"
+#include "demangled.h"
 
 #ifdef ARDUINO
 #include <Stream.h>
@@ -164,6 +164,7 @@ public:
   virtual size_t write(const uint8_t *buffer, size_t size);
   virtual void flush() { }
   virtual bool outputCanTimeout () { return true; }
+  virtual int availableForWrite() { return 0; }
   */
   size_t write(uint8_t c) { return _stream.write(c); }
   // Écrit une chaîne null-terminée dans le stream.
@@ -171,7 +172,11 @@ public:
   size_t write(const char *str) {
     if (!str)
       return 0;
-    size_t n = _stream.write((const uint8_t *)str, strlen(str));
+
+    size_t len = std::min((size_t)_stream.availableForWrite(), strlen(str));
+    //size_t len = strlen(str);
+      
+    size_t n = _stream.write((const uint8_t *)str, len);
     _written += n;
     return n;
   }
@@ -188,6 +193,13 @@ public:
     va_list args_copy;
     va_copy(args_copy, args);
     int needed = vsnprintf(buf, sizeof(buf), format, args);
+    // size_t available = _stream.availableForWrite();
+    // if (static_cast<int>(available) < needed) {
+    //    needed = static_cast<int>(available); 
+    // }
+
+    //JSON_DEBUG_INFO("StreamCursor::printf %s available=%zu needed=%d\n", format, available, needed);
+
     va_end(args);
 
     if (needed < 0) {

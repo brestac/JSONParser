@@ -23,6 +23,7 @@ public:
 
     virtual void flush() {}
     virtual bool outputCanTimeout() { return true; }
+    virtual int availableForWrite() { return 0; }
 
     // Write methods used by StreamCursor::write() / StreamCursor::printf()
     virtual size_t write(uint8_t c) = 0;
@@ -66,6 +67,7 @@ public:
     int read()      override { return (_pos < _len) ? (unsigned char)_data[_pos++] : -1; }
     int peek()      override { return (_pos < _len) ? (unsigned char)_data[_pos]   : -1; }
     void flush()    override {}
+    int availableForWrite() override { return available(); }
     bool outputCanTimeout() override { return false; }
     size_t write(uint8_t c) override {
         fputc(c, stdout);
@@ -84,7 +86,6 @@ private:
 // ----------------------------------------------------------------
 // HardwareSerial / Serial — routes prints/printf to stdout.
 // ----------------------------------------------------------------
-#include "stdint.h"
 
 class HardwareSerial : public Stream {
 public:
@@ -93,7 +94,8 @@ public:
     int    peek()      override { return -1; }
     void   flush()     override {}
     bool   outputCanTimeout() override { return false; }
-
+    int    availableForWrite() override { return 1024; }
+ 
     size_t write(uint8_t c) override {
         fputc(c, stdout);
         return 1;
@@ -110,6 +112,7 @@ public:
         fwrite(str, 1, n, stdout);
         return n;
     }
+
     size_t print(char c) override {
         fputc(c, stdout);
         return 1;
