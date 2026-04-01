@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <stdint.h>
 #include <new>
 
 // ----------------------------------------------------------------
@@ -20,7 +21,17 @@ public:
     virtual int    read()      = 0;
     virtual int    peek()      = 0;
 
+    virtual void flush() {}
+    virtual bool outputCanTimeout() { return true; }
+
     // Write methods used by StreamCursor::write() / StreamCursor::printf()
+    virtual size_t write(uint8_t c) = 0;
+    virtual size_t write(const uint8_t *buffer, size_t size) {
+        size_t n = 0;
+        for (size_t i = 0; i < size; ++i) n += write(buffer[i]);
+        return n;
+    }
+
     virtual size_t print(const char *str) {
         if (!str) return 0;
         size_t n = strlen(str);
@@ -54,6 +65,15 @@ public:
     int available() override { return (_pos < _len) ? (int)(_len - _pos) : 0; }
     int read()      override { return (_pos < _len) ? (unsigned char)_data[_pos++] : -1; }
     int peek()      override { return (_pos < _len) ? (unsigned char)_data[_pos]   : -1; }
+    void flush()    override {}
+    bool outputCanTimeout() override { return false; }
+    size_t write(uint8_t c) override {
+        fputc(c, stdout);
+        return 1;
+    }
+    size_t write(const uint8_t *buffer, size_t size) override {
+        return fwrite(buffer, 1, size, stdout);
+    }
 
 private:
     const char *_data;
@@ -64,11 +84,25 @@ private:
 // ----------------------------------------------------------------
 // HardwareSerial / Serial — routes prints/printf to stdout.
 // ----------------------------------------------------------------
+#include "stdint.h"
+
 class HardwareSerial : public Stream {
 public:
     int    available() override { return 0;  }
     int    read()      override { return -1; }
     int    peek()      override { return -1; }
+    void   flush()     override {}
+    bool   outputCanTimeout() override { return false; }
+
+    size_t write(uint8_t c) override {
+        fputc(c, stdout);
+        return 1;
+    }
+
+    size_t write(const uint8_t *buffer, size_t size) override {
+        fwrite(buffer, 1, size, stdout);
+        return size;
+    }
 
     size_t print(const char *str) override {
         if (!str) return 0;
