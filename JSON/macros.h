@@ -7,10 +7,12 @@
 #define NAMESPACE_JSON_BEGIN namespace JSON {
 #define NAMESPACE_JSON_END }
 
-#if JSON_DEBUG_LEVEL > 0 && !defined(JSON_DEBUG_PRINTF) && !defined(ARDUINO)
+#ifndef JSON_DEBUG_PRINTF
+#if JSON_DEBUG_LEVEL > 0 && !defined(ARDUINO)
 #define JSON_DEBUG_PRINTF ::printf
 #else
 #define JSON_DEBUG_PRINTF(...)
+#endif
 #endif
 
 #define COLOR_0 "\x1b[30m"
@@ -105,8 +107,8 @@
   }                                                                            \
   template <typename T>                                                        \
   std::enable_if_t<std::is_base_of_v<Stream, T>, size_t> toJSON(               \
-      T &cursor, bool updates = true) {                                        \
-    StreamCursor streamCursor(cursor);                                         \
+      T &stream, bool updates = true) {                                        \
+    StreamCursor streamCursor(stream);                                         \
     return toJSON(streamCursor, updates);                                      \
   }                                                                            \
   size_t toJSON(StreamCursor &cursor, bool updates = true) override {          \

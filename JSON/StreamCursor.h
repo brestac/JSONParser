@@ -166,17 +166,19 @@ public:
   virtual bool outputCanTimeout () { return true; }
   virtual int availableForWrite() { return 0; }
   */
-  size_t write(uint8_t c) { return _stream.write(c); }
+  size_t write(uint8_t c) {
+    JSON_DEBUG_WARNING("StreamCursor::write n=1\n");
+    return _stream.write(c); 
+  }
   // Écrit une chaîne null-terminée dans le stream.
   // Retourne le nombre d'octets écrits.
   size_t write(const char *str) {
     if (!str)
       return 0;
 
-    size_t len = std::min((size_t)_stream.availableForWrite(), strlen(str));
-    //size_t len = strlen(str);
-      
+    size_t len = std::min((size_t)_stream.availableForWrite(), strlen(str));      
     size_t n = _stream.write((const uint8_t *)str, len);
+    JSON_DEBUG_WARNING("StreamCursor::write n=%zu\n", n);
     _written += n;
     return n;
   }
@@ -193,10 +195,10 @@ public:
     va_list args_copy;
     va_copy(args_copy, args);
     int needed = vsnprintf(buf, sizeof(buf), format, args);
-    // size_t available = _stream.availableForWrite();
-    // if (static_cast<int>(available) < needed) {
-    //    needed = static_cast<int>(available); 
-    // }
+    size_t available = _stream.availableForWrite();
+    if (available < static_cast<size_t>(needed)) {
+       needed = static_cast<int>(available); 
+    }
 
     //JSON_DEBUG_INFO("StreamCursor::printf %s available=%zu needed=%d\n", format, available, needed);
 
@@ -211,12 +213,14 @@ public:
     if (static_cast<size_t>(needed) < sizeof(buf)) {
       // Tout tient dans le buffer de pile
       n = _stream.write((const uint8_t *)buf, needed);
+      JSON_DEBUG_WARNING("StreamCursor::printf n=%zu\n", n);
     } else {
       // Allocation dynamique pour les chaînes longues
       char *heap = new (std::nothrow) char[needed + 1];
       if (heap) {
         vsnprintf(heap, needed + 1, format, args_copy);
         n = _stream.write((const uint8_t *)heap, needed);
+          JSON_DEBUG_WARNING("StreamCursor::printf n=%zu\n", n);
         delete[] heap;
       }
     }
