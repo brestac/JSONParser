@@ -91,6 +91,7 @@
     return JSON::_parse(this->updated, _c, MACRO(__VA_ARGS__));                \
   }                                                                            \
   size_t toJSON(PointerCursorWriter &writer, bool updates = true) override {   \
+    // PointerCursorWriter _c = writer;                                     \
     size_t mask = updates ? this->updated : 0;                                 \
     return JSON::print(mask, writer, MACRO(__VA_ARGS__));                      \
   }                                                                            \

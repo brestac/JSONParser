@@ -5,7 +5,7 @@
 #define JSON_DEBUG_LEVEL 1
 #define ENABLE_TESTS 1
 #define ARDUINO 1
-#define DEV_MODE 1
+#define EMULATE_ARDUINO_STREAM 1
 
 #include "../JSON/JSONParser.h"
 #include "../JSON/JSONPrinter.h"

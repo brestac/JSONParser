@@ -86,7 +86,6 @@ private:
 // ----------------------------------------------------------------
 // HardwareSerial / Serial — routes prints/printf to stdout.
 // ----------------------------------------------------------------
-#if defined(ARDUINO) && DEV_MODE == 1
 class HardwareSerial : public Stream {
 public:
     int    available() override { return 0;  }
@@ -118,4 +117,3 @@ public:
         return 1;
     }
 };
-#endif
