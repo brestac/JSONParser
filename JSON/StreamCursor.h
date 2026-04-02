@@ -4,12 +4,8 @@
 #include "macros.h"
 #include "demangled.h"
 
-#ifdef ARDUINO
-#ifdef EMULATE_ARDUINO_STREAM
-#include "Stream.h"
-#else
+#if defined(ARDUINO) && !defined(ARDUINO_EMULATE_STREAM)
 #include <Stream.h>
-#endif
 #endif
 
 NAMESPACE_JSON_BEGIN
