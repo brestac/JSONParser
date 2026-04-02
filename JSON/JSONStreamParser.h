@@ -7,9 +7,11 @@
 //
 // L'implémentation est partagée via JSONParserBase<Cursor>, templatisée
 // uniquement sur le type de curseur. L'API publique est identique à
+#include <limits>
 
 #include "types.h"
 #include "demangled.h"
+#include "utils.h"
 
 using namespace std;
 using namespace JSON;
@@ -1175,9 +1177,9 @@ void JSONParserBase<Cursor>::print_state(size_t iteration) {
     [[maybe_unused]] const char *dots =
         (_cursor.size()) > max_length ? "..." : "";
 
-    const char *color = (_state == ERROR) ? "\x1b[31m" : "\x1b[32m";
+    [[maybe_unused]] const char *color = (_state == ERROR) ? "\x1b[31m" : "\x1b[32m";
 
-    PRINT_FUNC("%.*s %s pos=%zu it=%zu, p=%p\n%s%*c%s\x1b[0m\n", (int)length,
+    JSON_DEBUG_PRINTF("%.*s %s pos=%zu it=%zu, p=%p\n%s%*c%s\x1b[0m\n", (int)length,
                _cursor.start() + col_number * length, dots, get_position(),
                iteration, this, color, (int)(col_pos + 1), '^',
                get_state_name().data());

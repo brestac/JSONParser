@@ -51,7 +51,6 @@ Adresses hautes
 
 */
 #define JSON_DEBUG_LEVEL 0
-#define __ENABLE_TESTS__ 1
 
 #include <array>
 #include <chrono>
@@ -62,7 +61,6 @@ Adresses hautes
 #include <string_view>
 #include <iostream>
 
-#if __ENABLE_TESTS__ == 1
 #include "../JSON/JSONParser.h"
 #include "../JSON/JSONPrinter.h"
 
@@ -491,7 +489,3 @@ int main() {
 
   return failed == 0 ? 0 : 1;
 }
-
-#else
-int main() { return 0;}
-#endif

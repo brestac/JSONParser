@@ -5,6 +5,7 @@
 #include <stdexcept>
 #endif
 #include "constants.h"
+#include "demangled.h"
 #include "utils.h"
 
 // ---------------------------------------------------------------------------

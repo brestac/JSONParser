@@ -2,15 +2,11 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <cxxabi.h>
+
+#ifdef __GXX_RTTI
 #include <typeinfo>
 #include <memory>
-
-#ifdef ARDUINO
-  #include <Stream.h>
-  #define PRINT_FUNC Serial.printf
-#else
-  #define PRINT_FUNC ::printf
+#include <cxxabi.h>
 #endif
 
 template <typename T, typename... Args>
@@ -55,7 +51,7 @@ struct DemangledName {
 };
 template <typename Tuple, size_t... Is>
 void printf_impl(const char* format, Tuple& t, std::index_sequence<Is...>) {
-  PRINT_FUNC(format, static_cast<const char*>(std::get<Is>(t))...);
+  JSON_DEBUG_PRINTF(format, static_cast<const char*>(std::get<Is>(t))...);
 }
 #endif
 
@@ -64,9 +60,9 @@ void print_demangled_types(const char* format, Args&&... args) {
 #ifdef __GXX_RTTI
     // Tous les DemangledName sont crees et vivent jusqu'a la fin de la fonction
     auto names = std::make_tuple(DemangledName(typeid(args).name())...);
-    PRINT_FUNC("\x1b[31m");
+    JSON_DEBUG_PRINTF("\x1b[31m");
     printf_impl(format, names, std::index_sequence_for<Args...>{});
-    PRINT_FUNC("\x1b[0m");
+    JSON_DEBUG_PRINTF("\x1b[0m");
 #else
   JSON_DEBUG_WARNING("RTTI not enabled");
 #endif
@@ -76,9 +72,9 @@ template <typename T, typename... Args>
 void print_demangled_type(const char *format, T &value, Args &&...args) {
 #ifdef __GXX_RTTI
   DemangledName demangled(typeid(value).name());
-  PRINT_FUNC("\x1b[31m");
+  JSON_DEBUG_PRINTF("\x1b[31m");
   printf(format, static_cast<const char*>(demangled), std::forward<Args>(args)...);
-  PRINT_FUNC("\x1b[0m");
+  JSON_DEBUG_PRINTF("\x1b[0m");
 #else
   JSON_DEBUG_WARNING("RTTI not enabled");
 #endif
@@ -89,17 +85,20 @@ void print_demangled_type(T &value) {
   print_demangled_type("%s\n", value);
 }
 
+#ifndef JSON_DEBUG_COLOR
 #define COLOR_0 "\x1b[30m"
 #define COLOR_1 "\x1b[32m"
 #define COLOR_2 "\x1b[33m"
 #define COLOR_3 "\x1b[31m"
 #define COLOR_END "\x1b[0m"
 
-#if JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_TYPES(format, ...) print_demangled_types(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__);
-#elif JSON_DEBUG_LEVEL == 2
-#define JSON_DEBUG_TYPES(format, ...) print_demangled_types(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__);
-#elif JSON_DEBUG_LEVEL == 3
+#define CONCAT(a, b) CONCAT_HELPER(a, b)
+#define CONCAT_HELPER(a, b) a##b
+
+#define JSON_DEBUG_COLOR CONCAT(COLOR_, DEBUG_LEVEL)
+#endif
+
+#if JSON_DEBUG_LEVEL > 0
 #define JSON_DEBUG_TYPES(format, ...) print_demangled_types(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__);
 #else
 #define JSON_DEBUG_TYPES(format, ...)

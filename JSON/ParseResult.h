@@ -22,6 +22,6 @@ namespace JSON {
   };
 
   void ParseResult::print() {
-    PRINT_FUNC("{\"length\":%zu,\"nKeys\":%zu,\"nParsed\":%zu,\"nMatched\":%zu,\"nUpdated\":%zu,\"error\":%s,\"elapsed\":%lu, \"stopped\":%d}\n", length, nKeys, nParsed, nConverted, nUpdated, error ? "true" : "false", elapsed, stopped);
+    JSON_DEBUG_PRINTF("{\"length\":%zu,\"nKeys\":%zu,\"nParsed\":%zu,\"nMatched\":%zu,\"nUpdated\":%zu,\"error\":%s,\"elapsed\":%lu, \"stopped\":%d}\n", length, nKeys, nParsed, nConverted, nUpdated, error ? "true" : "false", elapsed, stopped);
   }
 }

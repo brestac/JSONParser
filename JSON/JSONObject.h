@@ -24,10 +24,10 @@ public:
   virtual size_t toJSON(StreamCursor& cursor, bool updates = true) = 0;
 #else
   virtual size_t toJSON(PointerCursorPrinter& cursor, bool updates = true) = 0;
+  size_t toJSON(bool updates = true);
 #endif
 
   JSON::ParseResult fromJSON(char *input, size_t size);
-  size_t toJSON(bool updates = true);
   size_t toJSON(char *output, size_t size, bool updates = true);
 
   void clearUpdated();
@@ -44,12 +44,7 @@ JSON::ParseResult JSONObject::fromJSON(char *input, size_t size) {
 ////////////////////////////////////////////////////////////////////////////////
 //  toJSON
 ////////////////////////////////////////////////////////////////////////////////
-#ifdef ARDUINO
-size_t JSONObject::toJSON(bool updates) {
-  StreamCursor writer(Serial);
-  return toJSON(writer, updates);
-}
-#else
+#ifndef ARDUINO
 size_t JSONObject::toJSON(bool updates) {
   PointerCursorPrinter writer;
   return toJSON(writer, updates);

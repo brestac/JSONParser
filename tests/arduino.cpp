@@ -3,10 +3,9 @@
 // Compile with:  make arduino-test
 // Run with:      ./arduino-test
 #define JSON_DEBUG_LEVEL 1
-#define __ENABLE_TESTS__ 1
+#define ENABLE_TESTS 1
 #define ARDUINO 1
-
-#if __ENABLE_TESTS__ == 1
+#define DEV_MODE 1
 
 #include "../JSON/JSONParser.h"
 #include "../JSON/JSONPrinter.h"
@@ -186,10 +185,13 @@ static void test_print_to_buffer() {
 
 static void test_print_to_serial() {
     printf("\n--- Test: print ---\n");
+
+    HardwareSerial Serial;
     Sensor s;
     s.id          = 7;
     s.temperature = 36.6f;
     s.active      = true;
+    
     s.toJSON(Serial);
 }
 // ----------------------------------------------------------------
@@ -211,7 +213,3 @@ int main() {
     printf("\n=== Results: %d passed, %d failed ===\n", passed, failed);
     return failed == 0 ? 0 : 1;
 }
-
-#else
-int main() { return 0;}
-#endif
