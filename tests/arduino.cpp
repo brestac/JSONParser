@@ -35,7 +35,7 @@ struct Config : public JSONObject {
 static int passed = 0;
 static int failed = 0;
 
-static void check(bool condition, const char *label) {
+void check(bool condition, const char *label) {
     if (condition) {
         printf("  [PASS] %s\n", label);
         ++passed;
@@ -49,7 +49,7 @@ static void check(bool condition, const char *label) {
 // Test 1 – fromJSON via StringStream
 // ----------------------------------------------------------------
 
-static void test_parse_from_stream() {
+void test_parse_from_stream() {
     printf("\n--- Test: fromJSON via StreamCursor ---\n");
 
     const char *json = "{\"id\":42,\"temperature\":23.5,\"active\":true}";
@@ -73,7 +73,7 @@ static void test_parse_from_stream() {
 // Test 2 – fromJSON partial update
 // ----------------------------------------------------------------
 
-static void test_partial_parse() {
+void test_partial_parse() {
     printf("\n--- Test: partial fromJSON ---\n");
 
     Sensor s;
@@ -97,7 +97,7 @@ static void test_partial_parse() {
 // Test 3 – fromJSON with template Stream helper (fromJSON(T& stream))
 // ----------------------------------------------------------------
 
-static void test_parse_via_stream_template() {
+void test_parse_via_stream_template() {
     printf("\n--- Test: fromJSON(Stream&) template helper ---\n");
 
     const char *json = "{\"version\":3,\"interval\":0.5}";
@@ -118,7 +118,7 @@ static void test_parse_via_stream_template() {
 // Test 4 – toJSON via StreamCursor (output goes to stdout)
 // ----------------------------------------------------------------
 
-static void test_serialize_to_stream() {
+void test_serialize_to_stream() {
     printf("\n--- Test: toJSON via StreamCursor ---\n");
 
     Sensor s;
@@ -143,7 +143,7 @@ static void test_serialize_to_stream() {
 // Test 5 – roundtrip: parse then re-serialize
 // ----------------------------------------------------------------
 
-static void test_roundtrip() {
+void test_roundtrip() {
     printf("\n--- Test: roundtrip parse → serialize ---\n");
 
     Sensor original;
@@ -172,7 +172,7 @@ static void test_roundtrip() {
     check(diff > -0.1f && diff < 0.1f, "roundtrip temperature ≈ 19.8");
 }
 
-static void test_print_to_buffer() {
+void test_print_to_buffer() {
     printf("\n--- Test: print ---\n");
     Sensor s;
     s.id          = 7;
@@ -184,7 +184,7 @@ static void test_print_to_buffer() {
     printf("  Serialized: %s\n", buf);
 }
 
-static void test_print_to_serial() {
+void test_print_to_serial() {
     printf("\n--- Test: print ---\n");
 
     HardwareSerial Serial;

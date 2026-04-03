@@ -73,7 +73,7 @@ public:
     int read()      override { return (_pos < _len) ? (unsigned char)_data[_pos++] : -1; }
     int peek()      override { return (_pos < _len) ? (unsigned char)_data[_pos]   : -1; }
     void flush()    override {}
-    int availableForWrite() override { return available(); }
+    int    availableForWrite() override { return 1024; }
     bool outputCanTimeout() override { return false; }
     size_t write(uint8_t c) override {
         fputc(c, stdout);

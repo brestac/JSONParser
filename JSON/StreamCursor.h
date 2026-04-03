@@ -169,20 +169,37 @@ public:
   */
   size_t write(uint8_t c) {
     // JSON_DEBUG_WARNING("\nStreamCursor::write n=1\n");
-    return _stream.write(c); 
+    size_t available = _stream.availableForWrite();
+    if (available == 0)
+      return 0;
+
+    flush();
+    size_t n = _stream.write(c);
+    _written += n;
+    
+    return n;
+  }
+
+  size_t write(const uint8_t *buffer, size_t size) {
+    size_t available = _stream.availableForWrite();
+    if (available == 0)
+      return 0;
+
+    size_t len = std::min(available, size);
+    if (len == 0)
+      return 0;
+
+    flush();
+    size_t n = _stream.write(buffer, len);
+    // JSON_DEBUG_WARNING("\nStreamCursor::write n=%zu\n", n);
+    _written += n;
+    
+    return n;
   }
   // Écrit une chaîne null-terminée dans le stream.
   // Retourne le nombre d'octets écrits.
   size_t write(const char *str) {
-    if (!str)
-      return 0;
-
-    size_t available = _stream.availableForWrite();
-    size_t len = std::min(available, strlen(str));      
-    size_t n = _stream.write((const uint8_t *)str, len);
-    // JSON_DEBUG_WARNING("\nStreamCursor::write n=%zu\n", n);
-    _written += n;
-    return n;
+    return write((const uint8_t *)str, strlen(str));
   }
 
   // Écrit une chaîne formatée (printf-style) dans le stream.
@@ -190,7 +207,7 @@ public:
   // si la chaîne formatée est plus longue.
   // Retourne le nombre d'octets écrits.
   size_t printf(const char *format, ...) {
-    // JSON_DEBUG_WARNING("\nStreamCursor::printf\n");
+    //JSON_DEBUG_WARNING("\nStreamCursor::printf\n");
     va_list args;
     va_start(args, format);
 
@@ -215,7 +232,7 @@ public:
     size_t n = 0;
     if (static_cast<size_t>(needed) < sizeof(buf)) {
       // Tout tient dans le buffer de pile
-      n = _stream.write((const uint8_t *)buf, needed);
+      n = write((const uint8_t *)buf, needed);
       //JSON_DEBUG_WARNING("\nStreamCursor::printf n=%zu\n", n);
     } else {
       // Allocation dynamique pour les chaînes longues
@@ -223,7 +240,7 @@ public:
       // JSON_DEBUG_WARNING("Allocating %d bytes for printf\n", needed + 1);
       if (heap) {
         vsnprintf(heap, needed + 1, format, args_copy);
-        n = _stream.write((const uint8_t *)heap, needed);
+        n = write((const uint8_t *)heap, needed);
         //JSON_DEBUG_WARNING("\nStreamCursor::printf n=%zu\n", n);
         delete[] heap;
       }
