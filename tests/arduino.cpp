@@ -3,7 +3,7 @@
 // Compile with:  make arduino-test
 // Run with:      ./arduino-test
 #define JSON_DEBUG_LEVEL 1
-#define ENABLE_TESTS 1
+#define JSON_DEBUG_PRINTF ::printf
 #define ARDUINO 1
 #define ARDUINO_EMULATE_STREAM 1
 

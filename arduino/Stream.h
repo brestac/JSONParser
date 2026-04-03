@@ -27,11 +27,7 @@ public:
 
     // Write methods used by StreamCursor::write() / StreamCursor::printf()
     virtual size_t write(uint8_t c) = 0;
-    virtual size_t write(const uint8_t *buffer, size_t size) {
-        size_t n = 0;
-        for (size_t i = 0; i < size; ++i) n += write(buffer[i]);
-        return n;
-    }
+    virtual size_t write(const uint8_t *buffer, size_t size) = 0;
 
     virtual size_t print(const char *str) {
         if (!str) return 0;
@@ -39,18 +35,28 @@ public:
         fwrite(str, 1, n, stdout);
         return n;
     }
+
     virtual size_t print(char c) {
         fputc(c, stdout);
         return 1;
     }
 
-    // printf-style output used by PRINT_FUNC (Serial.printf) in macros.h
-    int printf(const char *format, ...) {
+    virtual int printf(const char *format, ...) {
         va_list args;
         va_start(args, format);
         int n = vprintf(format, args);
         va_end(args);
         return n;
+    }
+
+    virtual size_t write(const char *str) {
+        if(str == NULL)
+            return 0;
+        return write((const uint8_t *) str, strlen(str));
+    }
+
+    virtual size_t write(const char *buffer, size_t size) {
+        return write((const uint8_t *) buffer, size);
     }
 };
 
@@ -103,17 +109,5 @@ public:
     size_t write(const uint8_t *buffer, size_t size) override {
         fwrite(buffer, 1, size, stdout);
         return size;
-    }
-
-    size_t print(const char *str) override {
-        if (!str) return 0;
-        size_t n = strlen(str);
-        fwrite(str, 1, n, stdout);
-        return n;
-    }
-
-    size_t print(char c) override {
-        fputc(c, stdout);
-        return 1;
     }
 };
