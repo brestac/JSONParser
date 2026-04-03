@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cstring>
 #include "constants.h"
-#include "macros.h"
 #include "demangled.h"
+#include "macros.h"
+#include <cstring>
 
 #if defined(ARDUINO) && !defined(ARDUINO_EMULATE_STREAM)
 #include <Stream.h>
@@ -176,7 +176,7 @@ public:
     flush();
     size_t n = _stream.write(c);
     _written += n;
-    
+
     return n;
   }
 
@@ -193,7 +193,7 @@ public:
     size_t n = _stream.write(buffer, len);
     // JSON_DEBUG_WARNING("\nStreamCursor::write n=%zu\n", n);
     _written += n;
-    
+
     return n;
   }
   // Écrit une chaîne null-terminée dans le stream.
@@ -206,26 +206,25 @@ public:
   // Utilise un buffer de pile de 64 octets ; alloue dynamiquement
   // si la chaîne formatée est plus longue.
   // Retourne le nombre d'octets écrits.
-  size_t printf(const char *format, ...) {
-    //JSON_DEBUG_WARNING("\nStreamCursor::printf\n");
-    va_list args;
-    va_start(args, format);
+
+  template <typename... Args>
+  size_t printf(const char *format, Args &&...args) {
+    // size_t printf(const char *format, ...) {
+    //  JSON_DEBUG_WARNING("\nStreamCursor::printf\n");
 
     char buf[64];
-    va_list args_copy;
-    va_copy(args_copy, args);
-    int needed = vsnprintf(buf, sizeof(buf), format, args);
+
+    int needed =
+        snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
     size_t available = _stream.availableForWrite();
-     
+
     if (available < static_cast<size_t>(needed)) {
-      // JSON_DEBUG_INFO("StreamCursor::printf available=%zu < needed=%d\n", available, needed);
-      needed = static_cast<int>(available); 
+      // JSON_DEBUG_INFO("StreamCursor::printf available=%zu < needed=%d\n",
+      // available, needed);
+      needed = static_cast<int>(available);
     }
 
-    va_end(args);
-
     if (needed < 0) {
-      va_end(args_copy);
       return 0;
     }
 
@@ -233,19 +232,18 @@ public:
     if (static_cast<size_t>(needed) < sizeof(buf)) {
       // Tout tient dans le buffer de pile
       n = write((const uint8_t *)buf, needed);
-      //JSON_DEBUG_WARNING("\nStreamCursor::printf n=%zu\n", n);
+      // JSON_DEBUG_WARNING("\nStreamCursor::printf n=%zu\n", n);
     } else {
       // Allocation dynamique pour les chaînes longues
       char *heap = new (std::nothrow) char[needed + 1];
       // JSON_DEBUG_WARNING("Allocating %d bytes for printf\n", needed + 1);
       if (heap) {
-        vsnprintf(heap, needed + 1, format, args_copy);
+        snprintf(heap, needed + 1, format, std::forward<Args>(args)...);
         n = write((const uint8_t *)heap, needed);
-        //JSON_DEBUG_WARNING("\nStreamCursor::printf n=%zu\n", n);
+        // JSON_DEBUG_WARNING("\nStreamCursor::printf n=%zu\n", n);
         delete[] heap;
       }
     }
-    va_end(args_copy);
 
     _written += n;
     return n;
