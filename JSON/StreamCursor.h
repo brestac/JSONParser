@@ -214,13 +214,11 @@ public:
 
     char buf[64];
 
-    int needed =
-        snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+    int needed = snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
     size_t available = _stream.availableForWrite();
 
     if (available < static_cast<size_t>(needed)) {
-      // JSON_DEBUG_INFO("StreamCursor::printf available=%zu < needed=%d\n",
-      // available, needed);
+      // JSON_DEBUG_INFO("StreamCursor::printf available=%zu < needed=%d\n", available, needed);
       needed = static_cast<int>(available);
     }
 
