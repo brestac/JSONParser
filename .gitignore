@@ -1,11 +1,4 @@
-.agents/
-.ccls-cache/
-arduino/
-attached_assets/
-main
+.ccls-cache
 arduino-test
 desktop-test
-Makefile
-replit.md
-.replit
-replit.nix
+main
