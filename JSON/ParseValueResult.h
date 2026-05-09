@@ -73,7 +73,7 @@ struct ParseValueResult {
   constexpr bool updated() const { return (value & VALUE_UPDATED) != 0; }
 
   void print() {
-    PRINT_FUNC(
+    JSON_DEBUG_PRINTF(
         "ParseValueResult: KEY_FOUND=%d VALUE_PARSED=%d VALUE_CONVERTED=%d VALUE_UPDATED=%d\n",
         (value & KEY_FOUND) != 0, (value & VALUE_PARSED) != 0,
         (value & VALUE_CONVERTED) != 0, (value & VALUE_UPDATED) != 0);

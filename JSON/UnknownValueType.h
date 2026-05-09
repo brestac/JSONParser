@@ -3,12 +3,12 @@
 // ---------------------------------------------------------------------------
 //   UnknownValueType
 // ---------------------------------------------------------------------------
-#include "JSONData.h"
+#include "JSONObject.h"
 
 struct ParseResult;
-struct UnknownValueType : JSONData {
-  using JSONData::fromJSON;
-  using JSONData::toJSON;
+struct UnknownValueType : JSONObject {
+  using JSONObject::fromJSON;
+  using JSONObject::toJSON;
 
   constexpr UnknownValueType() = default;
 

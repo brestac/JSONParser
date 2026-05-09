@@ -4,15 +4,32 @@
 
 #include "str_length.h"
 #include "StreamScanner.h"
-#include "str_length.h"
 // ---------------------------------------------------------------------------
 //   JSONKey
 // ---------------------------------------------------------------------------
 
-std::string_view constexpr get_json_key(const char *raw_key, size_t key_len) {
+constexpr uint32_t hash32(const char *str, size_t len) {
+  if (str == nullptr) return 0;
+  uint32_t hash = 2166136261u;
+  for (size_t i = 0; i < len; ++i) {
+    hash ^= static_cast<uint32_t>(str[i]);
+    hash *= 16777619u;
+  }
+  return hash;
+}
+
+constexpr uint32_t hash32(std::string_view key) {
+  return hash32(key.data(), key.length());
+}
+
+constexpr uint32_t operator""_hash(const char *str, size_t len) {
+  return hash32(str, len);
+}
+
+constexpr std::string_view get_json_key(const char *raw_key, size_t key_len) {
   JSON::PointerCursor key_cursor(raw_key, key_len);
   const char *key_start = key_cursor.ptr();
-  
+
   if (cursor_scan_ranges(key_cursor, JSON_KEY_CHARACTERS, key_len, true)) {
     return std::string_view(key_start, key_cursor.ptr() - key_start);
   }
@@ -20,14 +37,14 @@ std::string_view constexpr get_json_key(const char *raw_key, size_t key_len) {
   return std::string_view("");
 }
 
-int constexpr get_json_key_index(const char *raw_key, size_t key_len) {
+constexpr int get_json_key_index(const char *raw_key, size_t key_len) {
   JSON::PointerCursor key_cursor(raw_key, key_len);
-  
+
   if (cursor_scan_ranges(key_cursor, JSON_KEY_CHARACTERS, true)) {
     if (cursor_scan_char(key_cursor, JSON_ARRAY_START_CHARACTER, true)) {
       char *end = nullptr;
       int idx = std::strtol(raw_key, &end, 10);
-      
+
       if (end != raw_key) {
         key_cursor.advance_to(end);
         if (cursor_scan_char(key_cursor, JSON_ARRAY_END_CHARACTER, true) && idx >= 0) {
@@ -40,7 +57,7 @@ int constexpr get_json_key_index(const char *raw_key, size_t key_len) {
   return -1;
 }
 
-bool constexpr is_key(const char *raw_key) {
+constexpr bool is_key(const char *raw_key) {
   return (get_json_key(raw_key, str_length(raw_key)).length() > 0) && (get_json_key_index(raw_key, str_length(raw_key)) == -1);
 }
 
@@ -56,26 +73,6 @@ constexpr bool are_generic_keys(Value) {
 template <typename Key, typename Value, typename... Rest>
 constexpr bool are_generic_keys(Key key, Value value, Rest... rest) {
   return (is_key(key)) && (are_generic_keys(rest...));
-}
-
-constexpr uint32_t hash32(const char *str, size_t len) {
-  if (str == nullptr) return 0;
-
-  uint32_t hash = 2166136261u;
-  for (size_t i = 0; i < len; ++i) {
-    hash ^= static_cast<uint32_t>(str[i]);
-    hash *= 16777619u;
-  }
-  return hash;
-}
-
-constexpr uint32_t hash32(std::string_view key) {
-  return hash32(key.data(), key.length());  
-}
-
-// Opérateur littéral
-constexpr uint32_t operator""_hash(const char *str, size_t len) {
-  return hash32(str, len);
 }
 
 struct JSONKey {

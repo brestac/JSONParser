@@ -1,6 +1,7 @@
 #pragma once
 
 #include "JSONStreamParser.h"
+#include "utils.h"
 
 NAMESPACE_JSON_BEGIN
 

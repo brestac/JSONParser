@@ -15,7 +15,6 @@
 //   JSONStreamParser parser(cursor);
 
 #ifdef ARDUINO
-#include <Stream.h>
 #include "StreamCursor.h"
 #endif
 
