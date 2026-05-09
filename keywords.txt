@@ -1,0 +1,9 @@
+# Syntax coloring for the JSONParser library
+# https://arduino.github.io/arduino-cli/library-specification/#keywords
+
+# ── Class names (KEYWORD1 → orange) ─────────────────────────────────────────
+JSONParser	KEYWORD1
+
+# ── Methods / functions (KEYWORD2 → brown) ──────────────────────────────────
+
+# ── Constants (LITERAL1 → teal) ──────────────────────────────────────────────
