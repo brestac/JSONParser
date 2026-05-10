@@ -7,11 +7,20 @@
 #define NAMESPACE_JSON_BEGIN namespace JSON {
 #define NAMESPACE_JSON_END }
 
-#ifndef JSON_DEBUG_PRINTF
-#if JSON_DEBUG_LEVEL > 0 && !defined(ARDUINO)
-#define JSON_DEBUG_PRINTF ::printf
+#if !defined(DEBUG_PRINTLN) && !defined(DEBUG_PRINTF) && !defined(DEBUG_PRINT)
+#if defined(DEBUG_ESP_PORT) && defined(ARDUINO)
+  #include "HardwareSerial.h"
+  #define DEBUG_PRINTLN(x) DEBUG_ESP_PORT.println(x)
+  #define DEBUG_PRINTF(x...) DEBUG_ESP_PORT.printf(x)
+  #define DEBUG_PRINT(x) DEBUG_ESP_PORT.print(x)
+#elif defined(DEBUG_ESP_PORT) && (defined(__linux__) || defined(__APPLE__))
+  #define DEBUG_PRINTLN(x) std::printf("%s\n", x)
+  #define DEBUG_PRINTF(x...) std::printf(x)
+  #define DEBUG_PRINT(x) std::printf(x)
 #else
-#define JSON_DEBUG_PRINTF(...)
+  #define DEBUG_PRINTLN(x)
+  #define DEBUG_PRINTF(x...)
+  #define DEBUG_PRINT(x)
 #endif
 #endif
 
@@ -27,21 +36,21 @@
 #define JSON_DEBUG_COLOR CONCAT(COLOR_, JSON_DEBUG_LEVEL)
 
 #if JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_INFO(format, ...) JSON_DEBUG_PRINTF(format, ##__VA_ARGS__)
+#define JSON_DEBUG_INFO(format, ...) DEBUG_PRINTF(format, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_INFO(format, ...)
 #endif
 
 #if JSON_DEBUG_LEVEL == 2 || JSON_DEBUG_LEVEL == 1
 #define JSON_DEBUG_WARNING(format, ...)                                        \
-  JSON_DEBUG_PRINTF(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__)
+DEBUG_PRINTF(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_WARNING(format, ...)
 #endif
 
 #if JSON_DEBUG_LEVEL == 3 || JSON_DEBUG_LEVEL == 2 || JSON_DEBUG_LEVEL == 1
 #define JSON_DEBUG_ERROR(format, ...)                                          \
-  JSON_DEBUG_PRINTF(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__)
+DEBUG_PRINTF(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_ERROR(format, ...)
 #endif

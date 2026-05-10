@@ -1179,7 +1179,7 @@ void JSONParserBase<Cursor>::print_state(size_t iteration) {
 
     [[maybe_unused]] const char *color = (_state == ERROR) ? "\x1b[31m" : "\x1b[32m";
 
-    JSON_DEBUG_PRINTF("%.*s %s pos=%zu it=%zu, p=%p\n%s%*c%s\x1b[0m\n", (int)length,
+    DEBUG_PRINTF("%.*s %s pos=%zu it=%zu, p=%p\n%s%*c%s\x1b[0m\n", (int)length,
                _cursor.start() + col_number * length, dots, get_position(),
                iteration, this, color, (int)(col_pos + 1), '^',
                get_state_name().data());

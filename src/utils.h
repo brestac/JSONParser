@@ -167,13 +167,13 @@ constexpr bool copy_hex_be_to_h(T (&dst)[N], const char *src, size_t src_size) {
 
 void print_bitwise_mask(size_t mask, size_t count) {
 
-  JSON_DEBUG_PRINTF("mask: ");
+  DEBUG_PRINTF("mask: ");
 
   for (int i = 0; i < count; i++) {
-    JSON_DEBUG_PRINTF("%d ", (mask & (1 << i)) != 0);
+    DEBUG_PRINTF("%d ", (mask & (1 << i)) != 0);
   }
 
-  JSON_DEBUG_PRINTF("\n");
+  DEBUG_PRINTF("\n");
 }
 
 uint64_t now() {
