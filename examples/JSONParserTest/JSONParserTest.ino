@@ -28,14 +28,21 @@ struct Config : public JSONObject {
 static int passed = 0;
 static int failed = 0;
 
-void check(bool condition, const char *label) {
-    if (condition) {
-        Serial.printf("  [PASS] %s\n", label);
-        ++passed;
-    } else {
-        Serial.printf("  [FAIL] %s\n", label);
-        ++failed;
-    }
+template <typename... Args>
+void check(bool condition, const char *format, Args&&... args) {
+  if (condition) {
+    Serial.printf("  [PASS] ");
+    ++passed;
+  } else {
+    Serial.printf("  [FAIL] ");
+    ++failed;
+  }
+  if constexpr (sizeof...(Args) > 0) {
+    Serial.printf(format, std::forward<Args>(args)...);
+    Serial.printf(" ");
+  } else {
+    Serial.printf("%s\n", format);
+  }
 }
 
 // ----------------------------------------------------------------
@@ -105,7 +112,23 @@ void test_parse_via_stream_template() {
 }
 
 // ----------------------------------------------------------------
-// Test 4 – toJSON via StreamString
+// Test 4 – toJSON char buffer
+// ----------------------------------------------------------------
+
+void test_print_to_buffer() {
+    DEBUG_PRINTF("\n--- Test: print ---\n");
+    Sensor s;
+    s.id          = 7;
+    s.temperature = 36;
+    s.active      = true;
+
+    char buf[256] = {};
+    size_t written = s.toJSON(buf, sizeof(buf));
+    check(written == 39, "Wrote %zu bytes to char buffer: '%s'\n", written, buf);
+}
+
+// ----------------------------------------------------------------
+// Test 5 – toJSON via StreamString
 // ----------------------------------------------------------------
 
 void test_serialize_to_stream() {
@@ -113,22 +136,34 @@ void test_serialize_to_stream() {
 
     Sensor s;
     s.id          = 7;
-    s.temperature = 36.6f;
+    s.temperature = 36;
     s.active      = true;
 
     // Use a StreamString as the backing stream;
     StreamString stream;   // read side is empty;
 
-    DEBUG_PRINTF("  Output: ");
     //fflush(stdout);
     size_t written = s.toJSON(stream);
-
-    DEBUG_PRINTF("\n");
-    check(written > 0, "toJSON wrote bytes to StreamString");
+    check(written == 39, "toJSON wrote %zu bytes to StreamString\n", written);
 }
 
-// ----------------------------------------------------------------           
-// Test 5 – roundtrip: parse then re-serialize
+// ----------------------------------------------------------------
+// Test 6 – toJSON Serial
+// ----------------------------------------------------------------
+
+void test_print_to_serial() {
+    DEBUG_PRINTF("\n--- Test: print ---\n");
+    Sensor s;
+    s.id          = 7;
+    s.temperature = 36.6f;
+    s.active      = true;
+
+    s.toJSON(Serial);
+    check(true, "Wrote to Serial");
+}
+
+// ----------------------------------------------------------------
+// Test 7 – roundtrip: parse then re-serialize
 // ----------------------------------------------------------------
 
 void test_roundtrip() {
@@ -143,8 +178,6 @@ void test_roundtrip() {
     char buf[256] = {};
     original.toJSON(buf, sizeof(buf));
 
-    DEBUG_PRINTF("  Serialized: %s\n", buf);
-
     // Parse that buffer back via a stream
     StreamString stream(buf);
 
@@ -158,40 +191,16 @@ void test_roundtrip() {
     float diff = copy.temperature - 19.8f;
     check(diff > -0.1f && diff < 0.1f, "roundtrip temperature ≈ 19.8");
 }
-
-void test_print_to_buffer() {
-    DEBUG_PRINTF("\n--- Test: print ---\n");
-    Sensor s;
-    s.id          = 7;
-    s.temperature = 36.6f;
-    s.active      = true;
-
-    char buf[256] = {};
-    s.toJSON(buf, sizeof(buf));
-    DEBUG_PRINTF("  Serialized: %s\n", buf);
-    check(true, "Wrote bytes to char buffer");
-}
-
-void test_print_to_serial() {
-    DEBUG_PRINTF("\n--- Test: print ---\n");
-    Sensor s;
-    s.id          = 7;
-    s.temperature = 36.6f;
-    s.active      = true;
-
-    s.toJSON(Serial);
-    check(true, "Wrote to Serial");
-}
-
 // ----------------------------------------------------------------
 // setup
 // ----------------------------------------------------------------
 
 void setup() {
     Serial.begin(115200);
+    Serial.flush();
     delay(1000);
 
-    Serial.println("=== Arduino Stream path tests ===");
+    Serial.println("=== Arduino JSON parser tests ===");
 
     test_parse_from_stream();
     test_partial_parse();
