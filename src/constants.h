@@ -13,7 +13,7 @@ constexpr size_t MAX_ARRAY_LENGTH = 1 << 16; // 65536
 
 inline uint8_t PARSER_ID = 0;
 inline uint8_t VERSION = 1;
-inline bool PRINT_BUFFER_AS_HEX = true;
+inline bool PRINT_BUFFER_AS_HEX = false;
 inline size_t DEBUG_COLUMN_WIDTH = 80;
 inline size_t MAX_PRINTF_BUFFER_SIZE = 4096;
 inline size_t MAX_KEY_VALUE_COUNT = 1 << 8; // 255
