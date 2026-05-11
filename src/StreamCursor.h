@@ -167,10 +167,12 @@ public:
   virtual bool outputCanTimeout () { return true; }
   virtual int availableForWrite() { return 0; }
   */
+  int availableForWrite() { return _stream.availableForWrite(); }
+
   size_t write(uint8_t c) {
     // JSON_DEBUG_WARNING("\nStreamCursor::write n=1\n");
-    size_t available = _stream.availableForWrite();
-    if (available == 0)
+    int available = availableForWrite();
+    if (available <= 0)
       return 0;
 
     flush();
@@ -181,17 +183,18 @@ public:
   }
 
   size_t write(const uint8_t *buffer, size_t size) {
-    size_t available = _stream.availableForWrite();
-    if (available == 0)
-      return 0;
 
-    size_t len = std::min(available, size);
+    size_t len = static_cast<size_t>(availableForWrite());
+
+    if (len > size) len = size;
+
     if (len == 0)
       return 0;
 
     flush();
+    //DEBUG_PRINTF("\nStreamCursor::write n=%zu\n", (size_t)len);
+
     size_t n = _stream.write(buffer, len);
-    // JSON_DEBUG_WARNING("\nStreamCursor::write n=%zu\n", n);
     _written += n;
 
     return n;
@@ -212,14 +215,15 @@ public:
     // size_t printf(const char *format, ...) {
     //  JSON_DEBUG_WARNING("\nStreamCursor::printf\n");
 
-    char buf[64];
+    char buf[STREAM_BUFFER_SIZE];
 
     int needed = snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
-    size_t available = _stream.availableForWrite();
+    int available = availableForWrite();
 
-    if (available < static_cast<size_t>(needed)) {
-      // JSON_DEBUG_INFO("StreamCursor::printf available=%zu < needed=%d\n", available, needed);
-      needed = static_cast<int>(available);
+    //DEBUG_PRINTF("StreamCursor::printf available=%d , needed=%d\n", available, needed);
+
+    if (needed > available) {
+      needed = available;
     }
 
     if (needed < 0) {
@@ -227,17 +231,19 @@ public:
     }
 
     size_t n = 0;
-    if (static_cast<size_t>(needed) < sizeof(buf)) {
+    size_t needed_size = static_cast<size_t>(needed);
+
+    if (sizeof(buf) > needed_size) {
       // Tout tient dans le buffer de pile
-      n = write((const uint8_t *)buf, needed);
+      n = write((const uint8_t *)buf, needed_size);
       // JSON_DEBUG_WARNING("\nStreamCursor::printf n=%zu\n", n);
     } else {
       // Allocation dynamique pour les chaînes longues
-      char *heap = new (std::nothrow) char[needed + 1];
-      // JSON_DEBUG_WARNING("Allocating %d bytes for printf\n", needed + 1);
+      char *heap = static_cast<char *>(malloc(needed_size + 1));
+      JSON_DEBUG_WARNING("Allocating %d bytes for printf\n", needed_size + 1);
       if (heap) {
-        snprintf(heap, needed + 1, format, std::forward<Args>(args)...);
-        n = write((const uint8_t *)heap, needed);
+        snprintf(heap, needed_size + 1, format, std::forward<Args>(args)...);
+        n = write((const uint8_t *)heap, needed_size);
         // JSON_DEBUG_WARNING("\nStreamCursor::printf n=%zu\n", n);
         delete[] heap;
       }
