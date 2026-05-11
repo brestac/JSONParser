@@ -1,4 +1,6 @@
 .ccls-cache
+.agents
+.config
 arduino-test
 desktop-test
 main
