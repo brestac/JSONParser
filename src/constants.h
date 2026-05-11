@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 namespace JSON {
+constexpr size_t STREAM_BUFFER_SIZE = 64;
 constexpr size_t RING_BUFFER_SIZE = 256;
 constexpr size_t MAX_JSON_LENGTH = 1 << 24;  // 16777216 bytes = 16MB
 constexpr size_t MAX_KEY_LENGTH = 1 << 8;    // 255
