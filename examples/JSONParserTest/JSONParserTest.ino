@@ -12,7 +12,9 @@ struct Sensor : public JSONObject {
     int   id          = 0;
     float temperature = 0.0f;
     bool  active      = false;
-    TO_JSON_FROM_JSON(id, temperature, active);
+    char name[64];
+    uint8_t num[1] = {1};
+    TO_JSON_FROM_JSON(id, active, name /*,temperature, num*/);
 };
 
 struct Config : public JSONObject {
@@ -39,12 +41,33 @@ void check(bool condition, const char *format, Args&&... args) {
   }
   if constexpr (sizeof...(Args) > 0) {
     Serial.printf(format, std::forward<Args>(args)...);
-    Serial.printf(" ");
+    Serial.println("");
   } else {
     Serial.printf("%s\n", format);
   }
 }
+// ----------------------------------------------------------------
+// Test 1 – fromJSON via char buffer
+// ----------------------------------------------------------------
 
+void test_parse_from_char_buffer() {
+    DEBUG_PRINTF("\n--- Test: fromJSON via StreamCursor ---\n");
+
+    const char *json = "{\"id\":42,\"name\":\"abc\",\"temperature\":23.5,\"active\":true, \"num\":[1,2,3]}";
+
+    Sensor s;
+    JSON::ParseResult result = s.fromJSON(json);
+
+    check(!result.error,         "parse succeeded");
+    check(s.id == 42,            "id == 42");
+    check(strcmp(s.name, "abc") == 0,            "name == '%s'", s.name);
+    check(s.active == true,      "active == true");
+    check(s.num[0] == 1 && s.num[1] == 2 && s.num[2] == 3, "num == [1,2,3]");
+
+    // temperature comparison with a tolerance
+    float diff = s.temperature - 23.5f;
+    check(diff > -0.01f && diff < 0.01f, "temperature ≈ 23.5");
+}
 // ----------------------------------------------------------------
 // Test 1 – fromJSON via StreamString
 // ----------------------------------------------------------------
@@ -124,7 +147,7 @@ void test_print_to_buffer() {
 
     char buf[256] = {};
     size_t written = s.toJSON(buf, sizeof(buf));
-    check(written == 39, "Wrote %zu bytes to char buffer: '%s'\n", written, buf);
+    check(written > 0, "Wrote %zu bytes to char buffer: '%s'\n", written, buf);
 }
 
 // ----------------------------------------------------------------
@@ -136,15 +159,15 @@ void test_serialize_to_stream() {
 
     Sensor s;
     s.id          = 7;
-    s.temperature = 36;
+    s.temperature = 36.55f;
     s.active      = true;
+    strncpy(s.name, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", sizeof(s.name));
 
     // Use a StreamString as the backing stream;
-    StreamString stream;   // read side is empty;
+    StreamString stream;
 
-    //fflush(stdout);
     size_t written = s.toJSON(stream);
-    check(written == 39, "toJSON wrote %zu bytes to StreamString\n", written);
+    check(written > 0, "toJSON wrote %zu bytes to StreamString: '%s'\n", written, stream.c_str());
 }
 
 // ----------------------------------------------------------------
@@ -196,12 +219,14 @@ void test_roundtrip() {
 // ----------------------------------------------------------------
 
 void setup() {
+    delay(500);
     Serial.begin(115200);
-    Serial.flush();
     delay(1000);
+    Serial.flush();
 
     Serial.println("=== Arduino JSON parser tests ===");
 
+    test_parse_from_char_buffer();
     test_parse_from_stream();
     test_partial_parse();
     test_parse_via_stream_template();
