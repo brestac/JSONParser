@@ -14,13 +14,13 @@ struct Sensor : public JSONObject {
     bool  active      = false;
     char name[64];
     uint8_t num[1] = {1};
-    TO_JSON_FROM_JSON(id, active, name /*,temperature, num*/);
+    JSON_SERIALIZE_IMPL(id, active, name /*,temperature, num*/);
 };
 
 struct Config : public JSONObject {
     int   version  = 0;
     float interval = 0.0f;
-    TO_JSON_FROM_JSON(version, interval);
+    JSON_SERIALIZE_IMPL(version, interval);
 };
 
 // ----------------------------------------------------------------
