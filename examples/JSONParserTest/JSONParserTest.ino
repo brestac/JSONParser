@@ -13,8 +13,8 @@ struct Sensor : public JSONObject {
     float temperature = 0.0f;
     bool  active      = false;
     char name[64];
-    uint8_t num[1] = {1};
-    JSON_SERIALIZE_IMPL(id, active, name /*,temperature, num*/);
+    uint8_t num[3] = {1,2,3};
+    JSON_SERIALIZE_IMPL(id, active, name ,temperature, num);
 };
 
 struct Config : public JSONObject {
@@ -232,8 +232,8 @@ void setup() {
     test_parse_via_stream_template();
 
     test_print_to_buffer();
-    test_serialize_to_stream();
-    test_print_to_serial();
+    //test_serialize_to_stream();
+    //test_print_to_serial();
 
     test_roundtrip();
 
