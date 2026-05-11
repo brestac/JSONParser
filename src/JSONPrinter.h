@@ -72,7 +72,7 @@ template <typename Cursor, typename T, typename... Rest>
 size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, Cursor output, const char *key, T &value,
                                     Rest &&...rest) {
   size_t len = 0;
-  
+
   if (mask == 0 || mask & (1 << idx)) {
     len += output.write("\"");
     len += output.write(key);
@@ -100,7 +100,9 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, 
 
 template <typename Cursor, typename T>
 size_t constexpr print_value_to(Cursor output, T &value) {
-  if constexpr (is_char_array_v<T>) {
+  if constexpr (std::is_same_v<remove_cvref_t<T>, bool>) {
+    return print_to(output, "%s", value ? "true" : "false");
+  } else if constexpr (is_char_array_v<T>) {
     return print_to(output, "\"%s\"", value);
   } else if constexpr (is_uint_array_v<T>) {
     if (JSON::PRINT_BUFFER_AS_HEX) {
@@ -110,8 +112,6 @@ size_t constexpr print_value_to(Cursor output, T &value) {
     }
   } else if constexpr (is_container_v<T>) {
     return print_array_to(output, value);
-  } else if constexpr (std::is_same_v<remove_cvref_t<T>, bool>) {
-    return print_to(output, "%s", value ? "true" : "false");
   } else if constexpr (std::is_floating_point_v<remove_cvref_t<T>>) {
     return print_to(output, "%.15g", value);
   // } else if constexpr (std::is_unsigned_v<remove_cvref_t<T>>) {
@@ -127,7 +127,7 @@ size_t constexpr print_value_to(Cursor output, T &value) {
        return output.write("null");
      } else {
        if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<std::remove_pointer_t<T>>>) {
-         return print_object_pointer_to(output, value);       
+         return print_object_pointer_to(output, value);
        } else {
          return print_to(output, "%p", value);
        }
@@ -181,7 +181,7 @@ template <typename Cursor, typename T>
 size_t constexpr print_array_to(Cursor output, T &array) {
   size_t N = array_size(array);
   size_t len = 0;
-  
+
   len += output.write("[");
 
   for (size_t i = 0; i < N; i++) {
@@ -203,13 +203,13 @@ template <typename Cursor, typename T, size_t N>
 size_t constexpr print_hex_to(Cursor output, T (&value)[N]) {
   size_t hex_size = sizeof(T) * 2;
   size_t len = 0;
-  
+
   len += output.write("\"");
-  
+
   for (size_t i = 0; i < N; i++) {
     len += output.printf("%0.*X", int(hex_size), value[i]);
   }
-  
+
   len += output.write("\"");
 
   return len;
@@ -221,7 +221,7 @@ constexpr size_t print_json(uint32_t mask, Cursor output, Args &&...args) {
                 "Le nombre d'arguments doit être pair");
 
   size_t len = 0;
-  
+
   int last_index = get_last_bitwise_mask_index(mask);
 
   len += output.write("{");
