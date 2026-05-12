@@ -11,11 +11,19 @@ public:
   uint32_t updated = 0;
 
   virtual ~JSONObject() = default;
-  virtual JSON::ParseResult fromJSON(const PointerCursorReader& cursor) = 0;
-  virtual size_t toJSON(PointerCursorWriter& cursor, bool updates = true) = 0;
+  virtual JSON::ParseResult fromJSON(const PointerCursorReader& cursor) {
+    return JSON::ParseResult();
+  }
+  virtual size_t toJSON(PointerCursorWriter& cursor, bool updates = true) {
+    return 0;
+  }
 
-  virtual JSON::ParseResult fromJSON(StreamCursor &cursor) = 0;
-  virtual size_t toJSON(StreamCursor& cursor, bool updates = true) = 0;
+  virtual JSON::ParseResult fromJSON(StreamCursor &cursor) {
+    return JSON::ParseResult();
+  }
+  virtual size_t toJSON(StreamCursor& cursor, bool updates = true) {
+    return 0;
+  }
 
   JSON::ParseResult fromJSON(char *input, size_t size);
   size_t toJSON(char *output, size_t size, bool updates = true);
