@@ -18,16 +18,10 @@ struct UnknownValueType : JSONObject {
     return writer.write("null");
   }
 
-#ifdef ARDUINO
   JSON::ParseResult fromJSON(JSON::StreamCursor& cursor) override;
   size_t toJSON(JSON::StreamCursor& writer, bool updates) override {
     return writer.write("null");
   }
-#else
-  size_t toJSON(JSON::PointerCursorPrinter& writer, bool updates) override {
-    return writer.write("null");
-  }
-#endif
 
   constexpr bool operator==(const UnknownValueType &other) const { return true; }
   constexpr bool operator!=(const UnknownValueType &other) const { return false; }

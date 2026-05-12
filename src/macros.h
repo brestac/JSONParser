@@ -93,7 +93,7 @@
             MACRO_7, MACRO_6, MACRO_5, MACRO_4, MACRO_3, MACRO_2, MACRO_1)     \
   (__VA_ARGS__)
 
-#ifdef ARDUINO
+//#ifdef ARDUINO
 #define FROM_JSON_OVERRIDE(...)                                                \
   JSON::ParseResult fromJSON(const PointerCursorReader &cursor) override {     \
     const PointerCursorReader _c = cursor;                                     \
@@ -124,21 +124,17 @@
     size_t mask = updates ? this->updated : 0;                                 \
     return JSON::print(mask, cursor, MACRO(__VA_ARGS__));                      \
   }
-#else
-#define FROM_JSON_OVERRIDE(...)                                                \
-  JSON::ParseResult fromJSON(const PointerCursorReader &cursor) override {     \
-    return JSON::parse(this->updated, cursor, MACRO(__VA_ARGS__));             \
-  }
-#define TO_JSON_OVERRIDE(...)                                                  \
-  size_t toJSON(PointerCursorWriter &writer, bool updates = true) override {   \
-    size_t mask = updates ? this->updated : 0;                                 \
-    return JSON::print(mask, writer, MACRO(__VA_ARGS__));                      \
-  }                                                                            \
-  size_t toJSON(PointerCursorPrinter &writer, bool updates = true) override {  \
-    size_t mask = updates ? this->updated : 0;                                 \
-    return JSON::print(mask, writer, MACRO(__VA_ARGS__));                      \
-  }
-#endif
+// #else
+// #define FROM_JSON_OVERRIDE(...)                                                \
+//   JSON::ParseResult fromJSON(const PointerCursorReader &cursor) override {     \
+//     return JSON::parse(this->updated, cursor, MACRO(__VA_ARGS__));             \
+//   }
+// #define TO_JSON_OVERRIDE(...)                                                  \
+//   size_t toJSON(PointerCursorWriter &writer, bool updates = true) override {   \
+//     size_t mask = updates ? this->updated : 0;                                 \
+//     return JSON::print(mask, writer, MACRO(__VA_ARGS__));                      \
+//   }                                                                            
+// #endif
 
 #define JSON_DECODER_IMPL(...)                                                 \
   using JSONObject::fromJSON;                                                  \

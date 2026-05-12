@@ -54,7 +54,7 @@ public:
     JSON_DEBUG_INFO("JSONParserBase(pointer) created\n");
   }
 
-#ifdef ARDUINO
+//#ifdef ARDUINO
   // ── Constructeur StreamCursor ─────────────────────────────
   // Used when Cursor = StreamCursor; never called for other cursor types.
   explicit JSONParserBase(StreamCursor &cursor)
@@ -64,7 +64,7 @@ public:
     _automask = false;
     JSON_DEBUG_INFO("JSONParserBase(stream) created\n");
   }
-#endif
+//#endif
 
   ~JSONParserBase() = default;
 
@@ -1128,13 +1128,13 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
 
 //#ifndef ARDUINO
   //_cursor.set_position(r.length);
-#ifdef ARDUINO
+//#ifdef ARDUINO
   if constexpr (!std::is_same_v<remove_cvref_t<Cursor>, StreamCursor>) {
     _cursor.set_position(r.length);
   }
-#else
-  _cursor.set_position(r.length);
-#endif
+// #else
+//   _cursor.set_position(r.length);
+// #endif
 
   result |= ParseValueResult::VALUE_PARSED | ParseValueResult::VALUE_UPDATED |
             ParseValueResult::VALUE_CONVERTED;
@@ -1226,6 +1226,6 @@ std::string_view JSONParserBase<Cursor>::get_state_name() {
 // (remplace la classe JSONParser existante — même interface)
 using JSONParser = JSONParserBase<const JSON:: PointerCursorReader>;
 
-#ifdef ARDUINO
+//#ifdef ARDUINO
 using JSONStreamParser = JSONParserBase<JSON::StreamCursor>;
-#endif
+//#endif

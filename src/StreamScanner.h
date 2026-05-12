@@ -14,9 +14,9 @@
 //   JSON::StreamCursor<256> cursor(myWiFiClient);
 //   JSONStreamParser parser(cursor);
 
-#ifdef ARDUINO
+//#ifdef ARDUINO
 #include "StreamCursor.h"
-#endif
+//#endif
 
 #include "constants.h"
 #include "PointerCursor.h"

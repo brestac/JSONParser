@@ -5,6 +5,7 @@
 #include "ParseResult.h"
 #include "JSONValue.h"
 #include "JSONKey.h"
+#include "StreamCursor.h"
 
 using JSONCallback = std::function<void(JSONKey, JSONValue, bool &)>;
 
@@ -13,14 +14,14 @@ struct JSONCallbackObject {
   JSONKey key;
   bool stop;
 
-#ifdef ARDUINO
+//#ifdef ARDUINO
   JSON::ParseResult fromJSON(JSON::StreamCursor& cursor);
-#else
+// #else
   JSON::ParseResult fromJSON(const JSON:: PointerCursorReader& cursor);
   size_t toJSON(JSON::PointerCursorWriter& cursor, bool updates = true) {
     return cursor.write("null");
   }
-#endif
+// #endif
   JSONCallbackObject(JSONCallback callback, JSONKey key) : callback(callback), key(key), stop(false) {
     JSON_DEBUG_INFO("JSONCallbackObject created\n");
   }

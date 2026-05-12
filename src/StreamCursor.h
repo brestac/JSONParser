@@ -1,13 +1,11 @@
 #pragma once
 
+#include <cstring>
+
+#include "Stream.h"
 #include "constants.h"
 #include "demangled.h"
 #include "macros.h"
-#include <cstring>
-
-#if defined(ARDUINO) && !defined(ARDUINO_EMULATE_STREAM)
-#include <Stream.h>
-#endif
 
 NAMESPACE_JSON_BEGIN
 
@@ -186,13 +184,14 @@ public:
 
     size_t len = static_cast<size_t>(availableForWrite());
 
-    if (len > size) len = size;
+    if (len > size)
+      len = size;
 
     if (len == 0)
       return 0;
 
     flush();
-    //DEBUG_PRINTF("\nStreamCursor::write n=%zu\n", (size_t)len);
+    // DEBUG_PRINTF("\nStreamCursor::write n=%zu\n", (size_t)len);
 
     size_t n = _stream.write(buffer, len);
     _written += n;
@@ -217,10 +216,12 @@ public:
 
     char buf[STREAM_BUFFER_SIZE];
 
-    int needed = snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+    int needed =
+        snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
     int available = availableForWrite();
 
-    //DEBUG_PRINTF("StreamCursor::printf available=%d , needed=%d\n", available, needed);
+    // DEBUG_PRINTF("StreamCursor::printf available=%d , needed=%d\n",
+    // available, needed);
 
     if (needed > available) {
       needed = available;
