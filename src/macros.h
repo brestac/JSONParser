@@ -7,22 +7,17 @@
 #define NAMESPACE_JSON_BEGIN namespace JSON {
 #define NAMESPACE_JSON_END }
 
-
 #if !defined(DEBUG_PRINTLN) && !defined(DEBUG_PRINTF) && !defined(DEBUG_PRINT)
-  #if defined(DEBUG_ESP_PORT) && defined(ARDUINO)
-    #include "HardwareSerial.h"
-    #define DEBUG_PRINTLN(x) DEBUG_ESP_PORT.println(x)
-    #define DEBUG_PRINTF(x...) DEBUG_ESP_PORT.printf(x)
-    #define DEBUG_PRINT(x) DEBUG_ESP_PORT.print(x)
-  #elif defined(DEBUG_ESP_PORT) && (defined(__linux__) || defined(__APPLE__))
-    #define DEBUG_PRINTLN(x) std::printf("%s\n", x)
-    #define DEBUG_PRINTF(x...) std::printf(x)
-    #define DEBUG_PRINT(x) std::printf(x)
-  #else
-    #define DEBUG_PRINTLN(x)
-    #define DEBUG_PRINTF(x...)
-    #define DEBUG_PRINT(x)
-  #endif
+#if defined(DEBUG_ESP_PORT)
+#include "HardwareSerial.h"
+#define DEBUG_PRINTLN(x) DEBUG_ESP_PORT.println(x)
+#define DEBUG_PRINTF(x...) DEBUG_ESP_PORT.printf(x)
+#define DEBUG_PRINT(x) DEBUG_ESP_PORT.print(x)
+#else
+#define DEBUG_PRINTLN(x)
+#define DEBUG_PRINTF(x...)
+#define DEBUG_PRINT(x)
+#endif
 #endif
 
 #define COLOR_0 "\x1b[30m"
