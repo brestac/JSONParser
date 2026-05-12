@@ -54,7 +54,6 @@ public:
     JSON_DEBUG_INFO("JSONParserBase(pointer) created\n");
   }
 
-//#ifdef ARDUINO
   // ── Constructeur StreamCursor ─────────────────────────────
   // Used when Cursor = StreamCursor; never called for other cursor types.
   explicit JSONParserBase(StreamCursor &cursor)
@@ -64,16 +63,15 @@ public:
     _automask = false;
     JSON_DEBUG_INFO("JSONParserBase(stream) created\n");
   }
-//#endif
 
   ~JSONParserBase() = default;
 
   // ── API publique (identique à JSONParser) ─────────────────
-  
+
   template <typename T>
   enable_if_t<is_derived_json_data_container_v<T>, void>
   parse(T& jsonObjects);
-  
+
   template <typename... Args>
   void parse(Args &&...args);
 
@@ -564,7 +562,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_unknown_value() {
     else if (ch == JSON_QUOTE_CHARACTER) {
       inString = !inString;
     }
-    
+
     if (inString) {
         _cursor.advance();
         continue;
@@ -604,7 +602,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_value(JSONCallbackObject& cb) {
     JSON_DEBUG_INFO("JSONParserBase<Cursor>::parse_value top level array\n");
     return ParseValueResult::KEY_FOUND | parse_array(cb);
   }
-  
+
   return ParseValueResult::KEY_FOUND | parse_into_value(cb);
 }
 
@@ -729,9 +727,9 @@ void JSONParserBase<Cursor>::parse(Args &&...args) {
         _state = END;
         continue;
       }
-      
+
       ParseValueResult r = parse_value(std::forward<Args>(args)...);
-      
+
       if (!r.key()) {
         parse_unknown_value();
         set_state(COMMA);
@@ -1041,14 +1039,14 @@ JSONParserBase<Cursor>::parse_array(V &arg_value) {
 }
 
 template <typename Cursor>
-ParseValueResult 
+ParseValueResult
 JSONParserBase<Cursor>::parse_into_array_at_index(JSONCallbackObject& cb, size_t index) {
   cb.setArrayIndex(index);
 
   if (_is_top_level_array) {
     return parse_object(cb);
   }
-  
+
   return parse_into_value(cb);
 }
 
@@ -1099,9 +1097,9 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
   if (!is_object_start()) {
     return ParseValueResult::NO_RESULT;
   }
-    
+
   JSON::ParseResult r = arg_value.fromJSON(_cursor);
-    
+
   if (r.error == true) {
     JSON_DEBUG_TYPES("JSONParser::parse_object error parsing %s\n", arg_value);
     _state = ERROR;
@@ -1126,8 +1124,6 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
   // nUpdated += r.nUpdated;
   //_elapsed += r.elapsed;
 
-//#ifndef ARDUINO
-  //_cursor.set_position(r.length);
 //#ifdef ARDUINO
   if constexpr (!std::is_same_v<remove_cvref_t<Cursor>, StreamCursor>) {
     _cursor.set_position(r.length);
@@ -1225,7 +1221,4 @@ std::string_view JSONParserBase<Cursor>::get_state_name() {
 // JSONParser : version originale basée sur PointerCursor
 // (remplace la classe JSONParser existante — même interface)
 using JSONParser = JSONParserBase<const JSON:: PointerCursorReader>;
-
-//#ifdef ARDUINO
 using JSONStreamParser = JSONParserBase<JSON::StreamCursor>;
-//#endif

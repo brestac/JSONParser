@@ -1,6 +1,7 @@
 #pragma once
 
 #include "JSONStreamParser.h"
+#include "StreamCursor.h"
 #include "utils.h"
 
 NAMESPACE_JSON_BEGIN
@@ -19,25 +20,23 @@ parse(uint32_t &mask, const PointerCursorReader& cursor, T &jsonObjects);
 
 ParseResult parse(const PointerCursorReader &cursor, const JSONCallback& cb);
 
-//#ifdef ARDUINO
 ParseResult parse(StreamCursor& cursor, const JSONCallback& cb);
 
 template <typename... Args>
 ParseResult parse(uint32_t &mask, StreamCursor& cursor, Args &&...args);
 
-// template <typename T>
-// std::enable_if_t<is_derived_json_data_container_v<T>, ParseResult>
-// parse(uint32_t &mask, StreamCursor& cursor, T &jsonObjects);
-//#endif
+template <typename T>
+std::enable_if_t<is_derived_json_data_container_v<T>, ParseResult>
+parse(uint32_t &mask, StreamCursor& cursor, T &jsonObjects);
 
 template <typename Cursor>
 std::enable_if_t<is_cursor_reader_v<Cursor>, ParseResult>
 _parse(Cursor& cursor, const JSONCallback &cb);
-  
+
 template <typename Cursor, typename... Args>
 std::enable_if_t<is_cursor_reader_v<Cursor> && key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>, ParseResult>
 _parse(uint32_t &mask, Cursor& cursor, Args &&...args);
-  
+
 // template <typename Cursor, typename T>
 // std::enable_if_t<is_cursor_reader_v<Cursor> && is_derived_json_data_container_v<remove_cvref_t<T>>, ParseResult>
 // _parse(uint32_t &mask, Cursor& cursor, T &jsonObjects);
@@ -99,9 +98,6 @@ _parse(uint32_t &mask, Cursor& cursor, Args &&...args) {
 
 NAMESPACE_JSON_END
 
-//#ifdef ARDUINO
-#include "StreamCursor.h"
-
 JSON::ParseResult UnknownValueType::fromJSON(JSON::StreamCursor& cursor) {
   uint32_t m = 0;
   return JSON::_parse(m, cursor);
@@ -126,12 +122,6 @@ JSON::ParseResult JSON::parse(uint32_t &mask, StreamCursor& cursor, Args &&...ar
 //   return JSON::_parse(mask, cursor, jsonObjects);
 // }
 
-//#endif // ARDUINO
-
-// PointerCursorReader-based implementations are compiled on ALL platforms.
-// On Arduino, callers may parse JSON stored in a char buffer (e.g. from an
-// HTTP response) using a PointerCursorReader without going through StreamCursor.
-
 JSON::ParseResult UnknownValueType::fromJSON(const JSON::PointerCursorReader& cursor) {
   uint32_t m = 0;
   const PointerCursorReader c = cursor;
@@ -151,9 +141,6 @@ JSON::parse(uint32_t &mask, const PointerCursorReader& cursor, T &jsonObjects) {
   return JSON::_parse(mask, c, jsonObjects);
 }
 
-// #ifndef ARDUINO
-// // Callback-based PointerCursorReader parse and JSONCallbackObject::fromJSON are
-// // desktop-only: on Arduino, JSONCallbackObject does not declare fromJSON(PointerCursorReader).
 JSON::ParseResult JSON::parse(const PointerCursorReader& cursor, const JSONCallback& cb) {
   const PointerCursorReader c = cursor;
   return JSON::_parse(c, cb);

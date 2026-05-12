@@ -14,9 +14,7 @@ struct JSONCallbackObject {
   JSONKey key;
   bool stop;
 
-//#ifdef ARDUINO
   JSON::ParseResult fromJSON(JSON::StreamCursor& cursor);
-// #else
   JSON::ParseResult fromJSON(const JSON:: PointerCursorReader& cursor);
   size_t toJSON(JSON::PointerCursorWriter& cursor, bool updates = true) {
     return cursor.write("null");
