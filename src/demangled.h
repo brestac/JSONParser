@@ -65,8 +65,6 @@ void print_demangled_types(const char* format, Args&&... args) {
     DEBUG_PRINTF("\x1b[31m");
     printf_impl(format, names, std::index_sequence_for<Args...>{});
     DEBUG_PRINTF("\x1b[0m");
-#else
-  JSON_DEBUG_WARNING("RTTI not enabled");
 #endif
 }
 
@@ -77,8 +75,6 @@ void print_demangled_type(const char *format, T &value, Args &&...args) {
   DEBUG_PRINTF("\x1b[31m");
   printf(format, static_cast<const char*>(demangled), std::forward<Args>(args)...);
   DEBUG_PRINTF("\x1b[0m");
-#else
-  JSON_DEBUG_WARNING("RTTI not enabled");
 #endif
 }
 

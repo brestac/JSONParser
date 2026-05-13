@@ -50,6 +50,10 @@
 #define JSON_DEBUG_ERROR(format, ...)
 #endif
 
+// #ifndef __GXX_RTTI
+//   JSON_DEBUG_WARNING("RTTI not enabled\n");
+// #endif
+
 // Macro pour créer les paires
 #define PAIR(x) #x, x
 #define PAIR_IDX(idx, x) #x "[" #idx "]", x
