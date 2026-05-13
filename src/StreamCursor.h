@@ -215,17 +215,15 @@ public:
 
   template <typename... Args>
   size_t printf(const char *format, Args &&...args) {
-    // size_t printf(const char *format, ...) {
+    // return _stream.printf(format, std::forward<Args>(args)...);
     //  JSON_DEBUG_WARNING("\nStreamCursor::printf\n");
 
     char buf[STREAM_BUFFER_SIZE];
 
-    int needed =
-        snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+    int needed = snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
     int available = availableForWrite();
 
-    // DEBUG_PRINTF("StreamCursor::printf available=%d , needed=%d\n",
-    // available, needed);
+    // DEBUG_PRINTF("StreamCursor::printf available=%d , needed=%d\n", available, needed);
 
     if (needed > available) {
       needed = available;

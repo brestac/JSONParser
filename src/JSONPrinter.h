@@ -6,8 +6,8 @@
 constexpr int get_last_bitwise_mask_index(uint32_t mask);
 
 template <typename Cursor, typename... Args>
-std::enable_if_t<is_cursor_writer_v<Cursor>, size_t> constexpr print_to(
-    Cursor output, const char *format, Args &&...args);
+//std::enable_if_t<is_cursor_writer_v<Cursor>, size_t>
+size_t print_to(Cursor output, const char *format, Args &&...args);
 
 template <typename Cursor, typename T, typename... Rest>
 size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
@@ -24,7 +24,7 @@ template <typename Cursor, typename T, size_t N>
 size_t constexpr print_hex_to(Cursor output, T (&value)[N]);
 
 template <typename Cursor, typename T, size_t N>
-size_t constexpr print_fixed_char_buffer_value_to(Cursor output, T (&value)[N]);
+size_t constexpr print_char_array_to(Cursor output, T (&value)[N]);
 
 template <typename Cursor, typename T>
 size_t constexpr print_value_to(Cursor output, T &value);
@@ -88,6 +88,7 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
     len += output.write("\":");
 
     size_t vlen = print_value_to(output, value);
+    //output.flush();
     len += vlen;
     // PointerCursorWriter uses an independent _pos per copy; after
     // print_value_to passes a copy, the local cursor hasn't advanced, so sync
@@ -109,18 +110,13 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
   return len;
 }
 
-template <typename Cursor, typename T, size_t N>
-size_t constexpr print_fixed_char_buffer_value_to(Cursor output,
-                                                  T (&value)[N]) {
-  return print_to(output, "\"%.*s\"", (int)N, value);
-}
-
 template <typename Cursor, typename T>
 size_t constexpr print_value_to(Cursor output, T &value) {
+
   if constexpr (std::is_same_v<remove_cvref_t<T>, bool>) {
     return print_to(output, "%s", value ? "true" : "false");
   } else if constexpr (is_char_array_v<T>) {
-    return print_fixed_char_buffer_value_to(output, value);
+    return print_char_array_to(output, value);
   } else if constexpr (is_uint_array_v<T>) {
     if (JSON::PRINT_BUFFER_AS_HEX) {
       return print_hex_to(output, value);
@@ -130,9 +126,9 @@ size_t constexpr print_value_to(Cursor output, T &value) {
   } else if constexpr (is_container_v<T>) {
     return print_array_to(output, value);
   } else if constexpr (std::is_floating_point_v<remove_cvref_t<T>>) {
-    return print_to(output, "%.15g", value);
-    // } else if constexpr (std::is_unsigned_v<remove_cvref_t<T>>) {
-    //   print_to(output, "%u", value);
+    return print_to(output, "%.6g", value);
+  } else if constexpr (std::is_unsigned_v<remove_cvref_t<T>>) {
+    return print_to(output, "%u", value);
   } else if constexpr (std::is_integral_v<remove_cvref_t<T>>) {
     return print_to(output, "%lld", (long long)value);
   } else if constexpr (std::is_same_v<remove_cvref_t<T>, std::string_view>) {
@@ -175,8 +171,8 @@ template <typename Cursor>
 }
 
 template <typename Cursor, typename... Args>
-std::enable_if_t<is_cursor_writer_v<Cursor>, size_t> constexpr print_to(
-    Cursor output, const char *format, Args &&...args) {
+//std::enable_if_t<is_cursor_writer_v<Cursor>, size_t> constexpr
+size_t print_to(Cursor output, const char *format, Args &&...args) {
   return output.printf(format, std::forward<Args>(args)...);
 }
 
@@ -211,6 +207,11 @@ size_t constexpr print_array_to(Cursor output, T &array) {
 
   len += output.write("]");
   return len;
+}
+
+template <typename Cursor, typename T, size_t N>
+size_t constexpr print_char_array_to(Cursor output, T (&value)[N]) {
+  return print_to(output, "\"%.*s\"", (int)N, value);
 }
 
 template <typename Cursor, typename T, size_t N>

@@ -11,7 +11,8 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
-  run_tests();
+  //run_tests();
+  test_print_to_serial();
 }
 
 void loop() {

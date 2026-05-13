@@ -29,6 +29,8 @@ public:
 
   size_t available() const { return _end - _pos; }
 
+  void flush() {}
+
   // Avance le pointeur de n octets
   void advance(size_t n = 1) const { _pos += n; }
 
