@@ -7,10 +7,12 @@
 
 
 void setup() {
-  delay(500);
   Serial.begin(115200);
   delay(500);
-
+  
+  Serial.println("");
+  Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
+  Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
   //run_tests();
   test_print_to_serial();
 }

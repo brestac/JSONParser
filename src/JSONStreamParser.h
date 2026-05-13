@@ -242,7 +242,7 @@ template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
   // Pour StreamCursor on doit copier la clé dans un buffer local.
   // Pour PointerCursor on peut pointer directement (comportement original).
   // On utilise un buffer statique court pour la clé.
-  static char key_buf[JSON::MAX_KEY_LENGTH + 1];
+  char key_buf[JSON::MAX_KEY_LENGTH + 1];
   size_t n = 0;
 
   while (n < JSON::MAX_KEY_LENGTH) {

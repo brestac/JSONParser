@@ -211,7 +211,7 @@ size_t constexpr print_array_to(Cursor output, T &array) {
 
 template <typename Cursor, typename T, size_t N>
 size_t constexpr print_char_array_to(Cursor output, T (&value)[N]) {
-  return print_to(output, "\"%.*s\"", (int)N, value);
+  return print_to(output, "\"%.*s\"", (int)(N - 1), value);
 }
 
 template <typename Cursor, typename T, size_t N>
