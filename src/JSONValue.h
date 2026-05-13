@@ -60,6 +60,7 @@ public:
 #if __EXCEPTIONS
             throw std::bad_cast();
 #endif
+            return To();
           }
         },
         data);
