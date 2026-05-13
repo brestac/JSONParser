@@ -10,7 +10,7 @@ void setup() {
   delay(500);
   Serial.begin(115200);
   delay(500);
-  
+
   run_tests();
 }
 

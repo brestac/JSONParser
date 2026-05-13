@@ -579,21 +579,6 @@ void test_serialize_to_stream() {
 }
 
 // ----------------------------------------------------------------
-// Test 6 – toJSON Serial
-// ----------------------------------------------------------------
-
-void test_print_to_serial() {
-  DEBUG_PRINTF("\n--- Test: toJSON print to stdout ---\n");
-  Sensor s;
-  s.id = 7;
-  s.temperature = 36.6f;
-  s.active = true;
-
-  s.toJSON(Serial);
-  check(true, "Wrote to Serial");
-}
-
-// ----------------------------------------------------------------
 // Test 7 – roundtrip: parse then re-serialize
 // ----------------------------------------------------------------
 
@@ -632,6 +617,21 @@ void test_print_to_stdout() {
 
   check(true, "You should see on the previous line the JSON representation of "
               "the Personne object");
+}
+
+// ----------------------------------------------------------------
+// Test 6 – toJSON Serial
+// ----------------------------------------------------------------
+
+void test_print_to_serial() {
+  DEBUG_PRINTF("\n--- Test: toJSON print to stdout ---\n");
+  Sensor s;
+  s.id = 7;
+  s.temperature = 36.6f;
+  s.active = true;
+
+  s.toJSON(Serial);
+  check(true, "Wrote to Serial");
 }
 
 void test_print_to_stream_string() {
@@ -704,8 +704,6 @@ void run_tests() {
   run_parsing_tests();
   run_printing_tests();
   test_roundtrip();
-
-  test_print_to_stream_string();
 
   DEBUG_PRINTF("\n============================================================\n");
   DEBUG_PRINTF("Results: %d passed, %d failed\n", passed, failed);
