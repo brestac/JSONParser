@@ -215,45 +215,40 @@ public:
 
   template <typename... Args>
   size_t printf(const char *format, Args &&...args) {
-    // return _stream.printf(format, std::forward<Args>(args)...);
-    //  JSON_DEBUG_WARNING("\nStreamCursor::printf\n");
+      char buf[STREAM_BUFFER_SIZE];
 
-    char buf[STREAM_BUFFER_SIZE];
+      // snprintf écrit au plus sizeof(buf)-1 caractères
+      int needed = snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+      if (needed < 0) return 0;
 
-    int needed = snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
-    int available = availableForWrite();
+      int available = availableForWrite();
+      size_t to_write = static_cast<size_t>(needed);
 
-    // DEBUG_PRINTF("StreamCursor::printf available=%d , needed=%d\n", available, needed);
+      if (to_write >= sizeof(buf)) {
+          // Le buffer était trop petit : allocation dynamique
+          char *heap = static_cast<char *>(malloc(to_write + 1));
+          if (!heap) return 0;
+          snprintf(heap, to_write + 1, format, std::forward<Args>(args)...);
+          if (available >= 0 && to_write > static_cast<size_t>(available)) {
+            to_write = static_cast<size_t>(available);
+          }
 
-    if (needed > available) {
-      needed = available;
-    }
+          size_t n = write(reinterpret_cast<const uint8_t *>(heap), to_write);
+          free(heap);
+          _written += n;
 
-    if (needed < 0) {
-      return 0;
-    }
-
-    size_t n = 0;
-    size_t needed_size = static_cast<size_t>(needed);
-
-    if (sizeof(buf) > needed_size) {
-      // Tout tient dans le buffer de pile
-      n = write((const uint8_t *)buf, needed_size);
-      // JSON_DEBUG_WARNING("\nStreamCursor::printf n=%zu\n", n);
-    } else {
-      // Allocation dynamique pour les chaînes longues
-      char *heap = static_cast<char *>(malloc(needed_size + 1));
-      JSON_DEBUG_WARNING("Allocating %d bytes for printf\n", needed_size + 1);
-      if (heap) {
-        snprintf(heap, needed_size + 1, format, std::forward<Args>(args)...);
-        n = write((const uint8_t *)heap, needed_size);
-        // JSON_DEBUG_WARNING("\nStreamCursor::printf n=%zu\n", n);
-        delete[] heap;
+          return n;
       }
-    }
 
-    _written += n;
-    return n;
+      // Tout tient dans le buffer de pile
+      if (available >= 0 && to_write > static_cast<size_t>(available)) {
+        to_write = static_cast<size_t>(available);
+      }
+
+      size_t n = write(reinterpret_cast<const uint8_t *>(buf), to_write);
+      _written += n;
+
+      return n;
   }
 
   void flush() { _stream.flush(); }
