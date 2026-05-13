@@ -200,7 +200,11 @@ public:
   }
   // Écrit une chaîne null-terminée dans le stream.
   // Retourne le nombre d'octets écrits.
-  size_t write(const char *str) {
+  template <size_t N> size_t write(const char (&str)[N]) {
+    return write((const uint8_t *)str, N);
+  }
+
+  size_t write(const char * str) {
     return write((const uint8_t *)str, strlen(str));
   }
 
