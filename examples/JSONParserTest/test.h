@@ -547,7 +547,7 @@ void test_parse_via_stream_template() {
 // Test 4 – toJSON char buffer
 // ----------------------------------------------------------------
 
-void test_print_to_buffer() {
+void test_serialize_to_buffer() {
   DEBUG_PRINTF("\n--- Test: print to buffer ---\n");
   Sensor s;
   s.id = 7;
@@ -556,8 +556,8 @@ void test_print_to_buffer() {
 
   char buf[256] = {};
   size_t written = s.toJSON(buf);
-  check(written > 0, "Wrote %zu bytes to char buffer: '%.*s'\n", written,
-        (int)written, buf);
+  const char *expected = "{\"id\":7,\"active\":true,\"name\":\"\",\"temperature\":36,\"num\":[1,2,3]}";
+  check(strcmp(expected, buf) == 0, "Wrote %zu bytes to char buffer: '%.*s'\n", written, (int)written, buf);
 }
 
 // ----------------------------------------------------------------
@@ -689,7 +689,7 @@ void run_parsing_tests() {
 
 void run_printing_tests() {
   // to char buffer
-  test_print_to_buffer();
+  test_serialize_to_buffer();
   // to serial
   test_print_to_serial();
   test_print_to_stdout();

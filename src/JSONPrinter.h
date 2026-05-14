@@ -99,16 +99,6 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
     size_t vlen = print_value_to(output, value);
     len += vlen;
 
-    // PointerCursorWriter gère sa propre position via un pointeur interne ;
-    // comme print_value_to reçoit maintenant une référence, le curseur avance
-    // directement — plus besoin d'appel manuel à advance() ici.
-    // On le conserve néanmoins par sécurité pour les cas où print_value_to
-    // délègue en interne à une copie (ex. print_object_pointer_to).
-    if constexpr (std::is_same_v<remove_cvref_t<Cursor>,
-                                 JSON::PointerCursorWriter>) {
-      output.advance(vlen);
-    }
-
     if constexpr (sizeof...(Rest) > 0) {
       if (mask == 0 || idx < last_idx) {
         len += output.write(",");
@@ -204,10 +194,6 @@ size_t constexpr print_array_to(Cursor &output, T &array) {
   for (size_t i = 0; i < N; i++) {
     size_t vlen = print_value_to(output, array[i]);
     len += vlen;
-    if constexpr (std::is_same_v<remove_cvref_t<Cursor>,
-                                 JSON::PointerCursorWriter>) {
-      output.advance(vlen);
-    }
     if (i < N - 1) {
       len += output.write(",");
     }
@@ -252,11 +238,6 @@ constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args) {
   size_t inner = print_key_value_pair(mask, 0, last_index, output,
                                       std::forward<Args>(args)...);
   len += inner;
-
-  if constexpr (std::is_same_v<remove_cvref_t<Cursor>,
-                               JSON::PointerCursorWriter>) {
-    output.advance(inner);
-  }
 
   len += output.write("}");
   return len;
