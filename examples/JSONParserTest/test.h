@@ -544,15 +544,15 @@ void test_parse_via_stream_template() {
 // ----------------------------------------------------------------
 
 void test_print_to_buffer() {
-  DEBUG_PRINTF("\n--- Test: print ---\n");
+  DEBUG_PRINTF("\n--- Test: print to buffer ---\n");
   Sensor s;
   s.id = 7;
   s.temperature = 36;
   s.active = true;
 
   char buf[256] = {};
-  size_t written = s.toJSON(buf, sizeof(buf));
-  check(written > 0, "Wrote %zu bytes to char buffer: '%s'\n", written, buf);
+  size_t written = s.toJSON(buf);
+  check(written > 0, "Wrote %zu bytes to char buffer: '%.*s'\n", written, (int)written, buf);
 }
 
 // ----------------------------------------------------------------
@@ -650,7 +650,6 @@ void test_roundtrip() {
   // Serialize original to a char buffer via PointerCursorWriter
   char buf[256] = { 0 };
   size_t len = original.toJSON(buf);
-  buf[len] = '\0';
   Serial.printf("toJSON '%s'\n", buf);
   // Parse that buffer back via a stream
   StreamString stream(buf);
@@ -658,10 +657,10 @@ void test_roundtrip() {
   Sensor copy;
   JSON::ParseResult result = copy.fromJSON(stream);
 
-  check(!result.error, "roundtrip parse succeeded");
-  check(copy.id == 72, "roundtrip id == 72");
-  check(copy.active == true, "roundtrip active == true");
-  check(near(copy.temperature, 19.8f), "roundtrip temperature ≈ 19.8 and was %f", copy.temperature);
+  check(!result.error, "parse");
+  check(copy.id == 72, "id == 72");
+  check(copy.active == true, "active == true");
+  check(near(copy.temperature, 19.8f), "temperature ≈ 19.8 and was %f", copy.temperature);
 }
 
 void run_parsing_tests() {

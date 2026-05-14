@@ -29,10 +29,6 @@ public:
     JSON_DEBUG_INFO("PointerCursor reader created with buffer %p size %zu\n", buffer, str_length(buffer));
   }
 
-  constexpr PointerCursor(std::string_view sv) : _pos(sv.data()), _start(sv.data()), _end(sv.data() + sv.length()) {
-    JSON_DEBUG_INFO("PointerCursor reader created with string_view %p size %zu\n", sv.data(), sv.length());
-  }
-
   template <size_t N>
   constexpr PointerCursor(T (&buffer)[N]) : _pos(buffer), _start(buffer), _end(buffer + N - 1) {
     JSON_DEBUG_INFO("PointerCursor reader or writer created with buffer %p size %zu\n", buffer, N - 1);
