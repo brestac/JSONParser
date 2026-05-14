@@ -42,7 +42,7 @@ static bool near(float a, float b, float tol = 0.01f) {
 
 struct Sensor : public JSONObject {
   int id = 0;
-  float temperature = 0.0f;
+  float temperature = 1.0f;
   bool active = false;
   char name[64] = { 0 };
   uint8_t num[3] = { 1, 2, 3 };
@@ -578,36 +578,6 @@ void test_serialize_to_stream() {
         stream.c_str());
 }
 
-// ----------------------------------------------------------------
-// Test 7 – roundtrip: parse then re-serialize
-// ----------------------------------------------------------------
-
-void test_roundtrip() {
-  DEBUG_PRINTF("\n--- Test: roundtrip parse → serialize ---\n");
-
-  Sensor original;
-  original.id = 55;
-  original.temperature = 19.8f;
-  original.active = false;
-
-  // Serialize original to a char buffer via PointerCursorWriter
-  char buf[256] = {};
-  original.toJSON(buf, sizeof(buf));
-
-  // Parse that buffer back via a stream
-  StreamString stream(buf);
-
-  Sensor copy;
-  JSON::ParseResult result = copy.fromJSON(stream);
-
-  check(!result.error, "roundtrip parse succeeded");
-  check(copy.id == 55, "roundtrip id == 55");
-  check(copy.active == false, "roundtrip active == false");
-
-  float diff = copy.temperature - 19.8f;
-  check(diff > -0.1f && diff < 0.1f, "roundtrip temperature ≈ 19.8");
-}
-
 void test_print_to_stdout() {
   DEBUG_PRINTF("\n--- Test: toJSON print ---\n");
   char *ptr = (char *)"ptr";
@@ -663,6 +633,35 @@ void test_print_hex_to_stream_string() {
   const char *expected = "{\"hex\":\"AABBCCDD\"}";
   check(strcmp(stream.c_str(), expected) == 0,
         "toJSON output should be %s, got %s", expected, stream.c_str());
+}
+
+// ----------------------------------------------------------------
+// Test 7 – roundtrip: parse then re-serialize
+// ----------------------------------------------------------------
+
+void test_roundtrip() {
+  DEBUG_PRINTF("\n--- Test: roundtrip parse → serialize ---\n");
+
+  Sensor original;
+  original.id = 72;
+  original.temperature = 19.8f;
+  original.active = true;
+
+  // Serialize original to a char buffer via PointerCursorWriter
+  char buf[256] = { 0 };
+  size_t len = original.toJSON(buf, sizeof(buf));
+  buf[len] = '\0';
+  Serial.printf("toJSON '%s'\n", buf);
+  // Parse that buffer back via a stream
+  StreamString stream(buf);
+
+  Sensor copy;
+  JSON::ParseResult result = copy.fromJSON(stream);
+
+  check(!result.error, "roundtrip parse succeeded");
+  check(copy.id == 72, "roundtrip id == 72");
+  check(copy.active == true, "roundtrip active == true");
+  check(near(copy.temperature, 19.8f), "roundtrip temperature ≈ 19.8 and was %f", copy.temperature);
 }
 
 void run_parsing_tests() {

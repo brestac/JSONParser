@@ -1,4 +1,4 @@
-#define JSON_DEBUG_LEVEL 1
+#define JSON_DEBUG_LEVEL 0
 
 #include <StreamString.h>
 #include "src/JSONParser.h"
@@ -11,10 +11,10 @@ void setup() {
   delay(500);
   
   Serial.println("");
-  Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
-  Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
-  //run_tests();
-  test_print_to_serial();
+//   Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
+//   Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
+  
+  run_tests();
 }
 
 void loop() {
