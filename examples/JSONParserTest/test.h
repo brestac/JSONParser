@@ -649,7 +649,7 @@ void test_roundtrip() {
 
   // Serialize original to a char buffer via PointerCursorWriter
   char buf[256] = { 0 };
-  size_t len = original.toJSON(buf, sizeof(buf));
+  size_t len = original.toJSON(buf);
   buf[len] = '\0';
   Serial.printf("toJSON '%s'\n", buf);
   // Parse that buffer back via a stream

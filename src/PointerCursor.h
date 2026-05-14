@@ -23,25 +23,25 @@ class PointerCursor {
 public:
   explicit constexpr PointerCursor(T *start, size_t len) : _pos(start), _start(start), _end(start + len) {}
 
-  constexpr PointerCursor() : PointerCursor(static_cast<const char *>(nullptr), static_cast<size_t>(0)) {}
+  //constexpr PointerCursor() : PointerCursor(static_cast<const char *>(nullptr), static_cast<size_t>(0)) {}
 
-  constexpr PointerCursor(const char *buffer) : PointerCursor(buffer, str_length(buffer)) {
-    JSON_DEBUG_INFO("PointerCursor created with buffer %p size %zu\n", buffer, str_length(buffer));
+  constexpr PointerCursor(const char* buffer) : _pos(buffer), _start(buffer), _end(buffer + str_length(buffer)) {
+    JSON_DEBUG_INFO("PointerCursor reader created with buffer %p size %zu\n", buffer, str_length(buffer));
   }
 
-  constexpr PointerCursor(std::string_view sv) : PointerCursor(sv.data(), sv.length()) {
-    JSON_DEBUG_INFO("PointerCursor created with string_view %p size %zu\n", sv.data(), sv.length());
-  }
-
-  template <size_t N>
-  constexpr PointerCursor(char (&buffer)[N]) : PointerCursor(buffer, N - 1) {
-    JSON_DEBUG_INFO("PointerCursor created with buffer %p size %zu\n", buffer, N - 1);
+  constexpr PointerCursor(std::string_view sv) : _pos(sv.data()), _start(sv.data()), _end(sv.data() + sv.length()) {
+    JSON_DEBUG_INFO("PointerCursor reader created with string_view %p size %zu\n", sv.data(), sv.length());
   }
 
   template <size_t N>
-  constexpr PointerCursor(const char (&buffer)[N]) : PointerCursor(buffer, N - 1) {
-    JSON_DEBUG_INFO("PointerCursor created with buffer %p size %zu\n", buffer, N - 1);
+  constexpr PointerCursor(T (&buffer)[N]) : _pos(buffer), _start(buffer), _end(buffer + N - 1) {
+    JSON_DEBUG_INFO("PointerCursor reader or writer created with buffer %p size %zu\n", buffer, N - 1);
   }
+
+  // template <size_t N>
+  // constexpr PointerCursor(T (&buffer)[N]) : _pos(buffer), _start(buffer), _end(buffer + N -1) {
+  //   JSON_DEBUG_INFO("PointerCursor writer created with buffer %p size %zu\n", buffer, N - 1);
+  // }
 
   // Accès direct au pointeur brut (pour strtod/strtol)
   constexpr T *ptr() const { return _pos; }
