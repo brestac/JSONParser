@@ -9,8 +9,8 @@
 // uniquement sur le type de curseur. L'API publique est identique à
 #include <limits>
 
-#include "types.h"
 #include "demangled.h"
+#include "types.h"
 #include "utils.h"
 
 using namespace std;
@@ -48,7 +48,8 @@ public:
   // ── Constructeur PointerCursor (compatibilité JSONParser) ─
   JSONParserBase(const PointerCursorReader cursor)
       : keyMask(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0),
-        _cursor(cursor), _key_start(nullptr), _key_length(0), _is_top_level_array(false), _nArgs(0) {
+        _cursor(cursor), _key_start(nullptr), _key_length(0),
+        _is_top_level_array(false), _nArgs(0) {
     _state = IDLE;
     _automask = false;
     JSON_DEBUG_INFO("JSONParserBase(pointer) created\n");
@@ -58,7 +59,8 @@ public:
   // Used when Cursor = StreamCursor; never called for other cursor types.
   explicit JSONParserBase(StreamCursor &cursor)
       : keyMask(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0),
-        _cursor(cursor), _key_start(nullptr), _key_length(0), _is_top_level_array(false), _nArgs(0) {
+        _cursor(cursor), _key_start(nullptr), _key_length(0),
+        _is_top_level_array(false), _nArgs(0) {
     _state = IDLE;
     _automask = false;
     JSON_DEBUG_INFO("JSONParserBase(stream) created\n");
@@ -69,11 +71,9 @@ public:
   // ── API publique (identique à JSONParser) ─────────────────
 
   template <typename T>
-  enable_if_t<is_derived_json_data_container_v<T>, void>
-  parse(T& jsonObjects);
+  enable_if_t<is_derived_json_data_container_v<T>, void> parse(T &jsonObjects);
 
-  template <typename... Args>
-  void parse(Args &&...args);
+  template <typename... Args> void parse(Args &&...args);
 
   size_t parsed_length() { return _cursor.bytesConsumed(); }
   ParserState get_state() { return _state; }
@@ -129,7 +129,7 @@ public:
 
   template <typename V> ParseValueResult parse_into_value(V &arg_value);
 
-  ParseValueResult parse_into_array_at_index(JSONCallbackObject& cb,
+  ParseValueResult parse_into_array_at_index(JSONCallbackObject &cb,
                                              size_t index);
 
   template <typename T, size_t N2>
@@ -177,7 +177,7 @@ private:
 
   bool parse_key();
 
-  ParseValueResult parse_value(JSONCallbackObject& cb);
+  ParseValueResult parse_value(JSONCallbackObject &cb);
 
   template <class... Args>
   enable_if_t<args_are_pairs<Args...>, ParseValueResult>
@@ -242,7 +242,7 @@ template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
   // Pour StreamCursor on doit copier la clé dans un buffer local.
   // Pour PointerCursor on peut pointer directement (comportement original).
   // On utilise un buffer statique court pour la clé.
-  char key_buf[JSON::MAX_KEY_LENGTH + 1];
+  static char key_buf[JSON::MAX_KEY_LENGTH + 1] = {0};
   size_t n = 0;
 
   while (n < JSON::MAX_KEY_LENGTH) {
@@ -312,11 +312,12 @@ size_t JSONParserBase<Cursor>::scan_digits(size_t max_length) {
 }
 
 // ── parse_string ─────────────────────────────────────────────
-// For const PointerCursorReader without escape sequences: constructs a string_view
-// pointing directly into the input buffer (zero-copy, avoids static buffer
-// aliasing when the same field is parsed into multiple struct instances).
-// For StreamCursor or strings containing escape sequences: copies into a
-// static buffer (single-parser use only; char[] targets always copy safely).
+// For const PointerCursorReader without escape sequences: constructs a
+// string_view pointing directly into the input buffer (zero-copy, avoids static
+// buffer aliasing when the same field is parsed into multiple struct
+// instances). For StreamCursor or strings containing escape sequences: copies
+// into a static buffer (single-parser use only; char[] targets always copy
+// safely).
 template <typename Cursor>
 template <typename V>
 ParseValueResult JSONParserBase<Cursor>::parse_string(V &arg_value) {
@@ -555,23 +556,20 @@ ParseValueResult JSONParserBase<Cursor>::parse_unknown_value() {
 
     if (escape) {
       escape = false;
-    }
-    else if (ch == JSON_ESCAPE_CHARACTER && inString) {
+    } else if (ch == JSON_ESCAPE_CHARACTER && inString) {
       escape = true;
-    }
-    else if (ch == JSON_QUOTE_CHARACTER) {
+    } else if (ch == JSON_QUOTE_CHARACTER) {
       inString = !inString;
     }
 
     if (inString) {
-        _cursor.advance();
-        continue;
+      _cursor.advance();
+      continue;
     }
 
     if (ch == JSON_START_CHARACTER || ch == JSON_ARRAY_START_CHARACTER) {
       depth++;
-    }
-    else if (ch == JSON_END_CHARACTER || ch == JSON_ARRAY_END_CHARACTER) {
+    } else if (ch == JSON_END_CHARACTER || ch == JSON_ARRAY_END_CHARACTER) {
       if (depth == 0) {
         break;
       }
@@ -586,14 +584,15 @@ ParseValueResult JSONParserBase<Cursor>::parse_unknown_value() {
     _cursor.advance();
   }
 
-  JSON_DEBUG_INFO("JSONParserBase::parse_unknown_value iterations=%zu\n", iterations);
+  JSON_DEBUG_INFO("JSONParserBase::parse_unknown_value iterations=%zu\n",
+                  iterations);
 
   return ParseValueResult::VALUE_PARSED;
 }
 
 // ── parse_value (callback) ────────────────────────────────────
 template <typename Cursor>
-ParseValueResult JSONParserBase<Cursor>::parse_value(JSONCallbackObject& cb) {
+ParseValueResult JSONParserBase<Cursor>::parse_value(JSONCallbackObject &cb) {
   JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value with callback\n");
 
   cb.setKey(_key_start, _key_length);
@@ -620,8 +619,7 @@ JSONParserBase<Cursor>::parse_value(Args &&...args) {
 template <typename Cursor>
 template <typename V>
 ParseValueResult JSONParserBase<Cursor>::parse_into_value(V &arg_value) {
-  JSON_DEBUG_TYPES("JSONParserBase<Cursor>::parse_into_value %s\n",
-                       arg_value);
+  JSON_DEBUG_TYPES("JSONParserBase<Cursor>::parse_into_value %s\n", arg_value);
   if constexpr (std::is_same_v<remove_cvref_t<V>, JSONCallbackObject>) {
     return parse_any(arg_value);
   } else if constexpr (std::is_same_v<V, bool>) {
@@ -663,7 +661,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_into_value(V &arg_value) {
 template <typename Cursor>
 template <typename T>
 enable_if_t<is_derived_json_data_container_v<T>, void>
-JSONParserBase<Cursor>::parse(T& jsonObjects) {
+JSONParserBase<Cursor>::parse(T &jsonObjects) {
   JSON_DEBUG_INFO("JSONParserBase::parse with derived JSONObject objects\n");
   _is_top_level_array = true;
   parse_array(jsonObjects);
@@ -993,8 +991,8 @@ constexpr To JSONParserBase<Cursor>::clamp_to_max(From v) {
 // template <typename T>
 // enable_if_t<is_derived_json_data_container_v<T>, ParseValueResult>
 // JSONParserBase<Cursor>::parse_array(T &arg_value) {
-//   JSON_DEBUG_INFO("JSONParserBase::parse_array with derived JSONObject objects\n");
-//   return parse_array(arg_value);
+//   JSON_DEBUG_INFO("JSONParserBase::parse_array with derived JSONObject
+//   objects\n"); return parse_array(arg_value);
 // }
 
 template <typename Cursor>
@@ -1005,7 +1003,9 @@ ParseValueResult JSONParserBase<Cursor>::parse_array(UnknownValueType) {
 
 template <typename Cursor>
 template <typename V>
-enable_if_t<container_info<V>::is_container || std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>, ParseValueResult>
+enable_if_t<container_info<V>::is_container ||
+                std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>,
+            ParseValueResult>
 JSONParserBase<Cursor>::parse_array(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_array\n");
   ParseValueResult result = ParseValueResult::NO_RESULT;
@@ -1040,7 +1040,8 @@ JSONParserBase<Cursor>::parse_array(V &arg_value) {
 
 template <typename Cursor>
 ParseValueResult
-JSONParserBase<Cursor>::parse_into_array_at_index(JSONCallbackObject& cb, size_t index) {
+JSONParserBase<Cursor>::parse_into_array_at_index(JSONCallbackObject &cb,
+                                                  size_t index) {
   cb.setArrayIndex(index);
 
   if (_is_top_level_array) {
@@ -1124,13 +1125,13 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
   // nUpdated += r.nUpdated;
   //_elapsed += r.elapsed;
 
-//#ifdef ARDUINO
+  //#ifdef ARDUINO
   if constexpr (!std::is_same_v<remove_cvref_t<Cursor>, StreamCursor>) {
     _cursor.set_position(r.length);
   }
-// #else
-//   _cursor.set_position(r.length);
-// #endif
+  // #else
+  //   _cursor.set_position(r.length);
+  // #endif
 
   result |= ParseValueResult::VALUE_PARSED | ParseValueResult::VALUE_UPDATED |
             ParseValueResult::VALUE_CONVERTED;
@@ -1173,12 +1174,13 @@ void JSONParserBase<Cursor>::print_state(size_t iteration) {
     [[maybe_unused]] const char *dots =
         (_cursor.size()) > max_length ? "..." : "";
 
-    [[maybe_unused]] const char *color = (_state == ERROR) ? "\x1b[31m" : "\x1b[32m";
+    [[maybe_unused]] const char *color =
+        (_state == ERROR) ? "\x1b[31m" : "\x1b[32m";
 
     DEBUG_PRINTF("%.*s %s pos=%zu it=%zu, p=%p\n%s%*c%s\x1b[0m\n", (int)length,
-               _cursor.start() + col_number * length, dots, get_position(),
-               iteration, this, color, (int)(col_pos + 1), '^',
-               get_state_name().data());
+                 _cursor.start() + col_number * length, dots, get_position(),
+                 iteration, this, color, (int)(col_pos + 1), '^',
+                 get_state_name().data());
   }
 }
 
@@ -1220,5 +1222,5 @@ std::string_view JSONParserBase<Cursor>::get_state_name() {
 
 // JSONParser : version originale basée sur PointerCursor
 // (remplace la classe JSONParser existante — même interface)
-using JSONParser = JSONParserBase<const JSON:: PointerCursorReader>;
+using JSONParser = JSONParserBase<const JSON::PointerCursorReader>;
 using JSONStreamParser = JSONParserBase<JSON::StreamCursor>;

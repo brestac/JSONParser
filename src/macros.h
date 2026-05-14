@@ -98,8 +98,8 @@
   }                                                                            \
   template <typename T>                                                        \
   std::enable_if_t<std::is_base_of_v<Stream, T>, JSON::ParseResult> fromJSON(  \
-      T &cursor) {                                                             \
-    StreamCursor streamCursor(cursor);                                         \
+      T &stream) {                                                             \
+    StreamCursor streamCursor(stream);                                         \
     return fromJSON(streamCursor);                                             \
   }                                                                            \
   JSON::ParseResult fromJSON(StreamCursor &cursor) override {                  \

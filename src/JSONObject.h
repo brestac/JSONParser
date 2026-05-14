@@ -29,7 +29,7 @@ public:
     return 0;
   }
 
-  JSON::ParseResult fromJSON(const char* input, bool updates = true);
+  //JSON::ParseResult fromJSON(const char* input, bool updates = true);
 
   template<size_t N>
   JSON::ParseResult fromJSON(const char (&input)[N], bool updates = true);
@@ -43,10 +43,10 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 //  fromJSON
 ////////////////////////////////////////////////////////////////////////////////
-JSON::ParseResult JSONObject::fromJSON(const char *input, bool updates) {
-  const PointerCursorReader cursor(input, str_length(input));
-  return fromJSON(cursor);
-}
+// JSON::ParseResult JSONObject::fromJSON(const char *input, bool updates) {
+//   const PointerCursorReader cursor(input, str_length(input));
+//   return fromJSON(cursor);
+// }
 
 template<size_t N>
 JSON::ParseResult JSONObject::fromJSON(const char (&input)[N], bool updates) {
