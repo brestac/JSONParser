@@ -36,7 +36,16 @@ public:
     STOPPED = 7
   };
 
-  // ── État public (identique à JSONParser) ─────────────────
+  enum ParserError {
+    NO_ERROR = 0,
+    NO_OBJECT_START = 1,
+    INVALID_KEY = 2,
+    NO_COLON = 3,
+    INVALID_VALUE = 4,
+    NO_COMMA = 5,
+    INVALID_OBJECT = 6
+  };
+
   ParserState _state;
   bool _automask;
   uint32_t keyMask;
@@ -45,11 +54,11 @@ public:
   size_t nConverted;
   size_t nUpdated;
 
-  // ── Constructeur PointerCursor (compatibilité JSONParser) ─
+  // ── Constructeur PointerCursor ─
   JSONParserBase(const PointerCursorReader cursor)
       : keyMask(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0),
         _cursor(cursor), _key_start(nullptr), _key_length(0),
-        _is_top_level_array(false), _nArgs(0) {
+        _is_top_level_array(false), _nArgs(0), _error(ParserError::NO_ERROR) {
     _state = IDLE;
     _automask = false;
     JSON_DEBUG_INFO("JSONParserBase(pointer) created\n");
@@ -57,10 +66,10 @@ public:
 
   // ── Constructeur StreamCursor ─────────────────────────────
   // Used when Cursor = StreamCursor; never called for other cursor types.
-  explicit JSONParserBase(StreamCursor &cursor)
+  explicit JSONParserBase(StreamCursor& cursor)
       : keyMask(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0),
         _cursor(cursor), _key_start(nullptr), _key_length(0),
-        _is_top_level_array(false), _nArgs(0) {
+        _is_top_level_array(false), _nArgs(0), _error(ParserError::NO_ERROR) {
     _state = IDLE;
     _automask = false;
     JSON_DEBUG_INFO("JSONParserBase(stream) created\n");
@@ -155,6 +164,7 @@ private:
   size_t _key_length;
   bool _is_top_level_array;
   uint8_t _nArgs;
+  ParserError _error;
 
   void reset();
 
@@ -696,6 +706,7 @@ void JSONParserBase<Cursor>::parse(Args &&...args) {
         _state = KEY;
       } else {
         _state = ERROR;
+        _error = ParserError::NO_OBJECT_START;
       }
       break;
 
@@ -708,6 +719,7 @@ void JSONParserBase<Cursor>::parse(Args &&...args) {
         set_state(COLON);
       } else {
         _state = ERROR;
+        _error = ParserError::INVALID_KEY;
       }
       break;
 
@@ -716,6 +728,7 @@ void JSONParserBase<Cursor>::parse(Args &&...args) {
         set_state(VALUE);
       } else {
         _state = ERROR;
+        _error = ParserError::NO_COLON;
       }
       break;
 
@@ -736,6 +749,7 @@ void JSONParserBase<Cursor>::parse(Args &&...args) {
         set_state(COMMA);
       } else {
         _state = ERROR;
+        _error = ParserError::INVALID_VALUE;
       }
       break;
     }
@@ -750,6 +764,7 @@ void JSONParserBase<Cursor>::parse(Args &&...args) {
         set_state(KEY);
       } else {
         _state = ERROR;
+        _error = ParserError::NO_COMMA;
       }
       break;
 
@@ -1104,6 +1119,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
   if (r.error == true) {
     JSON_DEBUG_TYPES("JSONParser::parse_object error parsing %s\n", arg_value);
     _state = ERROR;
+    _error = ParserError::INVALID_OBJECT;
     return ParseValueResult::NO_RESULT;
   }
 
