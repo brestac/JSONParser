@@ -627,17 +627,20 @@ void test_print_to_stream_string() {
 
 void test_print_hex_to_stream_string() {
   DEBUG_PRINTF("\n--- Test: toJSON StreamString with HEX uint8_t array ---\n");
+  JSON::PRINT_BUFFER_AS_HEX = true;
+
   StreamString stream;
   IntegralArrayTest s;
   s.hex[0] = 0xAA;
   s.hex[1] = 0xBB;
   s.hex[2] = 0xCC;
   s.hex[3] = 0xDD;
-  JSON::PRINT_BUFFER_AS_HEX = true;
   s.toJSON(stream);
+
   const char *expected = "{\"hex\":\"AABBCCDD\"}";
   check(strcmp(stream.c_str(), expected) == 0,
         "toJSON output should be %s, got %s", expected, stream.c_str());
+ JSON::PRINT_BUFFER_AS_HEX = false;
 }
 
 // ----------------------------------------------------------------
