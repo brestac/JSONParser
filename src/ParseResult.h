@@ -1,28 +1,41 @@
 #pragma once
 
-#include <stdint.h>
-#include <stddef.h>
 #include "macros.h"
+#include <stddef.h>
+#include <stdint.h>
 
-namespace JSON {
-  struct ParseResult {
-    size_t length;
-    size_t nKeys;
-    size_t nParsed;
-    size_t nConverted;
-    size_t nUpdated;
-    bool error;
-    uint64_t elapsed;
-    bool stopped;
+NAMESPACE_JSON_BEGIN
 
-    ParseResult() : length(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0), error(false), elapsed(0), stopped(false) {}
-    ParseResult(size_t length, size_t nKeys, size_t nParsed, size_t nConverted, size_t nUpdated, bool error, uint64_t elapsed, bool stopped = false) : length(length), nKeys(nKeys), nParsed(nParsed), nConverted(nConverted), nUpdated(nUpdated), error(error), elapsed(elapsed), stopped(stopped) {}
-    operator size_t() const { return length; }
+struct ParseResult {
+  size_t length;
+  size_t nKeys;
+  size_t nParsed;
+  size_t nConverted;
+  size_t nUpdated;
+  uint8_t error;
+  uint64_t elapsed;
+  bool stopped;
 
-    void print();
-  };
+  ParseResult()
+      : length(0), nKeys(0), nParsed(0), nConverted(0), nUpdated(0), error(0),
+        elapsed(0), stopped(false) {}
+  
+  ParseResult(size_t length, size_t nKeys, size_t nParsed, size_t nConverted,
+              size_t nUpdated, uint8_t error, uint64_t elapsed,
+              bool stopped = false)
+      : length(length), nKeys(nKeys), nParsed(nParsed), nConverted(nConverted),
+        nUpdated(nUpdated), error(error), elapsed(elapsed), stopped(stopped) {}
+  
+  operator size_t() const { return length; }
 
-  void ParseResult::print() {
-    DEBUG_PRINTF("{\"length\":%zu,\"nKeys\":%zu,\"nParsed\":%zu,\"nMatched\":%zu,\"nUpdated\":%zu,\"error\":%s,\"elapsed\":%lu, \"stopped\":%d}\n", length, nKeys, nParsed, nConverted, nUpdated, error ? "true" : "false", elapsed, stopped);
-  }
+  void print();
+};
+
+void ParseResult::print() {
+  DEBUG_PRINTF(
+      "{\"length\":%zu,\"nKeys\":%zu,\"nParsed\":%zu,\"nMatched\":%zu,"
+      "\"nUpdated\":%zu,\"error\":%hhu,\"elapsed\":%lu, \"stopped\":%d}\n",
+      length, nKeys, nParsed, nConverted, nUpdated, error, elapsed, stopped);
 }
+
+NAMESPACE_JSON_END

@@ -1,8 +1,32 @@
 #pragma once
-
+/*
+Color	Code (foreground)
+Black	\x1b[30m
+Red	\x1b[31m
+Green	\x1b[32m
+Yellow	\x1b[33m
+Blue	\x1b[34m
+Magenta	\x1b[35m
+Cyan	\x1b[36m
+White	\x1b[37m
+Bright variants: add 1; before the code (e.g., \x1b[1;31m for bright red) or use codes 90–97.
+Background colors: replace 3 with 4 (e.g., \x1b[41m for red background) or use 100–107 for bright backgrounds.
+256‑color mode: \x1b[38;5;<n>m (foreground) or \x1b[48;5;<n>m (background), where <n> is 0‑255.
+True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or \x1b[48;2;<r>;<g>;<b>m (background), with RGB values 0‑255.
+*/
 #ifndef DEV_MODE
 #define DEV_MODE 0
 #endif
+
+#define PRINTF_COLOR(n,s...) DEBUG_PRINTF("\x1b[" #n "m");DEBUG_PRINTF(s);DEBUG_PRINTF("\x1b[0m")
+#define PRINTF_BLACK(s...) PRINTF_COLOR(30,s)
+#define PRINTF_RED(s...) PRINTF_COLOR(31,s)
+#define PRINTF_GREEN(s...) PRINTF_COLOR(32,s)
+#define PRINTF_YELLOW(s...) PRINTF_COLOR(33,s)
+#define PRINTF_BLUE(s...) PRINTF_COLOR(34,s)
+#define PRINTF_MAGENTA(s...) PRINTF_COLOR(35,s)
+#define PRINTF_CYAN(s...) PRINTF_COLOR(36,s)
+#define PRINTF_WHITE(s...) PRINTF_COLOR(37,s)
 
 #define NAMESPACE_JSON_BEGIN namespace JSON {
 #define NAMESPACE_JSON_END }
@@ -19,33 +43,23 @@
 #endif
 #endif
 
-#define COLOR_0 "\x1b[30m"
-#define COLOR_1 "\x1b[32m"
-#define COLOR_2 "\x1b[33m"
-#define COLOR_3 "\x1b[31m"
-#define COLOR_END "\x1b[0m"
-
-#define CONCAT(a, b) CONCAT_HELPER(a, b)
-#define CONCAT_HELPER(a, b) a##b
-
-#define JSON_DEBUG_COLOR CONCAT(COLOR_, JSON_DEBUG_LEVEL)
+// #define CONCAT(a, b) CONCAT_HELPER(a, b)
+// #define CONCAT_HELPER(a, b) a##b
 
 #if JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_INFO(format, ...) DEBUG_PRINTF(format, ##__VA_ARGS__)
+#define JSON_DEBUG_INFO(format, ...) PRINTF_BLACK(format, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_INFO(format, ...)
 #endif
 
 #if JSON_DEBUG_LEVEL == 2 || JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_WARNING(format, ...)                                        \
-  DEBUG_PRINTF(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__)
+#define JSON_DEBUG_WARNING(format, ...) PRINTF_YELLOW(format, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_WARNING(format, ...)
 #endif
 
 #if JSON_DEBUG_LEVEL == 3 || JSON_DEBUG_LEVEL == 2 || JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_ERROR(format, ...)                                          \
-  DEBUG_PRINTF(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__)
+#define JSON_DEBUG_ERROR(format, ...) PRINTF_RED(format, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_ERROR(format, ...)
 #endif

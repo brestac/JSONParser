@@ -1,81 +1,80 @@
 #pragma once
+#include "macros.h"
+#include <stdint.h>
 // ---------------------------------------------------------------------------
 //   ParseValueResult
 // ---------------------------------------------------------------------------
 struct ParseValueResult {
-  enum Flag : uint8_t {
+public:
+  enum Result : uint16_t {
     NO_RESULT = 0,
     KEY_FOUND = 1 << 0,
     VALUE_PARSED = 1 << 1,
     VALUE_CONVERTED = 1 << 2,
-    VALUE_UPDATED = 1 << 3
+    VALUE_UPDATED = 1 << 3,
+    UNKNOWN = 1 << 4,
+    STRING = 1 << 5,
+    INTEGER = 1 << 6,
+    FLOAT = 1 << 7,
+    BOOLEAN = 1 << 8,
+    NULL_VALUE = 1 << 9,
+    POINTER = 1 << 10,
+    ARRAY = 1 << 11,
+    OBJECT = 1 << 12
   };
 
-  uint8_t value;
-
   // Constructeurs
-  constexpr ParseValueResult() : value(0) {}
-  constexpr ParseValueResult(Flag f) : value(f) {}
-  constexpr ParseValueResult(uint8_t v) : value(v) {}
+  constexpr ParseValueResult() : _result(0) {}
+  constexpr ParseValueResult(uint16_t r) : _result(r) {}
 
   // Opérateur | (OR)
   constexpr ParseValueResult operator|(const ParseValueResult &other) const {
-    return ParseValueResult(value | other.value);
+    return ParseValueResult(_result | other._result);
   }
 
-  constexpr ParseValueResult operator|(Flag f) const {
-    return ParseValueResult(value | f);
+  constexpr ParseValueResult operator|(const ParseValueResult::Result &otherResult) const {
+    return ParseValueResult(_result | otherResult);
   }
-
   // Opérateur |= (OR assignment)
+
   constexpr ParseValueResult &operator|=(const ParseValueResult &other) {
-    value |= other.value;
+    _result |= other._result;
     return *this;
   }
 
-  constexpr ParseValueResult &operator|=(Flag f) {
-    value |= f;
+  constexpr ParseValueResult &operator|=(const ParseValueResult::Result &otherResult) {
+    _result |= otherResult;
     return *this;
   }
 
   // Opérateur & (AND)
   constexpr ParseValueResult operator&(const ParseValueResult &other) const {
-    return ParseValueResult(value & other.value);
+    return ParseValueResult(_result | other._result);
   }
 
-  constexpr ParseValueResult operator&(Flag f) const {
-    return ParseValueResult(value & f);
+  constexpr ParseValueResult operator&(const ParseValueResult::Result &otherResult) const {
+    return ParseValueResult(_result & otherResult);
   }
 
-  // Opérateur &= (AND assignment)
-  constexpr ParseValueResult &operator&=(const ParseValueResult &other) {
-    value &= other.value;
-    return *this;
-  }
+  constexpr operator uint16_t() const { return _result; }
 
-  constexpr ParseValueResult &operator&=(Flag f) {
-    value &= f;
-    return *this;
-  }
+  constexpr bool keyFound() const { return (_result & KEY_FOUND) != 0; }
+  constexpr bool parsed() const { return (_result & VALUE_PARSED) != 0; }
+  constexpr bool converted() const { return (_result & VALUE_CONVERTED) != 0; }
+  constexpr bool updated() const { return (_result & VALUE_UPDATED) != 0; }
 
-  // Opérateur ~ (NOT)
-  constexpr ParseValueResult operator~() const {
-    return ParseValueResult(~value);
-  }
-
-  constexpr explicit operator bool() const { return value != 0; }
-
-  constexpr operator uint8_t() const { return value; }
-
-  constexpr bool key() const { return (value & KEY_FOUND) != 0; }
-  constexpr bool parsed() const { return (value & VALUE_PARSED) != 0; }
-  constexpr bool converted() const { return (value & VALUE_CONVERTED) != 0; }
-  constexpr bool updated() const { return (value & VALUE_UPDATED) != 0; }
+constexpr uint16_t valueType() const {
+  return (_result &(~ (KEY_FOUND | VALUE_PARSED | VALUE_CONVERTED | VALUE_UPDATED)));
+}
 
   void print() {
-    DEBUG_PRINTF(
-        "ParseValueResult: KEY_FOUND=%d VALUE_PARSED=%d VALUE_CONVERTED=%d VALUE_UPDATED=%d\n",
-        (value & KEY_FOUND) != 0, (value & VALUE_PARSED) != 0,
-        (value & VALUE_CONVERTED) != 0, (value & VALUE_UPDATED) != 0);
+    DEBUG_PRINTF("ParseValueResult: KEY_FOUND=%d VALUE_PARSED=%d "
+                 "VALUE_CONVERTED=%d VALUE_UPDATED=%d _type=%hhu\n",
+                 (_result & KEY_FOUND) != 0, (_result & VALUE_PARSED) != 0,
+                 (_result & VALUE_CONVERTED) != 0,
+                 (_result & VALUE_UPDATED) != 0, valueType());
   }
+
+private:
+  uint8_t _result;
 };

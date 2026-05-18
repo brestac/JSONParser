@@ -173,7 +173,7 @@ void test_callback() {
         }
       });
 
-  check(!pr.error, "parse");
+  check(pr.error == 0, "parse");
   check(p.nom == std::string_view("Bob"), "nom unchanged (Bob)");
   check(p.ville == std::string_view("Lyon"), "ville == Lyon");
   check(p.age == 12, "age == 12");
@@ -268,7 +268,7 @@ void test_parsing() {
 
   JSON::ParseResult result = p.fromJSON(json);
 
-  check(!result.error, "parse");
+  check(result.error == 0, "parse");
   check(p.ville == std::string_view("Lyon"), "ville == Lyon");
   check(p.age == 45, "age == 45");
   check(near(p.taille, 1.82f), "taille ≈ 1.82");
@@ -324,7 +324,7 @@ void testArrayParsing() {
   uint32_t mask = 0;
   JSON::ParseResult r = JSON::parse(mask, json, personnes);
 
-  check(!r.error, "parse");
+  check(r.error == 0, "parse");
   check(personnes[0].nom == std::string_view("Bob"), "personnes[0].nom == Bob");
   check(personnes[0].age == 40, "personnes[0].age == 40");
   check(personnes[1].nom == std::string_view("Alice"),
@@ -351,7 +351,7 @@ void testIndexedParsing() {
   uint32_t mask = 0;
   JSON::ParseResult pr = JSON::parse(mask, json, "nom[0]", nom, "age[1]", age);
 
-  check(!pr.error, "parse");
+  check(pr.error == 0, "parse");
   check(nom == std::string_view("Bob"), "nom == Bob");
   check(age == 40, "age == 40");
   check(mask == 3, "mask == 3 (bits 0 and 1 set)");
@@ -361,33 +361,22 @@ void testIndexedParsing() {
 // GeoJSON helpers
 // ----------------------------------------------------------------
 
-void testGeoJSONParsing(const char *json, bool print_result) {
+// void testGeoJSONParsing(const char *json, bool print_result) {
+//   if (print_result) {
+//     fc.toJSON(Serial, false);
+//     DEBUG_PRINTF("\n");
+//     DEBUG_PRINTF("Parsed %zu features\n", fc.features.size());
 
-  FeatureCollection fc;
-  [[maybe_unused]] JSON::ParseResult pr = fc.fromJSON(json);
-
-#ifndef ARDUINO
-  uint64_t start = now();
-  rapidjson::Document d;
-  d.Parse(json);
-  [[maybe_unused]] uint64_t elapsed = now() - start;
-  DEBUG_PRINTF("RapidJSON Parsing time: %lu µs\n", elapsed);
-#endif
-
-  DEBUG_PRINTF("JSONParser Parsing time: %lu µs\n", pr.elapsed);
-
-  if (print_result) {
-    fc.toJSON(Serial, false);
-    DEBUG_PRINTF("\n");
-    size_t shapes_length = fc.features[0].geometry.coordinates.size();
-    DEBUG_PRINTF("Parsed %zu features\n", fc.features.size());
-    DEBUG_PRINTF("Shapes length =%zu\n", shapes_length);
-    for (size_t i = 0; i < shapes_length; i++) {
-      DEBUG_PRINTF("Shape %zu coordinate points length =%zu\n", i,
-                   fc.features[0].geometry.coordinates[i].size());
-    }
-  }
-}
+//     if (fc.features.size() > 0) {
+//       size_t shapes_length = fc.features[0].geometry.coordinates.size();
+//       DEBUG_PRINTF("Shapes length =%zu\n", shapes_length);
+//       for (size_t i = 0; i < shapes_length; i++) {
+//         DEBUG_PRINTF("Shape %zu coordinate points length =%zu\n", i,
+//                      fc.features[0].geometry.coordinates[i].size());
+//       }
+//     }
+//   }
+// }
 
 void testGeoJSONParsingSmall() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SMALL\n");
@@ -395,20 +384,22 @@ void testGeoJSONParsingSmall() {
       "------------------------------------------------------------\n");
 
   const char *json =
-      "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\","
-      "\"properties\":{\"name\":\"Canada\"},\"geometry\":{\"type\":\"Polygon\","
-      "\"coordinates\":[[[-140.99778,41.675105],[-140.99778,83.110903],[-52."
-      "648098,83.110903],[-52.631163,41.675105],[-140.99778,41.675105]],[[-140."
-      "99778,41.675105],[-140.99778,83.110903],[-52.648098,83.110903],[-52."
-      "631163,41.675105],[-140.99778,41.675105]]]}}]}";
+      "{\"type\":\"FeatureCollection\",\"features\":["
+      "{\"type\":\"Feature\",\"properties\":{\"name\":\"Canada\"},\"geometry\":"
+      "{\"type\":\"Polygon\",\"coordinates\":"
+      "[[[-140.99778,41.675105],[-140.99778,83.110903],"
+      "[-52.648098,83.110903],[-52.631163,41.675105],"
+      "[-140.99778,41.675105]],[[-140.99778,41.675105],"
+      "[-140.99778,83.110903],[-52.648098,83.110903],"
+      "[-52.631163,41.675105],[-140.99778,41.675105]],"
+      "[[-140.99778,41.675105],[-140.99778,83.110903],"
+      "[-52.648098,83.110903],[-52.631163,41.675105],"
+      "[-140.99778,41.675105]]]}}]}";
 
-  testGeoJSONParsing(json, false);
-
-  // Value checks on a fresh parse
   FeatureCollection fc;
   JSON::ParseResult pr = fc.fromJSON(json);
 
-  check(!pr.error, "parse");
+  check(pr.error == 0, "parse");
   check(fc.type == std::string_view("FeatureCollection"),
         "type == FeatureCollection");
   check(fc.features.size() == 1, "1 feature");
@@ -419,7 +410,7 @@ void testGeoJSONParsingSmall() {
           "properties.name == Canada");
     check(fc.features[0].geometry.type == std::string_view("Polygon"),
           "geometry.type == Polygon");
-    check(fc.features[0].geometry.coordinates.size() == 2, "2 rings");
+    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings");
     if (fc.features[0].geometry.coordinates.size() >= 2) {
       check(fc.features[0].geometry.coordinates[0].size() == 5,
             "ring[0] has 5 points");
@@ -447,13 +438,28 @@ void testGeoJSONParsingBig() {
     return;
   }
   fseek(file, 0, SEEK_END);
-  long fsize = ftell(file);
+  long long fsize = ftell(file);
   fseek(file, 0, SEEK_SET);
   char *json = (char *)malloc(fsize + 1);
-  [[maybe_unused]] size_t len = fread(json, 1, fsize, file);
+  size_t len = fread(json, 1, fsize, file);
+  if (len != fsize) return;
+  
   fclose(file);
   json[fsize] = 0;
-  testGeoJSONParsing(json, false);
+    FeatureCollection fc;
+    JSON::ParseResult pr = fc.fromJSON(json);
+
+  #if defined(APPLE) || defined(__linux__)
+    uint64_t start = now();
+    rapidjson::Document d;
+    d.Parse(json);
+    [[maybe_unused]] uint64_t elapsed = now() - start;
+    DEBUG_PRINTF("RapidJSON Parsing time: %lu µs\n", elapsed);
+  #endif
+
+    DEBUG_PRINTF("JSONParser Parsing time: %lu µs\n", pr.elapsed);
+
+    check(pr.error == 0, "parse");
   free(json);
 }
 // ----------------------------------------------------------------
@@ -469,7 +475,7 @@ void test_parse_from_char_buffer() {
   Sensor s;
   JSON::ParseResult result = s.fromJSON(json);
 
-  check(!result.error, "parse");
+  check(result.error == 0, "parse");
   check(s.id == 42, "id == 42");
   check(strcmp(s.name, "abc") == 0, "name == '%s'", s.name);
   check(s.active == true, "active == true");
@@ -493,7 +499,7 @@ void test_parse_from_stream() {
   s.active = false;
   JSON::ParseResult result = s.fromJSON(stream);
 
-  check(!result.error, "parse");
+  check(result.error == 0, "parse");
   check(s.id == 42, "id == 42");
   check(s.active == true, "active == true");
   check(near(s.temperature, 23.5f), "temperature ≈ 23.5");
@@ -518,7 +524,7 @@ void test_partial_parse() {
   StreamString stream(json);
   JSON::ParseResult result = s.fromJSON(stream);
 
-  check(!result.error, "parse");
+  check(result.error == 0, "parse");
   check(s.id == 99, "id unchanged (99)");
   check(s.temperature == 20, "temperature updated to 20");
   // s.toJSON(Serial);
@@ -537,7 +543,7 @@ void test_parse_via_stream_template() {
   Config c;
   JSON::ParseResult result = c.fromJSON(stream);
 
-  check(!result.error, "parse");
+  check(result.error == 0, "parse");
   check(c.version == 3, "version == 3");
   check(near(c.interval, 0.5f), "interval ≈ 0.5");
   // c.toJSON(Serial);
@@ -556,8 +562,10 @@ void test_serialize_to_buffer() {
 
   char buf[256] = {};
   size_t written = s.toJSON(buf);
-  const char *expected = "{\"id\":7,\"active\":true,\"name\":\"\",\"temperature\":36,\"num\":[1,2,3]}";
-  check(strcmp(expected, buf) == 0, "Wrote %zu bytes to char buffer: '%.*s'\n", written, (int)written, buf);
+  const char *expected = "{\"id\":7,\"active\":true,\"name\":\"\","
+                         "\"temperature\":36,\"num\":[1,2,3]}";
+  check(strcmp(expected, buf) == 0, "Wrote %zu bytes to char buffer: '%.*s'\n",
+        written, (int)written, buf);
 }
 
 // ----------------------------------------------------------------
@@ -627,20 +635,17 @@ void test_print_to_stream_string() {
 
 void test_print_hex_to_stream_string() {
   DEBUG_PRINTF("\n--- Test: toJSON StreamString with HEX uint8_t array ---\n");
-  JSON::PRINT_BUFFER_AS_HEX = true;
-
   StreamString stream;
   IntegralArrayTest s;
   s.hex[0] = 0xAA;
   s.hex[1] = 0xBB;
   s.hex[2] = 0xCC;
   s.hex[3] = 0xDD;
+  JSON::PRINT_BUFFER_AS_HEX = true;
   s.toJSON(stream);
-
   const char *expected = "{\"hex\":\"AABBCCDD\"}";
   check(strcmp(stream.c_str(), expected) == 0,
         "toJSON output should be %s, got %s", expected, stream.c_str());
- JSON::PRINT_BUFFER_AS_HEX = false;
 }
 
 // ----------------------------------------------------------------
@@ -659,13 +664,12 @@ void test_roundtrip() {
   char buf[256] = {0};
   size_t len = original.toJSON(buf);
   Serial.printf("toJSON '%.*s'\n", (int)len, buf);
-  // Parse that buffer back via a stream
-  StreamString stream(buf);
 
+  StreamString stream(buf);
   Sensor copy;
   JSON::ParseResult result = copy.fromJSON(stream);
 
-  check(!result.error, "parse");
+  check(result.error == 0, "parse");
   check(copy.id == 72, "id == 72");
   check(copy.active == true, "active == true");
   check(near(copy.temperature, 19.8f), "temperature ≈ 19.8 and was %f",
