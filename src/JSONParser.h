@@ -33,39 +33,31 @@ using enable_if_json_data_container_compatible =
 ////////////////////////////////////////////////////////////
 //  Parse With Cursor
 ///////////////////////////////////////////////////////////
-// template <typename Cursor, typename... Args>
-// enable_if_args_valid<Args...>
-// _parse(uint32_t &mask, Cursor &cursor, Args &&...args) {
-//   uint64_t start = now();
-
-//   JSONParserBase<Cursor> parser(cursor);
-//   bool automask = are_generic_keys(std::forward<Args>(args)...);
-//   parser.setAutomask(automask);
-//   parser.parse(std::forward<Args>(args)...);
-//   mask = parser.keyMask();
-
-//   uint64_t end = now();
-
-//   return resultForParser(parser, end - start);
-// }
-
-template <typename M, typename Cursor, typename... Args>
-enable_if_args_valid<Args...> _parse(M mask, Cursor &cursor, Args &&...args) {
+template <typename Cursor, typename... Args>
+enable_if_args_valid<Args...> _parse(uint32_t& mask, Cursor &cursor, Args &&...args) {
   uint64_t start = now();
-  constexpr bool mask_is_ref = std::is_reference<M>::value;
 
   JSONParserBase<Cursor> parser(cursor);
 
-  if constexpr (mask_is_ref) {
-    bool automask = are_generic_keys(std::forward<Args>(args)...);
-    parser.setAutomask(automask);
-  }
+  bool automask = are_generic_keys(std::forward<Args>(args)...);
+  parser.setAutomask(automask);
 
   parser.parse(std::forward<Args>(args)...);
 
-  if constexpr (mask_is_ref) {
-    mask = parser.keyMask();
-  }
+  mask = parser.keyMask();
+
+  uint64_t end = now();
+
+  return ParseResult(&parser, end - start);
+}
+
+template <typename Cursor, typename... Args>
+enable_if_args_valid<Args...> __parse(Cursor &cursor, Args &&...args) {
+  uint64_t start = now();
+
+  JSONParserBase<Cursor> parser(cursor);
+  parser.setUseMask(false);
+  parser.parse(std::forward<Args>(args)...);
 
   uint64_t end = now();
 
@@ -108,12 +100,12 @@ enable_if_stream_compatible<T> parse(uint32_t &mask, T &input, Args &&...args) {
 
 ParseResult parse(StreamCursor &cursor, const JSONCallback &cb) {
   JSONCallbackObject cb_obj(cb, "$ROOT");
-  return _parse(0, cursor, cb_obj);
+  return __parse(cursor, cb_obj);
 }
 
 ParseResult parse(const PointerCursorReader &cursor, const JSONCallback &cb) {
   JSONCallbackObject cb_obj(cb, "$ROOT");
-  return _parse(0, cursor, cb_obj);
+  return __parse(cursor, cb_obj);
 }
 
 ////////////////////////////////////////////////////////////
@@ -135,24 +127,23 @@ parse(uint32_t &mask, const PointerCursorReader &cursor, T &jsonObjects) {
 NAMESPACE_JSON_END
 
 JSON::ParseResult UnknownValueType::fromJSON(JSON::StreamCursor &cursor) {
-  uint32_t m = 0;
-  return JSON::_parse(m, cursor);
+  return JSON::__parse(cursor);
 }
 
 JSON::ParseResult
 UnknownValueType::fromJSON(const JSON::PointerCursorReader &cursor) {
   // const PointerCursorReader c = cursor;
-  return JSON::_parse(0, cursor);
+  return JSON::__parse(cursor);
 }
 
 JSON::ParseResult
 JSONCallbackObject::fromJSON(const JSON::PointerCursorReader &cursor) {
   // const PointerCursorReader c = cursor;
-  return JSON::_parse(0, cursor, *this);
+  return JSON::__parse(cursor, *this);
 }
 
 JSON::ParseResult JSONCallbackObject::fromJSON(JSON::StreamCursor &cursor) {
-  return JSON::_parse(0, cursor, *this);
+  return JSON::__parse(cursor, *this);
 }
 
 // #endif
