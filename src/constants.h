@@ -44,6 +44,9 @@ static constexpr char JSON_NAN[3] = {'N', 'a', 'N'};
 static constexpr char JSON_INFINITY[8] = {'I', 'n', 'f', 'i',
                                           'n', 'i', 't', 'y'};
 
+// ---------------------------------------------------------------------------
+//  équivalent C++17 de std::remove_cvref_t
+// ---------------------------------------------------------------------------
 template <class T>
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 

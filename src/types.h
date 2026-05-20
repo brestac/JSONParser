@@ -20,20 +20,6 @@
 #include "UnknownValueType.h"
 #include "StreamCursor.h"
 #include "PointerCursor.h"
-// ---------------------------------------------------------------------------
-//  équivalent C++17 de std::remove_cvref_t
-// ---------------------------------------------------------------------------
-
-// template <typename T, typename... Ts>
-// constexpr bool is_any_of = (std::is_same<T, Ts>::value || ...);
-
-// template <typename T, typename... Ts>
-// constexpr bool
-//     is_convertible_from_one_of = (std::is_convertible<Ts, T>::value || ...);
-
-// template <typename T, typename U>
-// constexpr bool assign_null =
-//     std::is_same_v<U, std::nullptr_t> &&std::is_pointer<T>::value;
 
 // ---------------------------------------------------------------------------
 //   Type checker
@@ -45,17 +31,6 @@ decltype(auto) getNthArg(Args&&... args) {
 
     return std::get<N>(std::forward_as_tuple(std::forward<Args>(args)...));
 }
-
-// template <typename... Args>
-// struct first_arg_type;
-
-// template <typename First, typename... Rest>
-// struct first_arg_type<First, Rest...> {
-//     using type = First;
-// };
-
-// template <typename... Args>
-// using first_arg_type_t = typename first_arg_type<Args...>::type;
 
 template <class... Args>
 constexpr bool args_are_pairs = /*(sizeof...(Args) > 0) &&*/ (sizeof...(Args) % 2) == 0;
@@ -203,13 +178,13 @@ template <typename T, typename = void>
 struct is_cursor_reader : std::false_type {};
 
 template <typename T, typename = void>
-struct is_cursor_reader_convertible : std::false_type {};
+struct is_cursor_reader_constructible : std::false_type {};
 
 template <typename T, typename = void>
 struct is_cursor_writer : std::false_type {};
 
 template <typename T, typename = void>
-struct is_cursor_writer_convertible : std::false_type {};
+struct is_cursor_writer_constructible : std::false_type {};
 
 template <>
 struct is_cursor_reader<const JSON:: PointerCursorReader> : std::true_type {};
@@ -218,7 +193,7 @@ template <>
 struct is_cursor_reader<JSON::StreamCursor> : std::true_type {};
 
 template <typename T>
-struct is_cursor_reader_convertible<T> : std::is_convertible<T, const JSON:: PointerCursorReader> {};
+struct is_cursor_reader_constructible<T> : std::is_constructible<T, const JSON:: PointerCursorReader> {};
 
 template <>
 struct is_cursor_writer<JSON::PointerCursorWriter> : std::true_type {};
@@ -227,19 +202,19 @@ template <>
 struct is_cursor_writer<JSON::StreamCursor> : std::true_type {};
 
 template <typename T>
-struct is_cursor_writer_convertible<T> : std::is_convertible<T, const JSON:: PointerCursorWriter> {};
+struct is_cursor_writer_constructible<T> : std::is_constructible<T, const JSON:: PointerCursorWriter> {};
 
 template<typename T>
 inline constexpr bool is_cursor_reader_v = is_cursor_reader<T>::value;
 
 template<typename T>
-inline constexpr bool is_cursor_reader_convertible_v = is_cursor_reader_convertible<T>::value;
+inline constexpr bool is_cursor_reader_constructible_v = is_cursor_reader_constructible<T>::value;
 
 template<typename T>
 inline constexpr bool is_cursor_writer_v = is_cursor_writer<T>::value;
 
 template<typename T>
-inline constexpr bool is_cursor_writer_convertible_v = is_cursor_writer_convertible<T>::value;
+inline constexpr bool is_cursor_writer_constructible_v = is_cursor_writer_constructible<T>::value;
 
 template<typename T>
 inline constexpr bool is_cursor_v = is_cursor_reader_v<T> || is_cursor_writer_v<T>;
@@ -254,19 +229,6 @@ template <typename T>
 struct is_convertible_to_indexed_key<
     T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>>
     : std::true_type {};
-
-// template <typename T>
-// inline constexpr bool is_convertible_to_indexed_key_v =
-//     is_convertible_to_indexed_key<T>::value;
-
-// template <typename CastableTypeList, typename ArrayTypeList>
-// struct key_value_checker<CastableTypeList, ArrayTypeList> : std::true_type
-// {};
-
-// template <typename CastableTypeList, typename ArrayTypeList, typename T>
-// struct key_value_checker<CastableTypeList, ArrayTypeList, T> :
-// std::false_type {
-// };
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename Value>
