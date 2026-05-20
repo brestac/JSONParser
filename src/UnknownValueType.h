@@ -6,23 +6,29 @@
 #include "JSONObject.h"
 
 struct ParseResult;
+
 struct UnknownValueType : JSONObject {
   using JSONObject::fromJSON;
-  using JSONObject::toJSON;
+  // using JSONObject::toJSON;
 
   constexpr UnknownValueType() = default;
+  JSON::ParseResult fromJSON(JSON::StreamCursor &cursor);
+  JSON::ParseResult fromJSON(const JSON::PointerCursorReader &cursor);
 
-  JSON::ParseResult fromJSON(const JSON:: PointerCursorReader& cursor) override;
-
-  size_t toJSON(JSON::PointerCursorWriter& writer, bool updates) override {
+  // ─── toJSON
+  // ───────────────────────────────────────────────────────────────────────
+  size_t toJSON(JSON::StreamCursor &writer, bool updates) {
     return writer.write("null");
   }
 
-  JSON::ParseResult fromJSON(JSON::StreamCursor& cursor) override;
-  size_t toJSON(JSON::StreamCursor& writer, bool updates) override {
+  size_t toJSON(JSON::PointerCursorWriter &writer, bool updates) {
     return writer.write("null");
   }
 
-  constexpr bool operator==(const UnknownValueType &other) const { return true; }
-  constexpr bool operator!=(const UnknownValueType &other) const { return false; }
+  constexpr bool operator==(const UnknownValueType &other) const {
+    return true;
+  }
+  constexpr bool operator!=(const UnknownValueType &other) const {
+    return false;
+  }
 };

@@ -44,33 +44,34 @@ size_t print_object_pointer_to(Cursor &output, void *value);
 namespace JSON {
 
 // ── Surcharge pour StreamCursor / PointerCursorWriter ────────────────────────
-// Reçoit Cursor par valeur (interface publique inchangée), puis transmet par
-// référence à print_json pour éviter les copies en profondeur.
 template <typename Cursor, typename... Args>
 enable_if_t<is_cursor_writer_v<Cursor> &&
                 key_value_checker_v<parsed_types, arguments_types,
                                     arguments_array_types, Args...>,
             size_t>
-print(uint32_t mask, Cursor output, Args &&...args) {
+_print(uint32_t mask, Cursor& output, Args &&...args) {
   return print_json(mask, output, std::forward<Args>(args)...);
 }
 
+  // ── Surcharge pour dérivées de Stream ──────────────────────────────────────────
+  template <typename T, typename... Args>
+    std::enable_if_t<std::is_base_of<Stream, std::remove_reference_t<T>>::value, size_t>
+  print(uint32_t mask, T &stream, Args &&...args) {
+    StreamCursor c(stream);
+    return _print(mask, c, std::forward<Args>(args)...);
+  }
+
 // ── Surcharge pour tampons char bruts (char[N] ou char*) ─────────────────────
 template <typename Buffer, typename... Args>
-enable_if_t<(std::is_array_v<std::remove_reference_t<Buffer>> ||
-             std::is_same_v<std::decay_t<Buffer>,
-                            char *>) &&
-                key_value_checker_v<parsed_types, arguments_types,
-                                    arguments_array_types, Args...>,
-            size_t>
+std::enable_if_t<(std::is_array<std::remove_reference_t<Buffer>>::value || std::is_same<std::decay_t<Buffer>, char *>::value), size_t>
 print(uint32_t mask, Buffer &&buffer, Args &&...args) {
-  if constexpr (std::is_array_v<std::remove_reference_t<Buffer>>) {
+  if constexpr (std::is_array<std::remove_reference_t<Buffer>>::value) {
     constexpr size_t N = sizeof(std::remove_reference_t<Buffer>) / sizeof(char);
     PointerCursorWriter c(buffer, N);
-    return print_json(mask, c, std::forward<Args>(args)...);
+    return _print(mask, c, std::forward<Args>(args)...);
   } else {
     PointerCursorWriter c(buffer, JSON::MAX_PRINTF_BUFFER_SIZE);
-    return print_json(mask, c, std::forward<Args>(args)...);
+    return _print(mask, c, std::forward<Args>(args)...);
   }
 }
 

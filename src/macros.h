@@ -9,24 +9,29 @@ Blue	\x1b[34m
 Magenta	\x1b[35m
 Cyan	\x1b[36m
 White	\x1b[37m
-Bright variants: add 1; before the code (e.g., \x1b[1;31m for bright red) or use codes 90–97.
-Background colors: replace 3 with 4 (e.g., \x1b[41m for red background) or use 100–107 for bright backgrounds.
-256‑color mode: \x1b[38;5;<n>m (foreground) or \x1b[48;5;<n>m (background), where <n> is 0‑255.
-True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or \x1b[48;2;<r>;<g>;<b>m (background), with RGB values 0‑255.
+Bright variants: add 1; before the code (e.g., \x1b[1;31m for bright red) or use
+codes 90–97. Background colors: replace 3 with 4 (e.g., \x1b[41m for red
+background) or use 100–107 for bright backgrounds. 256‑color mode:
+\x1b[38;5;<n>m (foreground) or \x1b[48;5;<n>m (background), where <n> is 0‑255.
+True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
+\x1b[48;2;<r>;<g>;<b>m (background), with RGB values 0‑255.
 */
 #ifndef DEV_MODE
 #define DEV_MODE 0
 #endif
 
-#define PRINTF_COLOR(n,s...) DEBUG_PRINTF("\x1b[" #n "m");DEBUG_PRINTF(s);DEBUG_PRINTF("\x1b[0m")
-#define PRINTF_BLACK(s...) PRINTF_COLOR(30,s)
-#define PRINTF_RED(s...) PRINTF_COLOR(31,s)
-#define PRINTF_GREEN(s...) PRINTF_COLOR(32,s)
-#define PRINTF_YELLOW(s...) PRINTF_COLOR(33,s)
-#define PRINTF_BLUE(s...) PRINTF_COLOR(34,s)
-#define PRINTF_MAGENTA(s...) PRINTF_COLOR(35,s)
-#define PRINTF_CYAN(s...) PRINTF_COLOR(36,s)
-#define PRINTF_WHITE(s...) PRINTF_COLOR(37,s)
+#define PRINTF_COLOR(n, s...)                                                  \
+  DEBUG_PRINTF("\x1b[" #n "m");                                                \
+  DEBUG_PRINTF(s);                                                             \
+  DEBUG_PRINTF("\x1b[0m")
+#define PRINTF_BLACK(s...) PRINTF_COLOR(30, s)
+#define PRINTF_RED(s...) PRINTF_COLOR(31, s)
+#define PRINTF_GREEN(s...) PRINTF_COLOR(32, s)
+#define PRINTF_YELLOW(s...) PRINTF_COLOR(33, s)
+#define PRINTF_BLUE(s...) PRINTF_COLOR(34, s)
+#define PRINTF_MAGENTA(s...) PRINTF_COLOR(35, s)
+#define PRINTF_CYAN(s...) PRINTF_COLOR(36, s)
+#define PRINTF_WHITE(s...) PRINTF_COLOR(37, s)
 
 #define NAMESPACE_JSON_BEGIN namespace JSON {
 #define NAMESPACE_JSON_END }
@@ -106,34 +111,29 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or \x1b[48;2;<
   (__VA_ARGS__)
 
 #define FROM_JSON_OVERRIDE(...)                                                \
-  JSON::ParseResult fromJSON(const PointerCursorReader &cursor) override {     \
-    const PointerCursorReader _c = cursor;                                     \
-    return JSON::_parse(this->updated, _c, MACRO(__VA_ARGS__));                \
+  template <typename T> JSON::ParseResult fromJSON(T &input) {                 \
+    return JSON::parse(this->updated, input, MACRO(__VA_ARGS__));              \
   }                                                                            \
-  template <typename T>                                                        \
-  std::enable_if_t<std::is_base_of_v<Stream, T>, JSON::ParseResult> fromJSON(  \
-      T &stream) {                                                             \
-    StreamCursor streamCursor(stream);                                         \
-    return fromJSON(streamCursor);                                             \
+  JSON::ParseResult fromJSON(const PointerCursorReader &cursor) override {     \
+    return JSON::_parse(this->updated, cursor, MACRO(__VA_ARGS__));            \
   }                                                                            \
   JSON::ParseResult fromJSON(StreamCursor &cursor) override {                  \
     return JSON::parse(this->updated, cursor, MACRO(__VA_ARGS__));             \
   }
+/*
+template <typename T>                                                        \
+std::enable_if_t<std::is_base_of_v<Stream, T>, JSON::ParseResult> fromJSON(  \
+    T &stream) {                                                             \
+  StreamCursor streamCursor(stream);                                         \
+  return fromJSON(streamCursor);                                             \
+}                                                                            \
+
+*/
 
 #define TO_JSON_OVERRIDE(...)                                                  \
-  size_t toJSON(PointerCursorWriter &writer, bool updates = true) override {   \
+  template <typename T> size_t toJSON(T &output, bool updates = true) {        \
     size_t mask = updates ? this->updated : 0;                                 \
-    return JSON::print(mask, writer, MACRO(__VA_ARGS__));                      \
-  }                                                                            \
-  template <typename T>                                                        \
-  std::enable_if_t<std::is_base_of_v<Stream, T>, size_t> toJSON(               \
-      T &stream, bool updates = true) {                                        \
-    StreamCursor streamCursor(stream);                                         \
-    return toJSON(streamCursor, updates);                                      \
-  }                                                                            \
-  size_t toJSON(StreamCursor &cursor, bool updates = true) override {          \
-    size_t mask = updates ? this->updated : 0;                                 \
-    return JSON::print(mask, cursor, MACRO(__VA_ARGS__));                      \
+    return JSON::print(mask, output, MACRO(__VA_ARGS__));                      \
   }
 
 #define JSON_DECODER_IMPL(...)                                                 \

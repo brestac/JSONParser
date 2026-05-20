@@ -204,7 +204,7 @@ public:
     return write((const uint8_t *)str, N);
   }
 
-  size_t write(const char * str) {
+  size_t write(const char *str) {
     return write((const uint8_t *)str, strlen(str));
   }
 
@@ -215,40 +215,43 @@ public:
 
   template <typename... Args>
   size_t printf(const char *format, Args &&...args) {
-      char buf[STREAM_BUFFER_SIZE];
+    char buf[STREAM_BUFFER_SIZE];
 
-      // snprintf écrit au plus sizeof(buf)-1 caractères
-      int needed = snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
-      if (needed < 0) return 0;
+    // snprintf écrit au plus sizeof(buf)-1 caractères
+    int needed =
+        snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+    if (needed < 0)
+      return 0;
 
-      int available = availableForWrite();
-      size_t to_write = static_cast<size_t>(needed);
+    int available = availableForWrite();
+    size_t to_write = static_cast<size_t>(needed);
 
-      if (to_write >= sizeof(buf)) {
-          // Le buffer était trop petit : allocation dynamique
-          char *heap = static_cast<char *>(malloc(to_write + 1));
-          if (!heap) return 0;
-          snprintf(heap, to_write + 1, format, std::forward<Args>(args)...);
-          if (available >= 0 && to_write > static_cast<size_t>(available)) {
-            to_write = static_cast<size_t>(available);
-          }
-
-          size_t n = write(reinterpret_cast<const uint8_t *>(heap), to_write);
-          free(heap);
-          _written += n;
-
-          return n;
-      }
-
-      // Tout tient dans le buffer de pile
+    if (to_write >= sizeof(buf)) {
+      // Le buffer était trop petit : allocation dynamique
+      char *heap = static_cast<char *>(malloc(to_write + 1));
+      if (!heap)
+        return 0;
+      snprintf(heap, to_write + 1, format, std::forward<Args>(args)...);
       if (available >= 0 && to_write > static_cast<size_t>(available)) {
         to_write = static_cast<size_t>(available);
       }
 
-      size_t n = write(reinterpret_cast<const uint8_t *>(buf), to_write);
+      size_t n = write(reinterpret_cast<const uint8_t *>(heap), to_write);
+      free(heap);
       _written += n;
 
       return n;
+    }
+
+    // Tout tient dans le buffer de pile
+    if (available >= 0 && to_write > static_cast<size_t>(available)) {
+      to_write = static_cast<size_t>(available);
+    }
+
+    size_t n = write(reinterpret_cast<const uint8_t *>(buf), to_write);
+    _written += n;
+
+    return n;
   }
 
   void flush() { _stream.flush(); }

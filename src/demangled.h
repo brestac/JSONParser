@@ -97,7 +97,7 @@ void print_demangled_type(T &value) {
 // #endif
 
 #if JSON_DEBUG_LEVEL > 0
-#define JSON_DEBUG_TYPES(format, ...) print_demangled_types(JSON_DEBUG_COLOR format COLOR_END, ##__VA_ARGS__);
+#define JSON_DEBUG_TYPES(format, ...) print_demangled_types("\x1b[35m" format "\x1b[0m", ##__VA_ARGS__);
 #else
 #define JSON_DEBUG_TYPES(format, ...)
 #endif

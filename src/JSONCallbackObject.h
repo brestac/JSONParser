@@ -19,7 +19,7 @@ struct JSONCallbackObject {
   size_t toJSON(JSON::PointerCursorWriter& cursor, bool updates = true) {
     return cursor.write("null");
   }
-// #endif
+
   JSONCallbackObject(JSONCallback callback, JSONKey key) : callback(callback), key(key), stop(false) {
     JSON_DEBUG_INFO("JSONCallbackObject created\n");
   }

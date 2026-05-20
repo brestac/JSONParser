@@ -18,6 +18,8 @@
 #include "JSONKey.h"
 #include "ParseValueResult.h"
 #include "UnknownValueType.h"
+#include "StreamCursor.h"
+#include "PointerCursor.h"
 // ---------------------------------------------------------------------------
 //  équivalent C++17 de std::remove_cvref_t
 // ---------------------------------------------------------------------------
@@ -44,16 +46,16 @@ decltype(auto) getNthArg(Args&&... args) {
     return std::get<N>(std::forward_as_tuple(std::forward<Args>(args)...));
 }
 
-template <typename... Args>
-struct first_arg_type;
+// template <typename... Args>
+// struct first_arg_type;
 
-template <typename First, typename... Rest>
-struct first_arg_type<First, Rest...> {
-    using type = First;
-};
+// template <typename First, typename... Rest>
+// struct first_arg_type<First, Rest...> {
+//     using type = First;
+// };
 
-template <typename... Args>
-using first_arg_type_t = typename first_arg_type<Args...>::type;
+// template <typename... Args>
+// using first_arg_type_t = typename first_arg_type<Args...>::type;
 
 template <class... Args>
 constexpr bool args_are_pairs = /*(sizeof...(Args) > 0) &&*/ (sizeof...(Args) % 2) == 0;
@@ -201,29 +203,43 @@ template <typename T, typename = void>
 struct is_cursor_reader : std::false_type {};
 
 template <typename T, typename = void>
+struct is_cursor_reader_convertible : std::false_type {};
+
+template <typename T, typename = void>
 struct is_cursor_writer : std::false_type {};
 
-template <typename Cursor>
-struct is_cursor_reader<Cursor> : std::is_same<const JSON:: PointerCursorReader, remove_cvref_t<Cursor>> {};
+template <typename T, typename = void>
+struct is_cursor_writer_convertible : std::false_type {};
 
 template <>
 struct is_cursor_reader<const JSON:: PointerCursorReader> : std::true_type {};
 
 template <>
-struct is_cursor_writer<JSON::PointerCursorWriter> : std::true_type {};
-
-#include "StreamCursor.h"
-template <>
 struct is_cursor_reader<JSON::StreamCursor> : std::true_type {};
+
+template <typename T>
+struct is_cursor_reader_convertible<T> : std::is_convertible<T, const JSON:: PointerCursorReader> {};
+
+template <>
+struct is_cursor_writer<JSON::PointerCursorWriter> : std::true_type {};
 
 template <>
 struct is_cursor_writer<JSON::StreamCursor> : std::true_type {};
+
+template <typename T>
+struct is_cursor_writer_convertible<T> : std::is_convertible<T, const JSON:: PointerCursorWriter> {};
 
 template<typename T>
 inline constexpr bool is_cursor_reader_v = is_cursor_reader<T>::value;
 
 template<typename T>
+inline constexpr bool is_cursor_reader_convertible_v = is_cursor_reader_convertible<T>::value;
+
+template<typename T>
 inline constexpr bool is_cursor_writer_v = is_cursor_writer<T>::value;
+
+template<typename T>
+inline constexpr bool is_cursor_writer_convertible_v = is_cursor_writer_convertible<T>::value;
 
 template<typename T>
 inline constexpr bool is_cursor_v = is_cursor_reader_v<T> || is_cursor_writer_v<T>;

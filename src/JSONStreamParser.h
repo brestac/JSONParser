@@ -17,7 +17,14 @@ using namespace std;
 using namespace JSON;
 
 NAMESPACE_JSON_BEGIN
+
 static std::string_view CURRENT_KEY = "$ROOT";
+static void setCurrentKey(const char *key, size_t len) {
+  char copy[len];
+  strncpy(copy, key, len);
+  CURRENT_KEY = std::string_view(copy, len);
+}
+
 NAMESPACE_JSON_END
 // ============================================================
 //  JSONParserBase<Cursor>
@@ -164,6 +171,7 @@ public:
   uint32_t keyMask() { return _keyMask; }
   bool automask() { return _automask; }
   void setAutomask(bool automask) { _automask = automask; }
+  bool stopped() { return _state == STOPPED; }
 
 private:
   Cursor _cursor; // ← seul membre qui change selon le type
@@ -1178,24 +1186,21 @@ JSONParserBase<Cursor>::parse_into_array_at_index(std::array<T, N> &array,
 template <typename Cursor>
 template <typename V>
 ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
-  JSON_DEBUG_INFO("JSONParser::parse_object\n");
+  JSON_DEBUG_TYPES("JSONParser::parse_object into %s\n", arg_value);
   ParseValueResult result = ParseValueResult::NO_RESULT;
 
   if (!is_object_start()) {
     return ParseValueResult::NO_RESULT;
   }
 
-  char copy[_key_length];
-  strncpy(copy, _key_start, _key_length);
-  JSON::CURRENT_KEY = std::string_view(copy, _key_length);
+  JSON::setCurrentKey(_key_start, _key_length);
   JSON::ParseResult r = arg_value.fromJSON(_cursor);
-  JSON::CURRENT_KEY = std::string_view("");
 
 #if JSON_DEBUG_LEVEL > 0
-  JSON_DEBUG_INFO("In previous JSONParser::parse_object result: ");
+  JSON_DEBUG_INFO("In previous JSONParser %.*s parse_object result: ", (int)_key_length, _key_start);
   r.print();
 #endif
-
+  
   if (r.error != NO_ERROR) {
     JSON_DEBUG_TYPES("In previous JSONParser::parse_object error parsing %s :", arg_value);
     DEBUG_PRINTF("%s\n", errorToString((ParserError)r.error));

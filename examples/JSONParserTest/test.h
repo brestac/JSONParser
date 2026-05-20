@@ -1,4 +1,3 @@
-#include "src/constants.h"
 
 using namespace std;
 using namespace JSON;
@@ -236,7 +235,7 @@ void testArrayCallback() {
 }
 
 // ----------------------------------------------------------------
-// test_parsing
+// test_parsing from const char *
 // ----------------------------------------------------------------
 
 void test_parsing() {
@@ -634,10 +633,6 @@ void test_print_to_stream_string() {
         "toJSON output should be %s, got %s", expected, stream.c_str());
 }
 
-// ----------------------------------------------------------------
-// Test 5 – toJSON via StreamString with HEX unsigned char array
-// ----------------------------------------------------------------
-
 void test_print_hex_to_stream_string() {
   DEBUG_PRINTF("\n--- Test: toJSON StreamString with HEX uint8_t array ---\n");
   StreamString stream;
@@ -646,11 +641,8 @@ void test_print_hex_to_stream_string() {
   s.hex[1] = 0xBB;
   s.hex[2] = 0xCC;
   s.hex[3] = 0xDD;
-
   JSON::PRINT_BUFFER_AS_HEX = true;
   s.toJSON(stream);
-  JSON::PRINT_BUFFER_AS_HEX = false;
-
   const char *expected = "{\"hex\":\"AABBCCDD\"}";
   check(strcmp(stream.c_str(), expected) == 0,
         "toJSON output should be %s, got %s", expected, stream.c_str());
