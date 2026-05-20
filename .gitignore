@@ -1,8 +1,5 @@
-.replit
 .ccls-cache
 .agents
-.config
 arduino-test
 desktop-test
 main
-src/Stream.h
