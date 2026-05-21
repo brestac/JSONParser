@@ -139,10 +139,10 @@ public:
   // ── Recherche de valeur par clé ────────────────────────────
 
   inline ParseValueResult searchValueArgumentForKey(size_t idx,
-                                                    JSONKey parsed_key);
+const JSONKey& parsed_key);
 
   template <typename V, typename... Args>
-  ParseValueResult searchValueArgumentForKey(size_t idx, JSONKey parsed_key,
+  ParseValueResult searchValueArgumentForKey(size_t idx, const JSONKey& parsed_key,
                                              JSONKey arg_key, V &arg_value,
                                              Args &&...args);
 
@@ -856,8 +856,7 @@ void JSONParserBase<Cursor>::parse(Args &&...args) {
 // ── searchValueArgumentForKey ─────────────────────────────────
 template <typename Cursor>
 inline ParseValueResult
-JSONParserBase<Cursor>::searchValueArgumentForKey(size_t /*idx*/,
-                                                  JSONKey parsed_key) {
+JSONParserBase<Cursor>::searchValueArgumentForKey(size_t /*idx*/, const JSONKey& parsed_key) {
   JSON_DEBUG_INFO("Key '%.*s' not found in parameters\n",
                   (int)parsed_key.length(), parsed_key.data());
   return ParseValueResult::NO_RESULT;
@@ -866,7 +865,7 @@ JSONParserBase<Cursor>::searchValueArgumentForKey(size_t /*idx*/,
 template <typename Cursor>
 template <typename V, typename... Args>
 ParseValueResult JSONParserBase<Cursor>::searchValueArgumentForKey(
-    size_t idx, JSONKey parsed_key, JSONKey arg_key, V &arg_value,
+    size_t idx, const JSONKey& parsed_key, JSONKey arg_key, V &arg_value,
     Args &&...args) {
   ParseValueResult result = ParseValueResult::NO_RESULT;
 
