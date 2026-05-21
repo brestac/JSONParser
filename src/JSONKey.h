@@ -111,8 +111,8 @@ struct JSONKey {
     JSON_DEBUG_INFO("JSONKey setKey %.*s index=%d\n", (int)length(), data(), _index);
   }
 
-  void setKey(std::string_view key) {
-    setKey(key.data(), key.length());
+  void setKey(const std::string_view& key) {
+      setKey(key.data(), key.length());
   }
 
   int getIndex() const { return _index; }

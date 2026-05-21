@@ -151,7 +151,7 @@ void test_callback() {
 
   int liste_idx = 0;
   JSON::ParseResult pr = JSON::parse(
-      json, [&p, &liste_idx](JSONKey key, JSONValue value, bool &stop) {
+      json, [&p, &liste_idx](const JSONKey& key, const JSONValue& value, bool &stop) {
         if (key == "ville") {
           p.ville = value;
         } else if (key == "age") {
@@ -205,7 +205,7 @@ void testArrayCallback() {
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
 
   JSON::ParseResult pr = JSON::parse(
-      json, [&personnes, p_length](JSONKey key, JSONValue value, bool &stop) {
+      json, [&personnes, p_length](const JSONKey& key, const JSONValue& value, bool &stop) {
         int arrayIndex = key.getArrayIndex();
         if (arrayIndex >= (int)p_length || arrayIndex < 0)
           return;
