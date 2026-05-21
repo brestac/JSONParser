@@ -129,7 +129,7 @@ public:
                                                         V &v);
 
   template <typename PV>
-  ParseValueResult assign_callback_object(PV pv, JSONCallbackObject &cb);
+  ParseValueResult assign_callback_object(const PV& pv, JSONCallbackObject &cb);
 
   template <typename PV, typename V>
   ParseValueResult assign_infinity_to_integral(PV &pv, V &v);
@@ -994,7 +994,7 @@ ParseValueResult JSONParserBase<Cursor>::assign_string_view_to_unsigned_array(
 template <typename Cursor>
 template <typename PV>
 ParseValueResult
-JSONParserBase<Cursor>::assign_callback_object(PV pv, JSONCallbackObject &cb) {
+JSONParserBase<Cursor>::assign_callback_object(const PV& pv, JSONCallbackObject &cb) {
   cb.run(pv);
   if (cb.stop)
     _state = STOPPED;

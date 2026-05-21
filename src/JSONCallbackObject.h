@@ -7,7 +7,7 @@
 #include "JSONKey.h"
 #include "StreamCursor.h"
 
-using JSONCallback = std::function<void(JSONKey, JSONValue, bool &)>;
+using JSONCallback = std::function<void(const JSONKey&, const JSONValue&, bool&)>;
 
 struct JSONCallbackObject {
   JSONCallback callback;
@@ -24,7 +24,7 @@ struct JSONCallbackObject {
     JSON_DEBUG_INFO("JSONCallbackObject created\n");
   }
 
-  void run(JSONValue value) {
+  void run(const JSONValue& value) {
     if (callback) {
       JSON_DEBUG_INFO("JSONCallbackObject running callback with key %.*s _array_index=%d\n", (int)key.length(), key.data(), key.getArrayIndex());
       callback(key, value, stop);
@@ -39,7 +39,7 @@ struct JSONCallbackObject {
     this->key.setArrayIndex(anIndex);
 }
 
-  void setKey(JSONKey aKey) {
+  void setKey(const JSONKey& aKey) {
     JSON_DEBUG_INFO("JSONCallbackObject setKey %.*s\n", (int)aKey.length(), aKey.data());
     this->key.setKey(aKey);
   }
