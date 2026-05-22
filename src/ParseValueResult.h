@@ -63,15 +63,14 @@ public:
   constexpr bool converted() const { return (_result & VALUE_CONVERTED) != 0; }
   constexpr bool updated() const { return (_result & VALUE_UPDATED) != 0; }
 
-constexpr uint16_t valueType() const {
-  return (_result &(~ (KEY_FOUND | VALUE_PARSED | VALUE_CONVERTED | VALUE_UPDATED)));
-}
+  constexpr uint16_t valueType() const {
+    return (_result & (~(KEY_FOUND | VALUE_PARSED | VALUE_CONVERTED | VALUE_UPDATED)));
+  }
 
   void print() {
     DEBUG_PRINTF("ParseValueResult: KEY_FOUND=%d VALUE_PARSED=%d "
                  "VALUE_CONVERTED=%d VALUE_UPDATED=%d _type=%hhu\n",
-                 (_result & KEY_FOUND) != 0, (_result & VALUE_PARSED) != 0,
-                 (_result & VALUE_CONVERTED) != 0,
+                 (_result & KEY_FOUND) != 0, (_result & VALUE_PARSED) != 0, (_result & VALUE_CONVERTED) != 0,
                  (_result & VALUE_UPDATED) != 0, valueType());
   }
 

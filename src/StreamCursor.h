@@ -17,8 +17,7 @@ NAMESPACE_JSON_BEGIN
 
 template <size_t N> class RingBuffer {
   static_assert(N >= 16, "RingBuffer : N doit être >= 16");
-  static_assert((N & (N - 1)) == 0,
-                "RingBuffer : N doit être une puissance de 2");
+  static_assert((N & (N - 1)) == 0, "RingBuffer : N doit être une puissance de 2");
 
 public:
   explicit RingBuffer(Stream &stream) : _stream(stream), _head(0), _tail(0) {}
@@ -86,8 +85,7 @@ private:
 
 class StreamCursor {
 public:
-  StreamCursor(Stream &stream)
-      : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
+  StreamCursor(Stream &stream) : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
     JSON_DEBUG_TYPES("StreamCursor created from %s\n", stream);
   }
 
@@ -128,8 +126,7 @@ public:
   // délimiteur JSON. Ne consomme PAS les octets (lecture seule via peek).
   // Retourne le nombre d'octets copiés.
   size_t peekToken(char *out, size_t maxLen) {
-    static const char delimiters[] = {',',  '}',  ']',  ' ',
-                                      '\t', '\n', '\r', '\0'};
+    static const char delimiters[] = {',', '}', ']', ' ', '\t', '\n', '\r', '\0'};
     size_t n = 0;
     while (n < maxLen) {
       int c = _ring.peek(n);
@@ -200,26 +197,20 @@ public:
   }
   // Écrit une chaîne null-terminée dans le stream.
   // Retourne le nombre d'octets écrits.
-  template <size_t N> size_t write(const char (&str)[N]) {
-    return write((const uint8_t *)str, N);
-  }
+  template <size_t N> size_t write(const char (&str)[N]) { return write((const uint8_t *)str, N); }
 
-  size_t write(const char *str) {
-    return write((const uint8_t *)str, strlen(str));
-  }
+  size_t write(const char *str) { return write((const uint8_t *)str, strlen(str)); }
 
   // Écrit une chaîne formatée (printf-style) dans le stream.
   // Utilise un buffer de pile de 64 octets ; alloue dynamiquement
   // si la chaîne formatée est plus longue.
   // Retourne le nombre d'octets écrits.
 
-  template <typename... Args>
-  size_t printf(const char *format, Args &&...args) {
+  template <typename... Args> size_t printf(const char *format, Args &&...args) {
     char buf[STREAM_BUFFER_SIZE];
 
     // snprintf écrit au plus sizeof(buf)-1 caractères
-    int needed =
-        snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+    int needed = snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
     if (needed < 0)
       return 0;
 

@@ -12,17 +12,13 @@
 //   JSONValue
 // ---------------------------------------------------------------------------
 
-template <class T>
-using base_array_type = remove_cvref_t<std::remove_extent_t<remove_cvref_t<T>>>;
+template <class T> using base_array_type = remove_cvref_t<std::remove_extent_t<remove_cvref_t<T>>>;
 
-template <class T>
-constexpr bool is_array_value = std::is_array_v<remove_cvref_t<T>>;
+template <class T> constexpr bool is_array_value = std::is_array_v<remove_cvref_t<T>>;
 
-template <class T>
-constexpr bool is_unsigned_value = std::is_unsigned_v<base_array_type<T>>;
+template <class T> constexpr bool is_unsigned_value = std::is_unsigned_v<base_array_type<T>>;
 
-template <class T>
-constexpr bool is_uint_array_v = is_array_value<T> &&is_unsigned_value<T>;
+template <class T> constexpr bool is_uint_array_v = is_array_value<T> && is_unsigned_value<T>;
 
 template <typename TypeList> struct to_variant;
 
@@ -45,8 +41,7 @@ public:
           if constexpr (std::is_pointer_v<To>) {
             if constexpr (std::is_same_v<From, NullType>) {
               return nullptr;
-            }
-            else {
+            } else {
               return To();
             }
           } else if constexpr (std::is_same_v<From, To>) {
@@ -66,22 +61,18 @@ public:
         data);
   }
 
-  template <typename T> bool is() const noexcept {
-    return std::holds_alternative<T>(data);
-  }
+  template <typename T> bool is() const noexcept { return std::holds_alternative<T>(data); }
 
   template <typename T> T &get() noexcept { return std::get<T>(data); }
 
-  template <typename T> const T &get() const noexcept {
-    return std::get<T>(data);
-  }
+  template <typename T> const T &get() const noexcept { return std::get<T>(data); }
 
   // If data is a string_view, and value is an unsigned array, copy the hex
   // string to the array
   template <typename T> std::enable_if_t<is_uint_array_v<T>, void> copyTo(T &value) const noexcept {
-      if (is<std::string_view>()) {
-        copy_hex_be_to_h(value, get<std::string_view>().data(), get<std::string_view>().length());
-      }
+    if (is<std::string_view>()) {
+      copy_hex_be_to_h(value, get<std::string_view>().data(), get<std::string_view>().length());
+    }
   }
 
 private:

@@ -30,14 +30,11 @@ struct MyStruct {
   uint64_t timestamp;
   uint32_t updated;
 
-  size_t fromJSON(const char* json) {
-    return JSON::parse(updated, json, "temp", temp, "timestamp", timestamp);
-  }
+  size_t fromJSON(const char *json) { return JSON::parse(updated, json, "temp", temp, "timestamp", timestamp); }
 
-  template<typename T>
-  size_t toJSON(T &stream, bool updates = true) {          
-    size_t mask = updates ? updated : 0;                                 
-    return JSON::print(mask, stream, "temp", temp, "timestamp", timestamp);                      
+  template <typename T> size_t toJSON(T &stream, bool updates = true) {
+    size_t mask = updates ? updated : 0;
+    return JSON::print(mask, stream, "temp", temp, "timestamp", timestamp);
   }
 };
 
