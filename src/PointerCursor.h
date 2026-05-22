@@ -20,32 +20,20 @@ NAMESPACE_JSON_BEGIN
 
 template <typename T> class PointerCursor {
 public:
-  explicit constexpr PointerCursor(T *start, size_t len)
-      : _pos(start), _start(start), _end(start + len) {}
+  explicit constexpr PointerCursor(T *start, size_t len) : _pos(start), _start(start), _end(start + len) {}
 
-  constexpr PointerCursor()
-      : PointerCursor(static_cast<const char *>(nullptr),
-                      static_cast<size_t>(0)) {}
+  constexpr PointerCursor() : PointerCursor(static_cast<const char *>(nullptr), static_cast<size_t>(0)) {}
 
-  constexpr PointerCursor(std::string_view sv)
-      : _pos(sv.data()), _start(sv.data()), _end(sv.data() + sv.length()) {
-    JSON_DEBUG_INFO(
-        "PointerCursor reader created with string_view %p size %zu\n",
-        sv.data(), sv.length());
+  constexpr PointerCursor(std::string_view sv) : _pos(sv.data()), _start(sv.data()), _end(sv.data() + sv.length()) {
+    JSON_DEBUG_INFO("PointerCursor reader created with string_view %p size %zu\n", sv.data(), sv.length());
   }
 
-  constexpr PointerCursor(const char *buffer)
-      : _pos(buffer), _start(buffer), _end(buffer + str_length(buffer)) {
-    JSON_DEBUG_INFO("PointerCursor reader created with buffer %p size %zu\n",
-                    buffer, str_length(buffer));
+  constexpr PointerCursor(const char *buffer) : _pos(buffer), _start(buffer), _end(buffer + str_length(buffer)) {
+    JSON_DEBUG_INFO("PointerCursor reader created with buffer %p size %zu\n", buffer, str_length(buffer));
   }
 
-  template <size_t N>
-  constexpr PointerCursor(T (&buffer)[N])
-      : _pos(buffer), _start(buffer), _end(buffer + N - 1) {
-    JSON_DEBUG_INFO(
-        "PointerCursor reader or writer created with buffer %p size %zu\n",
-        buffer, N - 1);
+  template <size_t N> constexpr PointerCursor(T (&buffer)[N]) : _pos(buffer), _start(buffer), _end(buffer + N - 1) {
+    JSON_DEBUG_INFO("PointerCursor reader or writer created with buffer %p size %zu\n", buffer, N - 1);
   }
 
   // Accès direct au pointeur brut (pour strtod/strtol)
@@ -99,19 +87,13 @@ public:
 
   size_t write(const char *buf) const { return write(buf, str_length(buf)); }
 
-  template <size_t N> size_t write(const char (&buf)[N]) const {
-    return write(buf, N - 1);
-  }
+  template <size_t N> size_t write(const char (&buf)[N]) const { return write(buf, N - 1); }
 
-  template <size_t N> size_t write(char (&buf)[N]) const {
-    return write(buf, N - 1);
-  }
+  template <size_t N> size_t write(char (&buf)[N]) const { return write(buf, N - 1); }
 
   template <typename... Args>
-  std::enable_if_t<(sizeof...(Args) > 0), size_t> printf(const char *format,
-                                                         Args &&...args) const {
-    size_t len =
-        snprintf(_pos, available(), format, std::forward<Args>(args)...);
+  std::enable_if_t<(sizeof...(Args) > 0), size_t> printf(const char *format, Args &&...args) const {
+    size_t len = snprintf(_pos, available(), format, std::forward<Args>(args)...);
     _pos += len;
     return len;
   }

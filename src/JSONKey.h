@@ -2,14 +2,15 @@
 
 #include <string_view>
 
-#include "str_length.h"
 #include "StreamScanner.h"
+#include "str_length.h"
 // ---------------------------------------------------------------------------
 //   JSONKey
 // ---------------------------------------------------------------------------
 
 constexpr uint32_t hash32(const char *str, size_t len) {
-  if (str == nullptr) return 0;
+  if (str == nullptr)
+    return 0;
   uint32_t hash = 2166136261u;
   for (size_t i = 0; i < len; ++i) {
     hash ^= static_cast<uint32_t>(str[i]);
@@ -18,13 +19,9 @@ constexpr uint32_t hash32(const char *str, size_t len) {
   return hash;
 }
 
-constexpr uint32_t hash32(std::string_view key) {
-  return hash32(key.data(), key.length());
-}
+constexpr uint32_t hash32(std::string_view key) { return hash32(key.data(), key.length()); }
 
-constexpr uint32_t operator""_hash(const char *str, size_t len) {
-  return hash32(str, len);
-}
+constexpr uint32_t operator""_hash(const char *str, size_t len) { return hash32(str, len); }
 
 constexpr std::string_view get_json_key(const char *raw_key, size_t key_len) {
   JSON::PointerCursor key_cursor(raw_key, key_len);
@@ -43,7 +40,7 @@ constexpr int get_json_key_index(const char *raw_key, size_t key_len) {
   if (cursor_scan_ranges(key_cursor, JSON_KEY_CHARACTERS, true)) {
     if (cursor_scan_char(key_cursor, JSON_ARRAY_START_CHARACTER, true)) {
       char *end = nullptr;
-      int idx = std::strtol(raw_key, &end, 10);
+      int idx = (int)std::strtol(raw_key, &end, 10);
 
       if (end != raw_key) {
         key_cursor.advance_to(end);
@@ -58,17 +55,13 @@ constexpr int get_json_key_index(const char *raw_key, size_t key_len) {
 }
 
 constexpr bool is_key(const char *raw_key) {
-  return (get_json_key(raw_key, str_length(raw_key)).length() > 0) && (get_json_key_index(raw_key, str_length(raw_key)) == -1);
+  return (get_json_key(raw_key, str_length(raw_key)).length() > 0) &&
+         (get_json_key_index(raw_key, str_length(raw_key)) == -1);
 }
 
-inline bool are_generic_keys() {
-  return true;
-}
+inline bool are_generic_keys() { return true; }
 
-template <typename Value>
-constexpr bool are_generic_keys(Value) {
-  return false;
-}
+template <typename Value> constexpr bool are_generic_keys(Value) { return false; }
 
 template <typename Key, typename Value, typename... Rest>
 constexpr bool are_generic_keys(Key key, Value value, Rest... rest) {
@@ -81,20 +74,26 @@ struct JSONKey {
   uint32_t _hash;
   int _array_index;
 
-  constexpr JSONKey() : _key(""), _index(-1), _hash(0), _array_index(-1) {}
+  explicit constexpr JSONKey() : _key(""), _index(-1), _hash(0), _array_index(-1) {}
 
-  constexpr JSONKey(int index) : _key(""), _index(index), _hash(index), _array_index(-1) {}
+  explicit constexpr JSONKey(int index) : _key(""), _index(index), _hash(index), _array_index(-1) {}
 
-  constexpr JSONKey(const char *key, size_t len) : _key(get_json_key(key, len)), _index(get_json_key_index(key, len)), _hash(hash32(_key)), _array_index(-1) {
+  explicit constexpr JSONKey(const char *key, size_t len)
+      : _key(get_json_key(key, len)), _index(get_json_key_index(key, len)), _hash(hash32(_key)), _array_index(-1) {
     JSON_DEBUG_INFO("Created key %.*s index=%d\n", (int)length(), data(), _index);
   }
 
-  constexpr JSONKey(const char *key) : JSONKey(key, str_length(key)) {}
+  explicit constexpr JSONKey(std::string_view &key) : JSONKey(key.data(), key.length()) {}
 
-  template <size_t N>
-  constexpr JSONKey(const char (&key)[N]) : JSONKey((const char *)key, N - 1) {}
+  template <size_t N> constexpr JSONKey(const char (&key)[N]) : JSONKey(key, N - 1) {}
 
-  bool operator==(const JSONKey &other) const { return _hash == other._hash; }
+  template <size_t N> constexpr bool operator==(const char (&key)[N]) const {
+    return std::strncmp(key, _key.data(), N - 1) == 0;
+  }
+
+  constexpr bool operator==(const JSONKey &other) const { return _hash == other._hash; }
+
+  // constexpr bool operator==(const std::string_view &other_sv) const { return _key == other_sv; }
 
   constexpr operator uint32_t() const { return _hash; }
 
@@ -111,9 +110,7 @@ struct JSONKey {
     JSON_DEBUG_INFO("JSONKey setKey %.*s index=%d\n", (int)length(), data(), _index);
   }
 
-  void setKey(const std::string_view& key) {
-      setKey(key.data(), key.length());
-  }
+  void setKey(const std::string_view &key) { setKey(key.data(), key.length()); }
 
   int getIndex() const { return _index; }
 

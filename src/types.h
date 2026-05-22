@@ -11,50 +11,43 @@
 #include <type_traits>
 #include <variant>
 
+#include "JSONCallbackObject.h"
+#include "JSONKey.h"
+#include "JSONObject.h"
+#include "ParseValueResult.h"
+#include "PointerCursor.h"
+#include "StreamCursor.h"
+#include "UnknownValueType.h"
 #include "constants.h"
 #include "macros.h"
-#include "JSONCallbackObject.h"
-#include "JSONObject.h"
-#include "JSONKey.h"
-#include "ParseValueResult.h"
-#include "UnknownValueType.h"
-#include "StreamCursor.h"
-#include "PointerCursor.h"
 
 // ---------------------------------------------------------------------------
 //   Type checker
 // ---------------------------------------------------------------------------
 
-template <size_t N, class... Args>
-decltype(auto) getNthArg(Args&&... args) {
-    static_assert(N < sizeof...(Args), "Index out of bounds");
+template <size_t N, class... Args> decltype(auto) getNthArg(Args &&...args) {
+  static_assert(N < sizeof...(Args), "Index out of bounds");
 
-    return std::get<N>(std::forward_as_tuple(std::forward<Args>(args)...));
+  return std::get<N>(std::forward_as_tuple(std::forward<Args>(args)...));
 }
 
-template <class... Args>
-constexpr bool args_are_pairs = /*(sizeof...(Args) > 0) &&*/ (sizeof...(Args) % 2) == 0;
+template <class... Args> constexpr bool args_are_pairs = /*(sizeof...(Args) > 0) &&*/ (sizeof...(Args) % 2) == 0;
 
-template <typename T, typename From, typename = void>
-struct is_static_castable_from : std::false_type {};
+template <typename T, typename From, typename = void> struct is_static_castable_from : std::false_type {};
 
 template <typename T, typename From>
-struct is_static_castable_from<
-    T, From, std::void_t<decltype(static_cast<T>(std::declval<From>()))>>
-    : std::true_type {};
+struct is_static_castable_from<T, From, std::void_t<decltype(static_cast<T>(std::declval<From>()))>> : std::true_type {
+};
 
 template <typename T, typename TypeList> struct is_castable_from_any;
 
 template <typename T, typename... Ts>
-struct is_castable_from_any<T, type_list<Ts...>>
-    : std::disjunction<is_static_castable_from<T, Ts>...> {};
+struct is_castable_from_any<T, type_list<Ts...>> : std::disjunction<is_static_castable_from<T, Ts>...> {};
 
-template <typename T, typename TypeList>
-struct is_in_type_list : std::false_type {};
+template <typename T, typename TypeList> struct is_in_type_list : std::false_type {};
 
 template <typename T, typename... Ts>
-struct is_in_type_list<T, type_list<Ts...>>
-    : std::disjunction<std::is_same<T, Ts>...> {};
+struct is_in_type_list<T, type_list<Ts...>> : std::disjunction<std::is_same<T, Ts>...> {};
 
 // Type de container
 enum class ContainerKind { NOT_CONTAINER, C_ARRAY, CHAR_ARRAY, STD_ARRAY, STD_VECTOR };
@@ -105,32 +98,26 @@ template <typename T> struct container_info<std::vector<T>> {
 // ==========================================
 // Container from list checker
 // ==========================================
-template <typename T>
-constexpr bool is_container_v = container_info<T>::is_container;
+template <typename T> constexpr bool is_container_v = container_info<T>::is_container;
 
-template <typename T, typename TypeList>
-struct is_container_from_list : std::false_type {};
+template <typename T, typename TypeList> struct is_container_from_list : std::false_type {};
 
 // C-array
 template <typename T, size_t N, typename TypeList>
-struct is_container_from_list<T[N], TypeList>
-    : is_in_type_list<typename container_info<T[N]>::base_type, TypeList> {};
+struct is_container_from_list<T[N], TypeList> : is_in_type_list<typename container_info<T[N]>::base_type, TypeList> {};
 
 // std::array
 template <typename T, size_t N, typename TypeList>
 struct is_container_from_list<std::array<T, N>, TypeList>
-    : is_in_type_list<typename container_info<std::array<T, N>>::base_type,
-                      TypeList> {};
+    : is_in_type_list<typename container_info<std::array<T, N>>::base_type, TypeList> {};
 
 // std::vector
 template <typename T, typename TypeList>
 struct is_container_from_list<std::vector<T>, TypeList>
-    : is_in_type_list<typename container_info<std::vector<T>>::base_type,
-                      TypeList> {};
+    : is_in_type_list<typename container_info<std::vector<T>>::base_type, TypeList> {};
 
 template <typename T, typename TypeList>
-inline constexpr bool is_container_from_list_v =
-    is_container_from_list<T, TypeList>::value;
+inline constexpr bool is_container_from_list_v = is_container_from_list<T, TypeList>::value;
 
 // ==========================================
 // char array, char array array
@@ -138,128 +125,96 @@ inline constexpr bool is_container_from_list_v =
 
 template <typename T> struct is_char_array : std::false_type {};
 
-template <typename T, size_t N>
-struct is_char_array<T[N]> : std::is_same<T, char> {};
+template <typename T, size_t N> struct is_char_array<T[N]> : std::is_same<T, char> {};
 
-template <typename T>
-inline constexpr bool is_char_array_v = is_char_array<T>::value;
+template <typename T> inline constexpr bool is_char_array_v = is_char_array<T>::value;
 
 template <typename T> struct is_char_array_array : std::false_type {};
 
 template <typename T, size_t N, size_t M>
-struct is_char_array_array<T[N][M]>
-    : std::integral_constant<bool, std::is_same_v<T, char>>{};
+struct is_char_array_array<T[N][M]> : std::integral_constant<bool, std::is_same_v<T, char>> {};
 
-template <typename T>
-inline constexpr bool is_char_array_array_v = is_char_array_array<T>::value;
+template <typename T> inline constexpr bool is_char_array_array_v = is_char_array_array<T>::value;
 
 // ==========================================
 // JSONObject
 // ==========================================
-template <typename T>
-struct is_derived_json_data : std::is_base_of<JSONObject, remove_cvref_t<T>> {};
+template <typename T> struct is_derived_json_data : std::is_base_of<JSONObject, remove_cvref_t<T>> {};
 
-template <typename T>
-struct is_derived_json_data<T *> : is_derived_json_data<T> {};
+template <typename T> struct is_derived_json_data<T *> : is_derived_json_data<T> {};
 
-template <typename T>
-inline constexpr bool is_derived_json_data_v = is_derived_json_data<remove_cvref_t<T>>::value;
+template <typename T> inline constexpr bool is_derived_json_data_v = is_derived_json_data<remove_cvref_t<T>>::value;
 
 template <typename T>
 constexpr bool is_derived_json_data_container_v =
-    container_info<T>::is_container
-        &&is_derived_json_data<typename container_info<T>::base_type>::value;
+    container_info<T>::is_container && is_derived_json_data<typename container_info<T>::base_type>::value;
 
 // ==========================================
 // Cursor
 // ==========================================
 
-template <typename T, typename = void>
-struct is_cursor_reader : std::false_type {};
+template <typename T, typename = void> struct is_cursor_reader : std::false_type {};
 
-template <typename T, typename = void>
-struct is_cursor_reader_constructible : std::false_type {};
+template <typename T, typename = void> struct is_cursor_reader_constructible : std::false_type {};
 
-template <typename T, typename = void>
-struct is_cursor_writer : std::false_type {};
+template <typename T, typename = void> struct is_cursor_writer : std::false_type {};
 
-template <typename T, typename = void>
-struct is_cursor_writer_constructible : std::false_type {};
+template <typename T, typename = void> struct is_cursor_writer_constructible : std::false_type {};
 
-template <>
-struct is_cursor_reader<const JSON:: PointerCursorReader> : std::true_type {};
+template <> struct is_cursor_reader<const JSON::PointerCursorReader> : std::true_type {};
 
-template <>
-struct is_cursor_reader<JSON::StreamCursor> : std::true_type {};
+template <> struct is_cursor_reader<JSON::StreamCursor> : std::true_type {};
 
 template <typename T>
-struct is_cursor_reader_constructible<T> : std::is_constructible<T, const JSON:: PointerCursorReader> {};
+struct is_cursor_reader_constructible<T> : std::is_constructible<T, const JSON::PointerCursorReader> {};
 
-template <>
-struct is_cursor_writer<JSON::PointerCursorWriter> : std::true_type {};
+template <> struct is_cursor_writer<JSON::PointerCursorWriter> : std::true_type {};
 
-template <>
-struct is_cursor_writer<JSON::StreamCursor> : std::true_type {};
+template <> struct is_cursor_writer<JSON::StreamCursor> : std::true_type {};
 
 template <typename T>
-struct is_cursor_writer_constructible<T> : std::is_constructible<T, const JSON:: PointerCursorWriter> {};
+struct is_cursor_writer_constructible<T> : std::is_constructible<T, const JSON::PointerCursorWriter> {};
 
-template<typename T>
-inline constexpr bool is_cursor_reader_v = is_cursor_reader<T>::value;
+template <typename T> inline constexpr bool is_cursor_reader_v = is_cursor_reader<T>::value;
 
-template<typename T>
-inline constexpr bool is_cursor_reader_constructible_v = is_cursor_reader_constructible<T>::value;
+template <typename T> inline constexpr bool is_cursor_reader_constructible_v = is_cursor_reader_constructible<T>::value;
 
-template<typename T>
-inline constexpr bool is_cursor_writer_v = is_cursor_writer<T>::value;
+template <typename T> inline constexpr bool is_cursor_writer_v = is_cursor_writer<T>::value;
 
-template<typename T>
-inline constexpr bool is_cursor_writer_constructible_v = is_cursor_writer_constructible<T>::value;
+template <typename T> inline constexpr bool is_cursor_writer_constructible_v = is_cursor_writer_constructible<T>::value;
 
-template<typename T>
-inline constexpr bool is_cursor_v = is_cursor_reader_v<T> || is_cursor_writer_v<T>;
+template <typename T> inline constexpr bool is_cursor_v = is_cursor_reader_v<T> || is_cursor_writer_v<T>;
 
 // ==========================================
 // Key Value checker
 // ==========================================
-template <typename T, typename = void>
-struct is_convertible_to_indexed_key : std::false_type {};
+template <typename T, typename = void> struct is_convertible_to_indexed_key : std::false_type {};
 
 template <typename T>
-struct is_convertible_to_indexed_key<
-    T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>>
-    : std::true_type {};
+struct is_convertible_to_indexed_key<T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>> : std::true_type {};
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename Value>
 struct value_checker
-    : std::disjunction<
-          is_castable_from_any<remove_cvref_t<Value>, CastableTypeList>,
-          is_in_type_list<remove_cvref_t<Value>, TypeList>,
-          is_container_from_list<remove_cvref_t<Value>, ArrayTypeList>,
-          is_char_array<remove_cvref_t<Value>>,
-          is_char_array_array<remove_cvref_t<Value>>,
-          is_derived_json_data<remove_cvref_t<Value>>,
-          std::is_pointer<remove_cvref_t<Value>>,
-          std::integral_constant<bool, is_derived_json_data_container_v<remove_cvref_t<Value>>>> {};
+    : std::disjunction<is_castable_from_any<remove_cvref_t<Value>, CastableTypeList>,
+                       is_in_type_list<remove_cvref_t<Value>, TypeList>,
+                       is_container_from_list<remove_cvref_t<Value>, ArrayTypeList>,
+                       is_char_array<remove_cvref_t<Value>>, is_char_array_array<remove_cvref_t<Value>>,
+                       is_derived_json_data<remove_cvref_t<Value>>, std::is_pointer<remove_cvref_t<Value>>,
+                       std::integral_constant<bool, is_derived_json_data_container_v<remove_cvref_t<Value>>>> {};
 
-template <typename Key>
-struct key_checker : std::is_constructible<JSONKey, Key> {};
+template <typename Key> struct key_checker : std::is_constructible<JSONKey, Key> {};
 
-template <typename CastableTypeList, typename ArrayTypeList, typename... Args>
-struct key_value_checker;
+template <typename CastableTypeList, typename ArrayTypeList, typename... Args> struct key_value_checker;
 
 template <typename CastableTypeList, typename TypeList,
           /*typename ArrayTypeList,*/ typename... Args>
 struct key_value_checker<CastableTypeList, TypeList,
-                         /*ArrayTypeList,*/ type_list<Args...>>
-    : std::true_type {};
+                         /*ArrayTypeList,*/ type_list<Args...>> : std::true_type {};
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename T>
-struct key_value_checker<CastableTypeList, TypeList,
-                         ArrayTypeList /*, ArrayArrayTypeList*/, T>
-    : std::false_type {};
+struct key_value_checker<CastableTypeList, TypeList, ArrayTypeList /*, ArrayArrayTypeList*/, T> : std::false_type {};
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList/*,
           typename ArrayArrayTypeList*/>
@@ -267,23 +222,21 @@ struct key_value_checker<CastableTypeList, TypeList, ArrayTypeList/*, ArrayArray
     : std::true_type {};
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
-          /*typename ArrayArrayTypeList,*/ typename Key, typename Value,
-          class... Rest>
+          /*typename ArrayArrayTypeList,*/ typename Key, typename Value, class... Rest>
 struct key_value_checker<CastableTypeList, TypeList, ArrayTypeList,
                          /*ArrayArrayTypeList,*/ Key, Value, Rest...>
-    : std::conjunction<
-          key_checker<Key>,
-          value_checker<CastableTypeList, TypeList, ArrayTypeList,
-                        /*ArrayArrayTypeList,*/ Value>,
-          key_value_checker<CastableTypeList, TypeList,
-                            ArrayTypeList /*, ArrayArrayTypeList*/, Rest...>> {
+    : std::conjunction<key_checker<Key>,
+                       value_checker<CastableTypeList, TypeList, ArrayTypeList,
+                                     /*ArrayArrayTypeList,*/ Value>,
+                       key_value_checker<CastableTypeList, TypeList, ArrayTypeList /*, ArrayArrayTypeList*/, Rest...>> {
 };
 
-template <class... Args>
-constexpr bool arg_is_valid = false;
+template <class... Args> constexpr bool arg_is_valid = false;
 
 template <class Arg>
-constexpr bool arg_is_valid<Arg> = std::is_same_v<JSONCallbackObject, remove_cvref_t<Arg>> || is_derived_json_data_container_v<remove_cvref_t<Arg>>;
+constexpr bool arg_is_valid<Arg> =
+    std::is_same_v<JSONCallbackObject, remove_cvref_t<Arg>> || is_derived_json_data_container_v<remove_cvref_t<Arg>>;
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList, typename... Args>
-bool constexpr key_value_checker_v = arg_is_valid<Args...> || key_value_checker<CastableTypeList, TypeList, ArrayTypeList, Args...>::value;
+bool constexpr key_value_checker_v =
+    arg_is_valid<Args...> || key_value_checker<CastableTypeList, TypeList, ArrayTypeList, Args...>::value;

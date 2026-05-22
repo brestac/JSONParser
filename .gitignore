@@ -2,7 +2,6 @@
 .ccls-cache
 .agents
 .config
-arduino-test
-desktop-test
-main
+build/
 src/Stream.h
+*.xcodeproj
