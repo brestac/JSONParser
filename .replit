@@ -89,7 +89,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "make desktop-test && ./desktop-test"
+args = "make desktop-test && cd build && ./desktop-test "
 
 [workflows.workflow.metadata]
 outputType = "console"
