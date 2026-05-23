@@ -15,6 +15,7 @@ void setup() {
 //   Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
   
   run_tests();
+  run_arduino_tests();
 }
 
 void loop() {
