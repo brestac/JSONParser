@@ -11,13 +11,16 @@
 
 #include "macros.h"
 
-template <typename T, typename... Args> void print_demangled_type(const char *format, T &value, Args &&...args);
+template <typename T, typename... Args>
+void print_demangled_type(const char *format, T &value, Args &&...args);
 
-template <typename... Args> void print_demangled_types(const char *format, Args &&...args);
+template <typename... Args>
+void print_demangled_types(const char *format, Args &&...args);
 
 #ifdef __GXX_RTTI
 char *demangler(const char *name);
-template <typename Tuple, size_t... Is> void printf_impl(const char *format, Tuple &t, std::index_sequence<Is...>);
+template <typename Tuple, size_t... Is>
+void printf_impl(const char *format, Tuple &t, std::index_sequence<Is...>);
 #endif
 
 #ifdef __GXX_RTTI
@@ -52,12 +55,14 @@ struct DemangledName {
 
   operator const char *() const { return str; }
 };
-template <typename Tuple, size_t... Is> void printf_impl(const char *format, Tuple &t, std::index_sequence<Is...>) {
+template <typename Tuple, size_t... Is>
+void printf_impl(const char *format, Tuple &t, std::index_sequence<Is...>) {
   DEBUG_PRINTF(format, static_cast<const char *>(std::get<Is>(t))...);
 }
 #endif
 
-template <typename... Args> void print_demangled_types(const char *format, Args &&...args) {
+template <typename... Args>
+void print_demangled_types(const char *format, Args &&...args) {
 #ifdef __GXX_RTTI
   // Tous les DemangledName sont crees et vivent jusqu'a la fin de la fonction
   auto names = std::make_tuple(DemangledName(typeid(args).name())...);
@@ -67,16 +72,20 @@ template <typename... Args> void print_demangled_types(const char *format, Args 
 #endif
 }
 
-template <typename T, typename... Args> void print_demangled_type(const char *format, T &value, Args &&...args) {
+template <typename T, typename... Args>
+void print_demangled_type(const char *format, T &value, Args &&...args) {
 #ifdef __GXX_RTTI
   DemangledName demangled(typeid(value).name());
   DEBUG_PRINTF("\x1b[31m");
-  printf(format, static_cast<const char *>(demangled), std::forward<Args>(args)...);
+  printf(format, static_cast<const char *>(demangled),
+         std::forward<Args>(args)...);
   DEBUG_PRINTF("\x1b[0m");
 #endif
 }
 
-template <typename T> void print_demangled_type(T &value) { print_demangled_type("%s\n", value); }
+template <typename T> void print_demangled_type(T &value) {
+  print_demangled_type("%s\n", value);
+}
 
 // #ifndef JSON_DEBUG_COLOR
 // #define COLOR_0 "\x1b[30m"
@@ -92,7 +101,12 @@ template <typename T> void print_demangled_type(T &value) { print_demangled_type
 // #endif
 
 #if JSON_DEBUG_LEVEL > 0
-#define JSON_DEBUG_TYPES(format, ...) print_demangled_types("\x1b[35m" format "\x1b[0m", ##__VA_ARGS__);
+#ifdef ARDUINO
+#define JSON_DEBUG_TYPES(format, ...) DEBUG_PRINTF(format, ##__VA_ARGS__)
+#else
+#define JSON_DEBUG_TYPES(format, ...)                                          \
+  print_demangled_types("\x1b[35m" format "\x1b[0m", ##__VA_ARGS__);
+#endif
 #else
 #define JSON_DEBUG_TYPES(format, ...)
 #endif
