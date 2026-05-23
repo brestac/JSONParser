@@ -102,7 +102,7 @@ template <typename T> void print_demangled_type(T &value) {
 
 #if JSON_DEBUG_LEVEL > 0
 #ifdef ARDUINO
-#define JSON_DEBUG_TYPES(format, ...) DEBUG_PRINTF(format, ##__VA_ARGS__)
+#define JSON_DEBUG_TYPES(format, ...)
 #else
 #define JSON_DEBUG_TYPES(format, ...)                                          \
   print_demangled_types("\x1b[35m" format "\x1b[0m", ##__VA_ARGS__);
