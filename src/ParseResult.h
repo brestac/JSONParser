@@ -41,7 +41,7 @@ struct ParseResult {
 
 void ParseResult::print() {
   DEBUG_PRINTF("{\"length\":%zu,\"nKeys\":%zu,\"nParsed\":%zu,\"nMatched\":%zu,"
-               "\"nUpdated\":%zu,\"error\":%hhu,\"elapsed\":%lu, \"stopped\":%d}\n",
+               "\"nUpdated\":%zu,\"error\":%hhu,\"elapsed\":%lu,\"stopped\":%d}\n",
                length, nKeys, nParsed, nConverted, nUpdated, error, elapsed, stopped);
 }
 
