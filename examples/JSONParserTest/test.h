@@ -1,3 +1,6 @@
+#ifdef ARDUINO
+#include "./generate_geojson_littlefs.h"
+#endif
 
 using namespace std;
 using namespace JSON;
@@ -644,6 +647,92 @@ void test_roundtrip() {
   check(near(copy.temperature, 19.8f), "temperature ≈ 19.8 and was %f", copy.temperature);
 }
 
+#ifdef ARDUINO
+void testSerializeToFile() {
+  const char *filename = "/sensor.json";
+  
+  DEBUG_PRINTF("\n--- Test: serialize to file ---\n");
+  Sensor s1;
+  s1.id = 7;
+  s1.temperature = 36.6f;
+
+  // delete file if it exists
+  if (LittleFS.exists(filename)) {
+    LittleFS.remove(filename);
+  }
+  // write sensor to file
+  File file = LittleFS.open(filename, "w");
+  if (!file) {
+    DEBUG_PRINTF("Failed to open file for writing\n");
+    return;
+  }
+
+  s1.toJSON(file);
+  file.close();
+  // read file back
+  file = LittleFS.open(filename, "r");
+  if (!file) {
+    DEBUG_PRINTF("Failed to open file for reading\n");
+    return;
+  }
+
+  Sensor s2;
+  JSON::ParseResult result = s2.fromJSON(file);
+  file.close();
+
+  // check(result.error == 0, "parse");
+  // check(s2.id == 7, "id == 7");
+  // check(near(s2.temperature, 36.6f), "temperature ≈ 36.6");
+  check(std::memcmp(&s1, &s2, sizeof(Sensor)) == 0, "s1 == s2");
+}
+
+void testParseGeoJSONFromFile() {
+  DEBUG_PRINTF("\n--- Test: parse GeoJSON from file ---\n");
+  // write geojson to file
+  const char *filename = "/geojson.json";
+  File file = LittleFS.open(filename, "w");
+  if (!file) {
+    DEBUG_PRINTF("Failed to open file for writing\n");
+    return;
+  }
+
+  generate_geojson_littlefs(file);
+  file.close();
+
+  // read file back
+  file = LittleFS.open(filename, "r");
+  if (!file) {
+    DEBUG_PRINTF("Failed to open file for reading\n");
+    return;
+  }
+
+  FeatureCollection fc;
+  JSON::ParseResult result = fc.fromJSON(file);
+  file.close();
+
+  check(result.error == 0, "parse");
+  check(fc.type == std::string_view("FeatureCollection"),
+        "type == FeatureCollection");
+  check(fc.features.size() == 1, "1 feature");
+  if (fc.features.size() >= 1) {
+    check(fc.features[0].type == std::string_view("Feature"),
+          "feature.type == Feature");
+    check(fc.features[0].properties.name == std::string_view("Canada"),
+          "properties.name == Canada");
+    check(fc.features[0].geometry.type == std::string_view("Polygon"),
+          "geometry.type == Polygon");
+    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings");
+    if (fc.features[0].geometry.coordinates.size() >= 2) {
+      check(fc.features[0].geometry.coordinates[0].size() == 5,
+            "ring[0] has 5 points");
+    }
+  }
+
+  // delete file
+  LittleFS.remove(filename);
+}
+#endif
+
 void run_parsing_tests() {
   test_callback();
   testArrayCallback();
@@ -670,6 +759,15 @@ void run_printing_tests() {
   test_print_to_stream_string();
   test_print_hex_to_stream_string();
   test_serialize_to_stream();
+}
+
+void run_desktop_tests() {
+  testGeoJSONParsingBig();
+}
+
+void run_arduino_tests() {
+  testSerializeToFile();
+  testParseGeoJSONFromFile();
 }
 
 void run_tests() {

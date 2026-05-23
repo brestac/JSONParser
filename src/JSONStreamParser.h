@@ -788,8 +788,8 @@ ParseValueResult JSONParserBase<Cursor>::searchValueArgumentForKey(size_t idx, c
   //   return result;
 
   if (arg_key == parsed_key) {
-    JSON_DEBUG_INFO("Found key %.*s", (int)arg_key.length(), arg_key.data());
-    JSON_DEBUG_TYPES(" for arg type %s\n", arg_value);
+    JSON_DEBUG_INFO("Found key %.*s\n", (int)arg_key.length(), arg_key.data());
+    JSON_DEBUG_TYPES("for arg type %s\n", arg_value);
     result |= ParseValueResult::KEY_FOUND | parse_into_value(arg_value);
 
     _nKeys++;
@@ -1096,7 +1096,7 @@ template <typename Cursor> template <typename V> ParseValueResult JSONParserBase
 
   if (r.error != NO_ERROR) {
     JSON_DEBUG_TYPES("In previous JSONParser::parse_object error parsing %s :", arg_value);
-    DEBUG_PRINTF("%s\n", errorToString((ParserError)r.error));
+    JSON_DEBUG_INFO("%s\n", errorToString((ParserError)r.error));
     _state = END;
     return ParseValueResult::NO_RESULT;
   }
