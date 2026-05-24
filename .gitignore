@@ -1,4 +1,6 @@
 .ccls-cache
 .agents
+.config
 build
-xcuserdata/
+*.xcodeproj
+*.trace
