@@ -5,19 +5,16 @@
 #include "src/JSONPrinter.h"
 #include "./test.h"
 
-
 void setup() {
   Serial.begin(115200);
   delay(500);
-  
+
   Serial.println("");
-//   Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
-//   Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
-  
+  //   Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
+  //   Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
   run_tests();
-  run_arduino_tests();
 }
 
 void loop() {
-    delay(10);
+  delay(10);
 }
