@@ -9,7 +9,7 @@
     Based on https://github.com/esp8266/Arduino/blob/master/cores/esp8266/StreamString.h
 */
 
-#include "../src/Stream.h"
+#include "Stream.h"
 #include <climits>
 #include <cstring>
 #include <cstdarg>

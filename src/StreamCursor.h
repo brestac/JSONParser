@@ -1,8 +1,11 @@
 #pragma once
 
 #include <cstring>
-
+#ifdef ARDUINO
 #include "Stream.h"
+#else
+#include "../include/Stream.h"
+#endif
 #include "constants.h"
 #include "demangled.h"
 #include "macros.h"

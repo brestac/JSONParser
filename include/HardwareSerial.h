@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "../src/Stream.h"
+#include "Stream.h"
 
 #define PRINTF_BUFFER_SIZE 4096
 

@@ -189,3 +189,10 @@ template <size_t N, size_t M> void replace_str(char (&input)[N], char (&oldChars
     }
   }
 }
+
+std::string_view copy_to_sv(const char *str, size_t len) {
+  static char buffer[JSON::MAX_KEY_LENGTH];
+  strncpy(buffer, str, len);
+  buffer[len] = '\0';
+  return std::string_view(buffer, len);
+}
