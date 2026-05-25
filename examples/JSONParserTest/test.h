@@ -259,7 +259,7 @@ void testArrayCallback() {
   check(personnes[2].age == 0, "personnes[2].age unchanged (0) (stopped)");
 }
 
-void test_embedded_object() {
+void test_parse_embedded_object() {
   DEBUG_PRINTF("\nTEST EMBEDDED OBJECT\n");
   Child child;
   Parent parent;
@@ -846,12 +846,14 @@ void testParseGeoJSONFromFile() {
 #endif
 
 void run_parsing_tests() {
+  // with callback
   test_callback();
   testArrayCallback();
 
   test_parsing();
   testIndexedParsing();
   testArrayParsing();
+  test_parse_embedded_object();
   test_parse_from_char_buffer();
   test_parse_from_stream();
   test_partial_parse();

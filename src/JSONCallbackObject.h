@@ -38,11 +38,6 @@ struct JSONCallbackObject {
     this->key.setArrayIndex(anIndex);
   }
 
-  void setKey(const JSONKey &aKey) {
-    JSON_DEBUG_INFO("JSONCallbackObject setKey %.*s\n", (int)aKey.length(), aKey.data());
-    this->key.setKey(aKey);
-  }
-
   void setKey(const char *key_ptr, size_t len) {
     JSON_DEBUG_INFO("JSONCallbackObject setKey %.*s\n", (int)len, key_ptr);
     std::string_view key = copy_to_sv(key_ptr, len);

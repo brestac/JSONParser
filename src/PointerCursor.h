@@ -67,6 +67,18 @@ public:
     }
   }
 
+// Avance jusqu'au pointeur
+void advance_to(const char *ptr) const {
+  if (ptr >= _start && ptr < _end)
+    _pos = ptr;
+}
+
+// Avance ou recule jusqu'à la position depuis le debut
+void advance_to(size_t index) const {
+  if (index < size())
+    _pos = _start + index;
+}
+
   // Caractère courant sans avancer (-1 = fin)
   int peek(size_t offset = 0) const {
     const char *p = _pos + offset;
@@ -128,18 +140,6 @@ public:
   bool eof() const { return _pos >= _end; }
 
   size_t bytesConsumed() const { return _pos - _start; }
-
-  // Avance jusqu'au pointeur
-  void advance_to(const char *ptr) const {
-    if (ptr >= _start && ptr < _end)
-      _pos = ptr;
-  }
-
-  // Avance ou recule jusqu'à la position depuis le debut
-  void advance_to(size_t index) const {
-    if (index < size())
-      _pos = _start + index;
-  }
 
   size_t size() const { return _end - _start; }
 
