@@ -496,9 +496,12 @@ void testGeoJSONParsingBig() {
   DEBUG_PRINTF(
       "------------------------------------------------------------\n");
 
-  FILE *file = fopen("./canada.json", "r");
+  FILE *file = fopen("tests/canada.json", "r");
   if (!file) {
-    DEBUG_PRINTF("ERROR: Could not open ./canada.json\n");
+    file = fopen("./canada.json", "r");
+  }
+  if (!file) {
+    DEBUG_PRINTF("ERROR: Could not open canada.json\n");
     return;
   }
 

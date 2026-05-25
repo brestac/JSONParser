@@ -55,7 +55,7 @@ public:
         _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
         _name(JSON_PARSER_NAME_PASS_SINGLE) {
     JSON_DEBUG_WARNING("JSONParserBase(pointer) '%.*s' created\n",
-                       (int)name.length(), name.data());
+                       (int)_jsonParserName.length(), _jsonParserName.data());
   }
 
   // ── Constructeur StreamCursor ─────────────────────────────
@@ -68,7 +68,7 @@ public:
         _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
         _name(JSON_PARSER_NAME_PASS_SINGLE) {
     JSON_DEBUG_WARNING("JSONParserBase(stream) '%.*s' created\n",
-                       (int)name.length(), name.data());
+                       (int)_jsonParserName.length(), _jsonParserName.data());
   }
 
   ~JSONParserBase() {
@@ -174,7 +174,7 @@ public:
   std::string_view name() { return _name; }
 
 private:
-  Cursor _cursor; // ← seul membre qui change selon le type
+  Cursor &_cursor; // ← reference: shared across nested parsers
   size_t _bytesConsumed;
   ParserState _state;
   bool _automask;
@@ -1215,11 +1215,6 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
 #else
   JSON::ParseResult r = arg_value.fromJSON(_cursor);
 #endif
-
-  // PointerCursorReader is const, so it was not advanced by the previous call.
-  if constexpr (std::is_same_v<remove_cvref_t<Cursor>, PointerCursorReader>) {
-    _cursor.advance(r.length);
-  }
 
 #if JSON_DEBUG_LEVEL > 0
   JSON_DEBUG_INFO("In previous JSONParser %.*s parse_object result: ",
