@@ -20,6 +20,20 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
 #define NAMESPACE_JSON_BEGIN namespace JSON {
 #define NAMESPACE_JSON_END }
 
+#if JSON_DEBUG_LEVEL > 0
+#define JSON_PARSER_NAME_ARG std::string_view &name,
+#define JSON_PARSER_NAME_PASS name,
+#define JSON_PARSER_NAME_ARG_SINGLE std::string_view &name
+#define JSON_PARSER_NAME_PASS_SINGLE name
+#define JSON_PARSER_NAME_VALUE "$ROOT"
+#else
+#define JSON_PARSER_NAME_ARG
+#define JSON_PARSER_NAME_PASS
+#define JSON_PARSER_NAME_ARG_SINGLE
+#define JSON_PARSER_NAME_PASS_SINGLE
+#define JSON_PARSER_NAME_VALUE
+#endif
+
 #if !defined(DEBUG_PRINTLN) && !defined(DEBUG_PRINTF) && !defined(DEBUG_PRINT)
 #if defined(DEBUG_ESP_PORT)
 #define DEBUG_PRINTLN(x) DEBUG_ESP_PORT.println(x)
@@ -206,14 +220,20 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
   (__VA_ARGS__)
 
 #define FROM_JSON_OVERRIDE(...)                                                \
-  template <typename T> JSON::ParseResult fromJSON(T &input) {                 \
-    return JSON::parse(this->updated, input, MACRO(__VA_ARGS__));              \
+  template <typename T>                                                        \
+  JSON::ParseResult fromJSON(JSON_PARSER_NAME_ARG T &input) {                  \
+    return JSON::parse(JSON_PARSER_NAME_PASS this->updated, input,             \
+                       MACRO(__VA_ARGS__));                                    \
   }                                                                            \
-  JSON::ParseResult fromJSON(const PointerCursorReader &cursor) override {     \
-    return JSON::_parse(this->updated, cursor, MACRO(__VA_ARGS__));            \
+  JSON::ParseResult fromJSON(                                                  \
+      JSON_PARSER_NAME_ARG const PointerCursorReader &cursor) override {       \
+    return JSON::parse(JSON_PARSER_NAME_PASS this->updated, cursor,            \
+                       MACRO(__VA_ARGS__));                                    \
   }                                                                            \
-  JSON::ParseResult fromJSON(StreamCursor &cursor) override {                  \
-    return JSON::parse(this->updated, cursor, MACRO(__VA_ARGS__));             \
+  JSON::ParseResult fromJSON(JSON_PARSER_NAME_ARG StreamCursor &cursor)        \
+      override {                                                               \
+    return JSON::parse(JSON_PARSER_NAME_PASS this->updated, cursor,            \
+                       MACRO(__VA_ARGS__));                                    \
   }
 
 #define TO_JSON_OVERRIDE(...)                                                  \

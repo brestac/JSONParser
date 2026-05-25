@@ -12,8 +12,8 @@ struct UnknownValueType : JSONObject {
   // using JSONObject::toJSON;
 
   constexpr UnknownValueType() = default;
-  JSON::ParseResult fromJSON(JSON::StreamCursor &cursor);
-  JSON::ParseResult fromJSON(const JSON::PointerCursorReader &cursor);
+  JSON::ParseResult fromJSON(JSON_PARSER_NAME_ARG JSON::StreamCursor &cursor);
+  JSON::ParseResult fromJSON(JSON_PARSER_NAME_ARG const JSON::PointerCursorReader &cursor);
 
   // ─── toJSON
   // ───────────────────────────────────────────────────────────────────────

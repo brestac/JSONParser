@@ -2,6 +2,13 @@
 #include "./generate_geojson_littlefs.h"
 #endif
 
+#if JSON_DEBUG_LEVEL > 0
+std::string_view debug_name = "$ROOT";
+#define JSON_DEBUG_PARSER_NAME debug_name,
+#else
+#define JSON_DEBUG_PARSER_NAME
+#endif
+
 using namespace std;
 using namespace JSON;
 
@@ -12,7 +19,7 @@ using namespace JSON;
 static int passed = 0;
 static int failed = 0;
 
-template<typename... Args>
+template <typename... Args>
 static void check(bool condition, const char *format, Args &&...args) {
   if (condition) {
     DEBUG_PRINTF("%*c[PASS] ", 2, ' ');
@@ -47,8 +54,8 @@ struct Sensor : public JSONObject {
   int id = 0;
   float temperature = 1.0f;
   bool active = false;
-  char name[64] = { 0 };
-  uint8_t num[3] = { 1, 2, 3 };
+  char name[64] = {0};
+  uint8_t num[3] = {1, 2, 3};
   JSON_SERIALIZE_IMPL(id, active, name, temperature, num);
 };
 
@@ -60,16 +67,31 @@ struct Config : public JSONObject {
 
 struct CharArrayTest : JSONObject {
   std::string_view name = "";
-  char names[3][32] = { { '\0' } };
-  uint32_t numbers[2] = { 0 };
+  char names[3][32] = {{'\0'}};
+  uint32_t numbers[2] = {0};
 
   JSON_ENCODER_IMPL(name, names, numbers);
 };
 
 struct IntegralArrayTest : JSONObject {
-  uint8_t hex[4] = { 0 };
+  uint8_t hex[4] = {0};
 
   JSON_ENCODER_IMPL(hex);
+};
+
+struct Child : public JSONObject {
+  std::string_view nom = "";
+  uint8_t age = 0U;
+
+  JSON_SERIALIZE_IMPL(nom, age);
+};
+
+struct Parent : public JSONObject {
+  std::string_view nom = "";
+  uint8_t age = 0U;
+  Child child;
+
+  JSON_SERIALIZE_IMPL(nom, age, child);
 };
 
 struct Personne : public JSONObject {
@@ -81,20 +103,19 @@ public:
   char *ptr;
   bool flag = false;
 
-  uint8_t buffer[4] = { 0 };
-  char liste[3][32] = { { '\0' } };
-  float listef[5] = { 0 };
+  uint8_t buffer[4] = {0};
+  char liste[3][32] = {{'\0'}};
+  float listef[5] = {0};
   Personne *enfant;
   std::vector<Personne> enfants;
   float coordinates[4][2];
   vector<std::array<float, 2>> coordinates2;
 
-  Personne()
-    : JSONObject() {}
+  Personne() : JSONObject() {}
   Personne(std::string_view nom, int age, float taille, std::string_view ville,
            char *ptr, bool flag, Personne *enfant)
-    : JSONObject(), nom(nom), age(age), taille(taille), ville(ville),
-      ptr(ptr), flag(flag), enfant(enfant) {}
+      : JSONObject(), nom(nom), age(age), taille(taille), ville(ville),
+        ptr(ptr), flag(flag), enfant(enfant) {}
 
   JSON_SERIALIZE_IMPL(nom, age, taille, ville, ptr, flag, buffer, liste, listef,
                       enfant, enfants, coordinates);
@@ -106,8 +127,8 @@ struct Properties : public JSONObject {
 };
 
 struct Geometry : public JSONObject {
-  std::string_view type = "";
   using shape = std::vector<std::array<float, 2>>;
+  std::string_view type = "";
   std::vector<shape> coordinates;
   JSON_SERIALIZE_IMPL(type, coordinates);
 };
@@ -132,8 +153,8 @@ struct FeatureCollection : public JSONObject {
 uint64_t time() {
   auto now = std::chrono::steady_clock::now();
   return std::chrono::duration_cast<std::chrono::microseconds>(
-           now.time_since_epoch())
-    .count();
+             now.time_since_epoch())
+      .count();
 }
 
 // ----------------------------------------------------------------
@@ -143,7 +164,7 @@ uint64_t time() {
 void test_callback() {
   DEBUG_PRINTF("\nTEST CALLBACK\n");
   DEBUG_PRINTF(
-    "------------------------------------------------------------\n");
+      "------------------------------------------------------------\n");
 
   char *ptr = (char *)"ptr";
   Personne p("Bob", 40, 1.80f, "Paris", ptr, false, nullptr);
@@ -153,28 +174,29 @@ void test_callback() {
                      "\"buffer\":\"AABBCCDD\",\"liste\":[\"a\", \"b\", \"c\"]}";
 
   int liste_idx = 0;
-  JSON::ParseResult pr = JSON::parse(
-    json, [&p, &liste_idx](const JSONKey &key, const JSONValue &value, bool &stop) {
-      if (key == "ville") {
-        p.ville = value;
-      } else if (key == "age") {
-        p.age = value;
-      } else if (key == "taille") {
-        p.taille = value;
-      } else if (key == "flag") {
-        p.flag = value;
-      } else if (key == "ptr") {
-        p.ptr = value;
-      } else if (key == "buffer") {
-        value.copyTo(p.buffer);
-      } else if (key == "liste") {
-        if (liste_idx < 3) {
-          auto sv = value.get<std::string_view>();
-          strncpy(p.liste[liste_idx], sv.data(), sv.length());
-          ++liste_idx;
+  JSON::ParseResult pr =
+      JSON::parse(JSON_DEBUG_PARSER_NAME json, [&p, &liste_idx](const JSONKey &key,
+                                         const JSONValue &value, bool &stop) {
+        if (key == "ville") {
+          p.ville = value;
+        } else if (key == "age") {
+          p.age = value;
+        } else if (key == "taille") {
+          p.taille = value;
+        } else if (key == "flag") {
+          p.flag = value;
+        } else if (key == "ptr") {
+          p.ptr = value;
+        } else if (key == "buffer") {
+          value.copyTo(p.buffer);
+        } else if (key == "liste") {
+          if (liste_idx < 3) {
+            auto sv = value.get<std::string_view>();
+            strncpy(p.liste[liste_idx], sv.data(), sv.length());
+            ++liste_idx;
+          }
         }
-      }
-    });
+      });
 
   check(pr.error == 0, "parse");
   check(p.nom == std::string_view("Bob"), "nom unchanged (Bob)");
@@ -183,7 +205,8 @@ void test_callback() {
   check(near(p.taille, 2.1f), "taille ≈ 2.1");
   check(p.flag == true, "flag == true");
   check(p.ptr == nullptr, "ptr == nullptr (null)");
-  check(p.buffer[0] == 0xAA && p.buffer[1] == 0xBB && p.buffer[2] == 0xCC && p.buffer[3] == 0xDD,
+  check(p.buffer[0] == 0xAA && p.buffer[1] == 0xBB && p.buffer[2] == 0xCC &&
+            p.buffer[3] == 0xDD,
         "buffer == {AA BB CC DD}");
   check(strcmp(p.liste[0], "a") == 0, "liste[0] == 'a'");
   check(strcmp(p.liste[1], "b") == 0, "liste[1] == 'b'");
@@ -197,7 +220,7 @@ void test_callback() {
 void testArrayCallback() {
   DEBUG_PRINTF("\nTEST ARRAY CALLBACK\n");
   DEBUG_PRINTF(
-    "------------------------------------------------------------\n");
+      "------------------------------------------------------------\n");
 
   size_t p_length = 3;
   Personne personnes[p_length];
@@ -206,13 +229,13 @@ void testArrayCallback() {
   const char *json = "[{\"nom\":\"Bob\",\"age\":Infinity},{\"nom\":\"Alice\","
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
 
-  JSON::ParseResult pr = JSON::parse(
-    json, [&personnes, p_length](const JSONKey &key, const JSONValue &value, bool &stop) {
-      int arrayIndex = key.getArrayIndex();
-      if (arrayIndex >= (int)p_length || arrayIndex < 0)
-        return;
+  JSON::ParseResult pr = JSON::parse(JSON_DEBUG_PARSER_NAME json, [&personnes, p_length](const JSONKey &key, const JSONValue &value,
+                                   bool &stop) {
+        int arrayIndex = key.getArrayIndex();
+        if (arrayIndex >= (int)p_length || arrayIndex < 0)
+          return;
 
-      switch (key) {
+        switch (key) {
         case "nom"_hash:
           personnes[arrayIndex].nom = value;
           break;
@@ -221,10 +244,10 @@ void testArrayCallback() {
           break;
         default:
           break;
-      }
-      if (arrayIndex == 1 && key == "age")
-        stop = true;
-    });
+        }
+        if (arrayIndex == 1 && key == "age")
+          stop = true;
+      });
   check(pr.error == false, "parse");
   check(personnes[0].nom == std::string_view("Bob"), "personnes[0].nom == Bob");
   check(personnes[0].age == 0, "personnes[0].age == 0 (Infinity)");
@@ -236,6 +259,18 @@ void testArrayCallback() {
   check(personnes[2].age == 0, "personnes[2].age unchanged (0) (stopped)");
 }
 
+void test_embedded_object() {
+  DEBUG_PRINTF("\nTEST EMBEDDED OBJECT\n");
+  Child child;
+  Parent parent;
+  parent.child = child;
+  const char *json = "{\"nom\":\"Bob\",\"child\":{\"nom\":\"Alice\",\"age\":8},\"age\":40}";
+  JSON::ParseResult pr = parent.fromJSON(JSON_DEBUG_PARSER_NAME json);
+  check(pr.error == 0, "parse");
+  check(parent.nom == std::string_view("Bob"), "parent.nom == Bob");
+  check(parent.age == 40, "parent.age == 40");
+  check(parent.child.nom == std::string_view("Alice"), "parent.child.nom == Alice");
+}
 // ----------------------------------------------------------------
 // test_parsing from const char *
 // ----------------------------------------------------------------
@@ -244,31 +279,31 @@ void test_parsing() {
   JSON::PRINT_BUFFER_AS_HEX = false;
   DEBUG_PRINTF("\n\nTEST PARSING & FILL\n");
   DEBUG_PRINTF(
-    "------------------------------------------------------------\n");
+      "------------------------------------------------------------\n");
 
   char *ptr = (char *)"ptr";
   Personne enfant("", 10, 1.50f, "Lyon", ptr, false, nullptr);
   Personne p("Bob", 40, 1.80f, "Paris", ptr, false, &enfant);
 
   const char *json =
-    "{"
-    "\"ville\":\"Lyon\","
-    "\"age\":45.0, "
-    "\"taille\":1.82, "
-    "\"flag\":false, "
-    "\"ptr\":null, "
-    "\"buffer\":[170, 171, 172, 173, 174], "
-    "\"liste\":[\"a\", \"b\", \"c\"], "
-    "\"listef\":[1.0, 2.0, 3.0, 4.0, 5.0], "
-    "\"enfant\":{\"nom\":\"Alice\",\"age\":8}, "
-    "\"unknown\":1,"
-    "\"enfants\":[{\"nom\":\"Alice\",\"age\":8,\"taille\":1.5},"
-    "{\"nom\":\"Bob\",\"age\":10,\"taille\":1.6}],"
-    "\"coordinates\":[[1.0,2.0],[3.0,4.0],[5.0,6.0],[7.0,8.0]],"
-    "\"coordinates2\":[[1.0,2.0],[3.0,4.0],[5.0,6.0],[7.0,8.0]]"
-    "}";
+      "{"
+      "\"ville\":\"Lyon\","
+      "\"age\":45.0, "
+      "\"taille\":1.82, "
+      "\"flag\":false, "
+      "\"ptr\":null, "
+      "\"buffer\":[170, 171, 172, 173, 174], "
+      "\"liste\":[\"a\", \"b\", \"c\"], "
+      "\"listef\":[1.0, 2.0, 3.0, 4.0, 5.0], "
+      "\"enfant\":{\"nom\":\"Alice\",\"age\":8}, "
+      "\"unknown\":1,"
+      "\"enfants\":[{\"nom\":\"Alice\",\"age\":8,\"taille\":1.5},"
+      "{\"nom\":\"Bob\",\"age\":10,\"taille\":1.6}],"
+      "\"coordinates\":[[1.0,2.0],[3.0,4.0],[5.0,6.0],[7.0,8.0]],"
+      "\"coordinates2\":[[1.0,2.0],[3.0,4.0],[5.0,6.0],[7.0,8.0]]"
+      "}";
 
-  JSON::ParseResult result = p.fromJSON(json);
+  JSON::ParseResult result = p.fromJSON(JSON_DEBUG_PARSER_NAME json);
 
   check(result.error == 0, "parse");
   check(p.ville == std::string_view("Lyon"), "ville == Lyon");
@@ -276,7 +311,8 @@ void test_parsing() {
   check(near(p.taille, 1.82f), "taille ≈ 1.82");
   check(p.flag == false, "flag == false");
   check(p.ptr == nullptr, "ptr == nullptr (null)");
-  check(p.buffer[0] == 170 && p.buffer[1] == 171 && p.buffer[2] == 172 && p.buffer[3] == 173,
+  check(p.buffer[0] == 170 && p.buffer[1] == 171 && p.buffer[2] == 172 &&
+            p.buffer[3] == 173,
         "buffer == [170..173]");
   check(strcmp(p.liste[0], "a") == 0, "liste[0] == 'a'");
   check(strcmp(p.liste[1], "b") == 0, "liste[1] == 'b'");
@@ -316,14 +352,14 @@ void test_parsing() {
 void testArrayParsing() {
   DEBUG_PRINTF("\n\nTEST ARRAY PARSING\n");
   DEBUG_PRINTF(
-    "------------------------------------------------------------\n");
+      "------------------------------------------------------------\n");
 
   Personne personnes[3];
 
   const char *json = "[{\"nom\":\"Bob\",\"age\":40},{\"nom\":\"Alice\",\"age\":"
                      "30},{\"nom\":\"Roger\",\"age\":64}]";
   uint32_t mask = 0;
-  JSON::ParseResult r = JSON::parse(mask, json, personnes);
+  JSON::ParseResult r = JSON::parse(JSON_DEBUG_PARSER_NAME mask, json, personnes);
 
   check(r.error == 0, "parse");
   check(personnes[0].nom == std::string_view("Bob"), "personnes[0].nom == Bob");
@@ -343,19 +379,19 @@ void testArrayParsing() {
 void testIndexedParsing() {
   DEBUG_PRINTF("\n\nTEST INDEXED PARSING\n");
   DEBUG_PRINTF(
-    "------------------------------------------------------------\n");
+      "------------------------------------------------------------\n");
 
   std::string_view nom;
   int age;
 
   const char *json = "{ \"nom\":\"Bob\", \"age\":40, \"ville\":\"Paris\" }";
   uint32_t mask = 0;
-  JSON::ParseResult pr = JSON::parse(mask, json, "nom[0]", nom, "age[1]", age);
+  JSON::ParseResult pr = JSON::parse(JSON_DEBUG_PARSER_NAME mask, json, "nom[0]", nom, "age[1]", age);
 
   check(pr.error == 0, "parse");
   check(nom == std::string_view("Bob"), "nom == Bob");
   check(age == 40, "age == 40");
-  check(mask == 3, "mask == 3 (bits 0 and 1 set)");
+  check(mask == 3, "mask == 3 (bits 0 and 1 set), was %llu", mask);
 }
 
 // ----------------------------------------------------------------
@@ -382,23 +418,23 @@ void testIndexedParsing() {
 void testGeoJSONParsingSmall() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SMALL\n");
   DEBUG_PRINTF(
-    "------------------------------------------------------------\n");
+      "------------------------------------------------------------\n");
 
   const char *json =
-    "{\"type\":\"FeatureCollection\",\"features\":["
-    "{\"type\":\"Feature\",\"properties\":{\"name\":\"Canada\"},\"geometry\":"
-    "{\"type\":\"Polygon\",\"coordinates\":"
-    "[[[-140.99778,41.675105],[-140.99778,83.110903],"
-    "[-52.648098,83.110903],[-52.631163,41.675105],"
-    "[-140.99778,41.675105]],[[-140.99778,41.675105],"
-    "[-140.99778,83.110903],[-52.648098,83.110903],"
-    "[-52.631163,41.675105],[-140.99778,41.675105]],"
-    "[[-140.99778,41.675105],[-140.99778,83.110903],"
-    "[-52.648098,83.110903],[-52.631163,41.675105],"
-    "[-140.99778,41.675105]]]}}]}";
+      "{\"type\":\"FeatureCollection\",\"features\":["
+      "{\"type\":\"Feature\",\"properties\":{\"name\":\"Canada\"},\"geometry\":"
+      "{\"type\":\"Polygon\",\"coordinates\":"
+      "[[[-140.99778,41.675105],[-140.99778,83.110903],"
+      "[-52.648098,83.110903],[-52.631163,41.675105],"
+      "[-140.99778,41.675105]],[[-140.99778,41.675105],"
+      "[-140.99778,83.110903],[-52.648098,83.110903],"
+      "[-52.631163,41.675105],[-140.99778,41.675105]],"
+      "[[-140.99778,41.675105],[-140.99778,83.110903],"
+      "[-52.648098,83.110903],[-52.631163,41.675105],"
+      "[-140.99778,41.675105]]]}}]}";
 
   FeatureCollection fc;
-  JSON::ParseResult pr = fc.fromJSON(json);
+  JSON::ParseResult pr = fc.fromJSON(JSON_DEBUG_PARSER_NAME json);
 
   check(pr.error == 0, "parse");
   check(fc.type == std::string_view("FeatureCollection"),
@@ -427,42 +463,66 @@ void testGeoJSONParsingSmall() {
     }
   }
 }
+#ifndef ARDUINO
+char *read_file(const char *filename) {
+  FILE *file = fopen(filename, "r");
+
+  if (!file) {
+    DEBUG_PRINTF("ERROR: Could not open %s\n", filename);
+    return nullptr;
+  }
+
+  fseek(file, 0, SEEK_END);
+  long size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+
+  char *buffer = (char *)malloc(size + 1);
+  [[maybe_unused]] size_t s = fread(buffer, 1, size, file);
+
+  if (!buffer) {
+    DEBUG_PRINTF("ERROR: Could not allocate buffer\n");
+    fclose(file);
+    return nullptr;
+  }
+
+  buffer[size] = '\0';
+  fclose(file);
+
+  return buffer;
+}
 
 void testGeoJSONParsingBig() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING BIG FILE\n");
   DEBUG_PRINTF(
-    "------------------------------------------------------------\n");
+      "------------------------------------------------------------\n");
 
-  FILE *file = fopen("tests/canada.json", "r");
+  FILE *file = fopen("./canada.json", "r");
   if (!file) {
-    DEBUG_PRINTF("ERROR: Could not open tests/canada.json\n");
+    DEBUG_PRINTF("ERROR: Could not open ./canada.json\n");
     return;
   }
-  fseek(file, 0, SEEK_END);
-  long long fsize = ftell(file);
-  fseek(file, 0, SEEK_SET);
-  char *json = (char *)malloc(fsize + 1);
-  size_t len = fread(json, 1, fsize, file);
-  if (len != fsize) return;
 
-  fclose(file);
-  json[fsize] = 0;
+  FileStream fs(file);
   FeatureCollection fc;
-  JSON::ParseResult pr = fc.fromJSON(json);
-
-#if defined(APPLE) || defined(__linux__)
   uint64_t start = now();
+  JSON::ParseResult pr = fc.fromJSON(JSON_DEBUG_PARSER_NAME fs);
+  [[maybe_unused]] uint64_t elapsed1 = now() - start;
+  fclose(file);
+  check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error,
+        pr.length);
+
+  // RAPIDJSON
+  char *json = read_file("./canada.json");
   rapidjson::Document d;
+  start = now();
   d.Parse(json);
-  [[maybe_unused]] uint64_t elapsed = now() - start;
-  DEBUG_PRINTF("RapidJSON Parsing time: %lu µs\n", elapsed);
-#endif
-
-  DEBUG_PRINTF("JSONParser Parsing time: %lu µs\n", pr.elapsed);
-
-  check(pr.error == 0, "parse");
+  [[maybe_unused]] uint64_t elapsed2 = now() - start;
   free(json);
+
+  DEBUG_PRINTF("JSONParser Parsing time: %lu µs\n", elapsed1);
+  DEBUG_PRINTF("RapidJSON Parsing time: %lu µs\n", elapsed2);
 }
+#endif
 // ----------------------------------------------------------------
 // Test 1 – fromJSON via char buffer
 // ----------------------------------------------------------------
@@ -474,7 +534,7 @@ void test_parse_from_char_buffer() {
                      "\"active\":true, \"num\":[1,2,3]}";
 
   Sensor s;
-  JSON::ParseResult result = s.fromJSON(json);
+  JSON::ParseResult result = s.fromJSON(JSON_DEBUG_PARSER_NAME json);
 
   check(result.error == 0, "parse");
   check(s.id == 42, "id == 42");
@@ -498,7 +558,7 @@ void test_parse_from_stream() {
   s.id = 0;
   s.temperature = 0.0f;
   s.active = false;
-  JSON::ParseResult result = s.fromJSON(stream);
+  JSON::ParseResult result = s.fromJSON(JSON_DEBUG_PARSER_NAME stream);
 
   check(result.error == 0, "parse");
   check(s.id == 42, "id == 42");
@@ -523,7 +583,7 @@ void test_partial_parse() {
   // Only update "active"
   const char *json = "{\"temperature\":20}";
   StreamString stream(json);
-  JSON::ParseResult result = s.fromJSON(stream);
+  JSON::ParseResult result = s.fromJSON(JSON_DEBUG_PARSER_NAME stream);
 
   check(result.error == 0, "parse");
   check(s.id == 99, "id unchanged (99)");
@@ -542,7 +602,7 @@ void test_parse_via_stream_template() {
   StreamString stream(json);
 
   Config c;
-  JSON::ParseResult result = c.fromJSON(stream);
+  JSON::ParseResult result = c.fromJSON(JSON_DEBUG_PARSER_NAME stream);
 
   check(result.error == 0, "parse");
   check(c.version == 3, "version == 3");
@@ -629,7 +689,7 @@ void test_print_to_stream_string() {
   strncpy(s.names[1], "b", 32);
   s.toJSON(stream);
   const char *expected =
-    "{\"name\":\"name\",\"names\":[\"a\",\"b\",\"\"],\"numbers\":[12,10000]}";
+      "{\"name\":\"name\",\"names\":[\"a\",\"b\",\"\"],\"numbers\":[12,10000]}";
   check(strcmp(stream.c_str(), expected) == 0,
         "toJSON output should be %s, got %s", expected, stream.c_str());
 }
@@ -662,13 +722,13 @@ void test_roundtrip() {
   original.active = true;
 
   // Serialize original to a char buffer via PointerCursorWriter
-  char buf[256] = { 0 };
+  char buf[256] = {0};
   size_t len = original.toJSON(buf);
   Serial.printf("toJSON '%.*s'\n", (int)len, buf);
 
   StreamString stream(buf);
   Sensor copy;
-  JSON::ParseResult result = copy.fromJSON(stream);
+  JSON::ParseResult result = copy.fromJSON(JSON_DEBUG_PARSER_NAME stream);
 
   check(result.error == 0, "parse");
   check(copy.id == 72, "id == 72");
@@ -713,13 +773,13 @@ void testSerializeToFile() {
   }
 
   Sensor s2;
-  JSON::ParseResult result = s2.fromJSON(file);
+  JSON::ParseResult result = s2.fromJSON(JSON_DEBUG_PARSER_NAME file);
   file.close();
 
   check(result.error == 0, "parse");
   check(s2.id == 7, "id == 7");
   check(near(s2.temperature, 36.6f), "temperature ≈ 36.6");
-  //check(std::memcmp(&s1, &s2, sizeof(Sensor)) == 0, "s1 == s2");
+  // check(std::memcmp(&s1, &s2, sizeof(Sensor)) == 0, "s1 == s2");
 }
 
 void testParseGeoJSONFromFile() {
@@ -756,21 +816,27 @@ void testParseGeoJSONFromFile() {
   file.seek(0);
 
   FeatureCollection fc;
-  JSON::ParseResult result = fc.fromJSON(file);
+  JSON::ParseResult result = fc.fromJSON(JSON_DEBUG_PARSER_NAME file);
   file.close();
 
-  check(result.error == 0, "parse error %u, parsed length=%zu", result.error, result.length);
-  check(fc.type == std::string_view("FeatureCollection"), "type == %.*s", (int)fc.type.length(), fc.type.data());
+  check(result.error == 0, "parse error %u, parsed length=%zu", result.error,
+        result.length);
+  check(fc.type == std::string_view("FeatureCollection"), "type == %.*s",
+        (int)fc.type.length(), fc.type.data());
   check(fc.features.size() == 1, "%zu features", fc.features.size());
 
   if (fc.features.size() >= 1) {
-    check(fc.features[0].type == std::string_view("Feature"), "feature.type == Feature");
-    check(fc.features[0].properties.name == std::string_view("Canada"), "properties.name == Canada");
-    check(fc.features[0].geometry.type == std::string_view("Polygon"), "geometry.type == Polygon");
+    check(fc.features[0].type == std::string_view("Feature"),
+          "feature.type == Feature");
+    check(fc.features[0].properties.name == std::string_view("Canada"),
+          "properties.name == Canada");
+    check(fc.features[0].geometry.type == std::string_view("Polygon"),
+          "geometry.type == Polygon");
     check(fc.features[0].geometry.coordinates.size() == 3, "3 rings");
 
     if (fc.features[0].geometry.coordinates.size() >= 2) {
-      check(fc.features[0].geometry.coordinates[0].size() == 5, "ring[0] has 5 points");
+      check(fc.features[0].geometry.coordinates[0].size() == 5,
+            "ring[0] has 5 points");
     }
   }
 
@@ -807,33 +873,25 @@ void run_printing_tests() {
   test_serialize_to_stream();
 }
 
-void run_desktop_tests() {
-  testGeoJSONParsingBig();
-}
-
-void run_arduino_tests() {
-  testSerializeToFile();
-  testParseGeoJSONFromFile();
-}
-
 void run_tests() {
   [[maybe_unused]] time_t now = time(nullptr);
   DEBUG_PRINTF("TIME:%s COMPILER:%s", ctime(&now), __VERSION__);
   DEBUG_PRINTF(
-    "------------------------------------------------------------\n");
+      "------------------------------------------------------------\n");
 
   run_parsing_tests();
   run_printing_tests();
   test_roundtrip();
 #ifdef ARDUINO
-  run_arduino_tests();
+  testSerializeToFile();
+  testParseGeoJSONFromFile();
 #else
-  run_desktop_tests();
+  testGeoJSONParsingBig();
 #endif
 
   DEBUG_PRINTF(
-    "\n============================================================\n");
+      "\n============================================================\n");
   DEBUG_PRINTF("Results: %d passed, %d failed\n", passed, failed);
   DEBUG_PRINTF(
-    "============================================================\n");
+      "============================================================\n");
 }

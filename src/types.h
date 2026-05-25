@@ -188,10 +188,10 @@ template <typename T> inline constexpr bool is_cursor_v = is_cursor_reader_v<T> 
 // ==========================================
 // Key Value checker
 // ==========================================
-template <typename T, typename = void> struct is_convertible_to_indexed_key : std::false_type {};
+// template <typename T, typename = void> struct is_convertible_to_indexed_key : std::false_type {};
 
-template <typename T>
-struct is_convertible_to_indexed_key<T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>> : std::true_type {};
+// template <typename T>
+// struct is_convertible_to_indexed_key<T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>> : std::true_type {};
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename Value>

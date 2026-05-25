@@ -3,7 +3,6 @@
 #include <limits>
 #include <stddef.h>
 #include <stdint.h>
-#include "macros.h"
 
 NAMESPACE_JSON_BEGIN
 

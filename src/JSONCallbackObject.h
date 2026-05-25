@@ -14,8 +14,8 @@ struct JSONCallbackObject {
   JSONKey key;
   bool stop;
 
-  JSON::ParseResult fromJSON(JSON::StreamCursor &cursor);
-  JSON::ParseResult fromJSON(const JSON::PointerCursorReader &cursor);
+  JSON::ParseResult fromJSON(JSON_PARSER_NAME_ARG JSON::StreamCursor &cursor);
+  JSON::ParseResult fromJSON(JSON_PARSER_NAME_ARG const JSON::PointerCursorReader &cursor);
   size_t toJSON(JSON::PointerCursorWriter &cursor, bool updates = true) { return cursor.write("null"); }
 
   JSONCallbackObject(JSONCallback callback, JSONKey key) : callback(callback), key(key), stop(false) {
@@ -43,8 +43,9 @@ struct JSONCallbackObject {
     this->key.setKey(aKey);
   }
 
-  void setKey(const char *key, size_t len) {
-    JSON_DEBUG_INFO("JSONCallbackObject setKey %.*s\n", (int)len, key);
-    this->key.setKey(key, len);
+  void setKey(const char *key_ptr, size_t len) {
+    JSON_DEBUG_INFO("JSONCallbackObject setKey %.*s\n", (int)len, key_ptr);
+    std::string_view key = copy_to_sv(key_ptr, len);
+    this->key.setKey(key);
   }
 };
