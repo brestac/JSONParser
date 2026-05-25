@@ -951,11 +951,14 @@ template <typename Cursor>
 template <typename PV, typename V>
 ParseValueResult
 JSONParserBase<Cursor>::assign_string_view_to_char_array(PV &pv, V &v) {
-  if (memcmp(v, pv.data(), pv.length()) == 0)
+  if (memcmp(v, pv.data(), pv.length()) == 0) {
     return ParseValueResult::NO_RESULT;
+  }
+  
   size_t len = std::min(pv.length(), sizeof(v) - 1);
   std::memcpy(v, pv.data(), len);
   v[len] = '\0';
+  
   return ParseValueResult::VALUE_UPDATED;
 }
 

@@ -1,6 +1,6 @@
 
 #define DEBUG_ESP_PORT Serial
-#define JSON_DEBUG_LEVEL 1
+#define JSON_DEBUG_LEVEL 0
 
 #include <array>
 #include <chrono>
