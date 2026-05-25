@@ -1216,7 +1216,10 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
   JSON::ParseResult r = arg_value.fromJSON(_cursor);
 #endif
 
-  _cursor.advance(r.length);
+  // PointerCursorReader is const, so it was not advanced by the previous call.
+  if constexpr (std::is_same_v<remove_cvref_t<Cursor>, PointerCursorReader>) {
+    _cursor.advance(r.length);
+  }
 
 #if JSON_DEBUG_LEVEL > 0
   JSON_DEBUG_INFO("In previous JSONParser %.*s parse_object result: ",

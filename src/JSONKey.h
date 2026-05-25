@@ -22,7 +22,7 @@ constexpr uint32_t hash32(const char *str, size_t len) {
 constexpr uint32_t hash32(std::string_view key) { return hash32(key.data(), key.length()); }
 
 constexpr uint32_t operator""_hash(const char *str, size_t len) { return hash32(str, len); }
-
+/*
 constexpr std::string_view get_json_key(const char *raw_key, size_t key_len) {
   JSON::PointerCursor key_cursor(raw_key, key_len);
   const char *key_start = key_cursor.ptr();
@@ -38,6 +38,7 @@ constexpr int get_json_key_index(const char *raw_key, size_t key_len) {
   JSON::PointerCursor key_cursor(raw_key, key_len);
 
   if (cursor_scan_ranges(key_cursor, JSON_KEY_CHARACTERS, true)) {
+    JSON_DEBUG_INFO("get_json_key_index: scanned key part %.*s\n", (int)key_cursor.bytesConsumed(), raw_key);
     if (cursor_scan_char(key_cursor, JSON_ARRAY_START_CHARACTER, true)) {
       JSON_DEBUG_INFO("get_json_key_index: %.*s\n", (int)key_len, raw_key);
       char *end = nullptr;
@@ -54,6 +55,34 @@ constexpr int get_json_key_index(const char *raw_key, size_t key_len) {
   }
 
   return -1;
+}
+*/
+// In this function, we extract the key and the index from the raw_key. The raw_key is a const char [N],
+// and it can be either a key or a key with an index. For example, "key" or "key[0]".
+// The function returns a JSONKey object that contains the key and the index.
+// The function is constexpr, so it can be used in a constexpr context.
+// We do not use the JSON::PointerCursor class here because it is not constexpr and the raw key is a literal.
+// We return a tuple of std::string_view and int.
+template<size_t N>
+constexpr std::pair<std::string_view, int> get_json_key_and_index(const char (&raw_key)[N]) {
+  size_t i = 0;
+  int index = -1;
+  while (i < N) {
+    if (raw_key[i] == JSON_ARRAY_START_CHARACTER) {
+      char *end = nullptr;
+      index = (int)std::strtol(raw_key + i + 1, &end, 10);
+      if (end != raw_key + i + 1) {
+        return std::make_pair(std::string_view(raw_key, i), index);
+      }  else {
+        return std::make_pair(std::string_view(raw_key, i), -1);
+      }
+    }  else if (raw_key[i] == JSON_ARRAY_END_CHARACTER) {
+      return std::make_pair(std::string_view(raw_key, i), -1);
+    }
+    i++;
+  }
+
+  return std::make_pair(std::string_view(raw_key, N - 1), -1);
 }
 
 template <size_t N>
@@ -75,6 +104,7 @@ inline bool are_generic_keys() {
   return true;
 }
 
+// This is for parse(cursor, JSONCallbackObject)
 template <typename Value> inline bool are_generic_keys(Value& value) { return false; }
 
 template <typename Key, typename Value, typename... Rest>
@@ -101,11 +131,17 @@ constexpr bool are_generic_keys(Key& key, Value& value, Rest&&... rest) {
   //   JSON_DEBUG_WARNING("Created key %.*s index=%d\n", (int)length(), data(), _index);
   // }
 
-  constexpr JSONKey(std::string_view &key) : _key(get_json_key(key.data(), key.length())), _index(get_json_key_index(key.data(), key.length())), _hash(hash32(_key)), _array_index(-1) {
-    JSON_DEBUG_WARNING("Created key %.*s index=%d from string view\n", (int)length(), data(), _index);
-  }
+  // constexpr JSONKey(std::string_view &key) : _key(get_json_key(key.data(), key.length())), _index(get_json_key_index(key.data(), key.length())), _hash(hash32(_key)), _array_index(-1) {
+  //   JSON_DEBUG_WARNING("Created key %.*s index=%d from string view\n", (int)length(), data(), _index);
+  // }
 
-  template <size_t N> constexpr JSONKey(const char (&key)[N]) : _key(get_json_key(key, N - 1)), _index(get_json_key_index(key, N - 1)), _hash(hash32(_key)), _array_index(-1) {
+  template <size_t N> constexpr JSONKey(const char (&key)[N]) {
+    auto [k, i] = get_json_key_and_index(key);
+    _key = k;
+    _index = i;
+    _hash = hash32(_key);
+    _array_index = -1;
+    
     JSON_DEBUG_WARNING("Created key %.*s index=%d from const char [N]\n", (int)length(), data(), _index);
   }
 
@@ -129,14 +165,10 @@ constexpr bool are_generic_keys(Key& key, Value& value, Rest&&... rest) {
 
   const char *data() const { return _key.data(); }
 
-  void setKey(const char *key, size_t len) {
-    _key = get_json_key(key, len);
-    _index = get_json_key_index(key, len);
+  void setKey(const std::string_view &key) {
+    _key = key;
     _hash = hash32(_key);
-    JSON_DEBUG_INFO("JSONKey setKey %.*s index=%d\n", (int)length(), data(), _index);
   }
-
-  void setKey(const std::string_view &key) { setKey(key.data(), key.length()); }
 
   int getIndex() const { return _index; }
 

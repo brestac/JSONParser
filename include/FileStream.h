@@ -1,6 +1,7 @@
 // Like Arduino Stream.h but for files
 #include <iostream>
 #include "Stream.h"
+#include <limits.h>
 
 class FileStream : public Stream {
 public:
