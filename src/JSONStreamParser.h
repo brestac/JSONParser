@@ -55,7 +55,7 @@ public:
         _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
         _name(JSON_PARSER_NAME_PASS_SINGLE) {
     JSON_DEBUG_WARNING("JSONParserBase(pointer) '%.*s' created\n",
-                       (int)name.length(), name.data());
+                       (int)_jsonParserName.length(), _jsonParserName.data());
   }
 
   // ── Constructeur StreamCursor ─────────────────────────────
@@ -68,7 +68,7 @@ public:
         _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
         _name(JSON_PARSER_NAME_PASS_SINGLE) {
     JSON_DEBUG_WARNING("JSONParserBase(stream) '%.*s' created\n",
-                       (int)name.length(), name.data());
+                       (int)_jsonParserName.length(), _jsonParserName.data());
   }
 
   ~JSONParserBase() {
@@ -174,7 +174,7 @@ public:
   std::string_view name() { return _name; }
 
 private:
-  Cursor _cursor; // ← seul membre qui change selon le type
+  Cursor &_cursor; // ← reference: shared across nested parsers
   size_t _bytesConsumed;
   ParserState _state;
   bool _automask;
@@ -673,7 +673,7 @@ JSONParserBase<Cursor>::parse_value(Args &&...args) {
   JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value\n");
   // JSONKey parsed_key(_key_start, _key_length);
   const std::string_view parsed_key(_key_start, _key_length);
-
+  JSON_DEBUG_COLOR(COLOR_BG_RED, "Looking for key %.*s\n", (int)parsed_key.length(), parsed_key.data());
   return searchValueArgumentForKey(0, parsed_key, std::forward<Args>(args)...);
 }
 
@@ -868,7 +868,7 @@ ParseValueResult JSONParserBase<Cursor>::searchValueArgumentForKey(
   JSON_DEBUG_WARNING("searchValueArgumentForKey %zu %.*s %.*s\n", idx, (int)parsed_key.length(), parsed_key.data(), (int)arg_key.length(), arg_key.data());
 
   if (arg_key == parsed_key) {
-    JSON_DEBUG_INFO("Found key %.*s\n", (int)arg_key.length(), arg_key.data());
+    JSON_DEBUG_COLOR(COLOR_BG_RED, "Found key %.*s\n", (int)arg_key.length(), arg_key.data());
     JSON_DEBUG_TYPES("for arg type %s\n", arg_value);
     result |= ParseValueResult::KEY_FOUND | parse_into_value(arg_value);
 
@@ -951,11 +951,14 @@ template <typename Cursor>
 template <typename PV, typename V>
 ParseValueResult
 JSONParserBase<Cursor>::assign_string_view_to_char_array(PV &pv, V &v) {
-  if (memcmp(v, pv.data(), pv.length()) == 0)
+  if (memcmp(v, pv.data(), pv.length()) == 0) {
     return ParseValueResult::NO_RESULT;
+  }
+  
   size_t len = std::min(pv.length(), sizeof(v) - 1);
   std::memcpy(v, pv.data(), len);
   v[len] = '\0';
+  
   return ParseValueResult::VALUE_UPDATED;
 }
 
@@ -1215,11 +1218,6 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
 #else
   JSON::ParseResult r = arg_value.fromJSON(_cursor);
 #endif
-
-  // PointerCursorReader is const, so it was not advanced by the previous call.
-  if constexpr (std::is_same_v<remove_cvref_t<Cursor>, PointerCursorReader>) {
-    _cursor.advance(r.length);
-  }
 
 #if JSON_DEBUG_LEVEL > 0
   JSON_DEBUG_INFO("In previous JSONParser %.*s parse_object result: ",

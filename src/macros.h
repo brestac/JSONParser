@@ -1,17 +1,17 @@
 #pragma once
 /*
-Color	Code (foreground)
-Black	\x1b[30m
-Red	\x1b[31m
-Green	\x1b[32m
-Yellow	\x1b[33m
-Blue	\x1b[34m
-Magenta	\x1b[35m
-Cyan	\x1b[36m
-White	\x1b[37m
+Color   Code (foreground)
+Black   \x1b[30m
+Red     \x1b[31m
+Green   \x1b[32m
+Yellow  \x1b[33m
+Blue    \x1b[34m
+Magenta \x1b[35m
+Cyan    \x1b[36m
+White   \x1b[37m
 Bright variants: add 1; before the code (e.g., \x1b[1;31m for bright red) or use
-codes 90–97. Background colors: replace 3 with 4 (e.g., \x1b[41m for red
-background) or use 100–107 for bright backgrounds. 256‑color mode:
+codes 90–97.
+Background colors: replace 3 with 4 (e.g., \x1b[41m for red background) or use 100–107 for bright backgrounds. 256‑color mode:
 \x1b[38;5;<n>m (foreground) or \x1b[48;5;<n>m (background), where <n> is 0‑255.
 True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
 \x1b[48;2;<r>;<g>;<b>m (background), with RGB values 0‑255.
@@ -21,10 +21,10 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
 #define NAMESPACE_JSON_END }
 
 #if JSON_DEBUG_LEVEL > 0
-#define JSON_PARSER_NAME_ARG std::string_view &name,
-#define JSON_PARSER_NAME_PASS name,
-#define JSON_PARSER_NAME_ARG_SINGLE std::string_view &name
-#define JSON_PARSER_NAME_PASS_SINGLE name
+#define JSON_PARSER_NAME_ARG std::string_view &_jsonParserName,
+#define JSON_PARSER_NAME_PASS _jsonParserName,
+#define JSON_PARSER_NAME_ARG_SINGLE std::string_view &_jsonParserName
+#define JSON_PARSER_NAME_PASS_SINGLE _jsonParserName
 #define JSON_PARSER_NAME_VALUE "$ROOT"
 #else
 #define JSON_PARSER_NAME_ARG
@@ -46,36 +46,46 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
 #endif
 #endif
 
+#define TO_STRING(x) #x
+
+#define COLOR_BLACK 30
+#define COLOR_RED 31
+#define COLOR_GREEN 32
+#define COLOR_YELLOW 33
+#define COLOR_BLUE 34
+#define COLOR_MAGENTA 35
+#define COLOR_CYAN 36
+#define COLOR_WHITE 37
+#define COLOR_BG_BLACK 40
+#define COLOR_BG_RED 41
+#define COLOR_BG_GREEN 42
+#define COLOR_BG_BLUE 44
+#define COLOR_BG_WHITE 47
+
+#if JSON_DEBUG_LEVEL > 0
 #ifdef ARDUINO
-#define PRINTF_COLOR(n, fmt, ...) DEBUG_PRINTF(fmt, ##__VA_ARGS__)
+#define JSON_DEBUG_COLOR(n, fmt, ...) DEBUG_PRINTF(fmt, ##__VA_ARGS__)
 #else
-#define PRINTF_COLOR(n, fmt, ...)                                              \
-  DEBUG_PRINTF("\x1b[" #n "m" fmt "\x1b[0m", ##__VA_ARGS__)
+#define JSON_DEBUG_COLOR(n, fmt, ...) DEBUG_PRINTF("\x1b[" TO_STRING(n) "m" fmt "\x1b[0m", ##__VA_ARGS__)
+#endif
+#else
+#define JSON_DEBUG_COLOR(n, fmt, ...)
 #endif
 
-#define PRINTF_BLACK(fmt, ...) PRINTF_COLOR(30, fmt, ##__VA_ARGS__)
-#define PRINTF_RED(fmt, ...) PRINTF_COLOR(31, fmt, ##__VA_ARGS__)
-#define PRINTF_GREEN(fmt, ...) PRINTF_COLOR(32, fmt, ##__VA_ARGS__)
-#define PRINTF_YELLOW(fmt, ...) PRINTF_COLOR(33, fmt, ##__VA_ARGS__)
-#define PRINTF_BLUE(fmt, ...) PRINTF_COLOR(34, fmt, ##__VA_ARGS__)
-#define PRINTF_MAGENTA(fmt, ...) PRINTF_COLOR(35, fmt, ##__VA_ARGS__)
-#define PRINTF_CYAN(fmt, ...) PRINTF_COLOR(36, fmt, ##__VA_ARGS__)
-#define PRINTF_WHITE(fmt, ...) PRINTF_COLOR(37, fmt, ##__VA_ARGS__)
-
 #if JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_INFO(format, ...) PRINTF_BLACK(format, ##__VA_ARGS__)
+#define JSON_DEBUG_INFO(format, ...) JSON_DEBUG_COLOR(COLOR_BLACK, format, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_INFO(format, ...)
 #endif
 
 #if JSON_DEBUG_LEVEL == 2 || JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_WARNING(format, ...) PRINTF_YELLOW(format, ##__VA_ARGS__)
+#define JSON_DEBUG_WARNING(format, ...) JSON_DEBUG_COLOR(COLOR_YELLOW, format, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_WARNING(format, ...)
 #endif
 
 #if JSON_DEBUG_LEVEL == 3 || JSON_DEBUG_LEVEL == 2 || JSON_DEBUG_LEVEL == 1
-#define JSON_DEBUG_ERROR(format, ...) PRINTF_RED(format, ##__VA_ARGS__)
+#define JSON_DEBUG_ERROR(format, ...) JSON_DEBUG_COLOR(COLOR_RED, format, ##__VA_ARGS__)
 #else
 #define JSON_DEBUG_ERROR(format, ...)
 #endif
