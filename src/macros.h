@@ -46,6 +46,8 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
 #endif
 #endif
 
+#define TO_STRING(x) #x
+
 #define COLOR_BLACK 30
 #define COLOR_RED 31
 #define COLOR_GREEN 32
@@ -64,7 +66,7 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
 #ifdef ARDUINO
 #define JSON_DEBUG_COLOR(n, fmt, ...) DEBUG_PRINTF(fmt, ##__VA_ARGS__)
 #else
-#define JSON_DEBUG_COLOR(n, fmt, ...) DEBUG_PRINTF("\x1b[" #n "m" fmt "\x1b[0m", ##__VA_ARGS__)
+#define JSON_DEBUG_COLOR(n, fmt, ...) DEBUG_PRINTF("\x1b[" TO_STRING(n) "m" fmt "\x1b[0m", ##__VA_ARGS__)
 #endif
 #else
 #define JSON_DEBUG_COLOR(n, fmt, ...)

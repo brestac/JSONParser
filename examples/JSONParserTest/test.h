@@ -394,27 +394,6 @@ void testIndexedParsing() {
   check(mask == 3, "mask == 3 (bits 0 and 1 set), was %llu", mask);
 }
 
-// ----------------------------------------------------------------
-// GeoJSON helpers
-// ----------------------------------------------------------------
-
-// void testGeoJSONParsing(const char *json, bool print_result) {
-//   if (print_result) {
-//     fc.toJSON(Serial, false);
-//     DEBUG_PRINTF("\n");
-//     DEBUG_PRINTF("Parsed %zu features\n", fc.features.size());
-
-//     if (fc.features.size() > 0) {
-//       size_t shapes_length = fc.features[0].geometry.coordinates.size();
-//       DEBUG_PRINTF("Shapes length =%zu\n", shapes_length);
-//       for (size_t i = 0; i < shapes_length; i++) {
-//         DEBUG_PRINTF("Shape %zu coordinate points length =%zu\n", i,
-//                      fc.features[0].geometry.coordinates[i].size());
-//       }
-//     }
-//   }
-// }
-
 void testGeoJSONParsingSmall() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SMALL\n");
   DEBUG_PRINTF(
@@ -463,6 +442,7 @@ void testGeoJSONParsingSmall() {
     }
   }
 }
+
 #ifndef ARDUINO
 char *read_file(const char *filename) {
   FILE *file = fopen(filename, "r");
@@ -505,17 +485,14 @@ void testGeoJSONParsingBig() {
     return;
   }
 
-  FileStream fs(file);
+  char *json = read_file("./canada.json");
   FeatureCollection fc;
   uint64_t start = now();
-  JSON::ParseResult pr = fc.fromJSON(JSON_DEBUG_PARSER_NAME fs);
+  JSON::ParseResult pr = fc.fromJSON(JSON_DEBUG_PARSER_NAME json);
   [[maybe_unused]] uint64_t elapsed1 = now() - start;
-  fclose(file);
-  check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error,
-        pr.length);
-
+  check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error, pr.length);
+  
   // RAPIDJSON
-  char *json = read_file("./canada.json");
   rapidjson::Document d;
   start = now();
   d.Parse(json);

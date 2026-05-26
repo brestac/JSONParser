@@ -673,7 +673,7 @@ JSONParserBase<Cursor>::parse_value(Args &&...args) {
   JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value\n");
   // JSONKey parsed_key(_key_start, _key_length);
   const std::string_view parsed_key(_key_start, _key_length);
-
+  JSON_DEBUG_COLOR(COLOR_BG_RED, "Looking for key %.*s\n", (int)parsed_key.length(), parsed_key.data());
   return searchValueArgumentForKey(0, parsed_key, std::forward<Args>(args)...);
 }
 
@@ -868,7 +868,7 @@ ParseValueResult JSONParserBase<Cursor>::searchValueArgumentForKey(
   JSON_DEBUG_WARNING("searchValueArgumentForKey %zu %.*s %.*s\n", idx, (int)parsed_key.length(), parsed_key.data(), (int)arg_key.length(), arg_key.data());
 
   if (arg_key == parsed_key) {
-    JSON_DEBUG_INFO("Found key %.*s\n", (int)arg_key.length(), arg_key.data());
+    JSON_DEBUG_COLOR(COLOR_BG_RED, "Found key %.*s\n", (int)arg_key.length(), arg_key.data());
     JSON_DEBUG_TYPES("for arg type %s\n", arg_value);
     result |= ParseValueResult::KEY_FOUND | parse_into_value(arg_value);
 
