@@ -147,17 +147,6 @@ struct FeatureCollection : public JSONObject {
 };
 
 // ----------------------------------------------------------------
-// Timing helper
-// ----------------------------------------------------------------
-
-uint64_t time() {
-  auto now = std::chrono::steady_clock::now();
-  return std::chrono::duration_cast<std::chrono::microseconds>(
-             now.time_since_epoch())
-      .count();
-}
-
-// ----------------------------------------------------------------
 // test_callback
 // ----------------------------------------------------------------
 

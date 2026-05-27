@@ -1,9 +1,11 @@
 #pragma once
 
+#include <string_view>
+
+#include "macros.h"
 #include "JSONStreamParser.h"
 #include "StreamCursor.h"
 #include "utils.h"
-#include <string_view>
 
 NAMESPACE_JSON_BEGIN
 
@@ -33,37 +35,38 @@ using enable_if_json_data_container_compatible =
 ////////////////////////////////////////////////////////////
 //  Parse With Cursor
 ///////////////////////////////////////////////////////////
+// Parse avec mask — convertit les const char[N] en JSONKey mémoïsées
 template <typename Cursor, typename... Args>
-enable_if_args_valid<Args...> _parse(JSON_PARSER_NAME_ARG uint32_t &mask,
-                                     Cursor &cursor, Args &&...args) {
-  uint64_t start = now();
+enable_if_args_valid<Args...> _parse(JSON_PARSER_NAME_ARG uint32_t& mask,
+                                     Cursor& cursor, Args&&... args) {
+    uint64_t start = now();
 
-  JSONParserBase<Cursor> parser(JSON_PARSER_NAME_PASS cursor);
-  bool automask = are_generic_keys(std::forward<Args>(args)...);
-  parser.setAutomask(automask);
+    JSONParserBase<Cursor> parser(JSON_PARSER_NAME_PASS cursor);
+    bool automask = are_generic_keys(std::forward<Args>(args)...);
+    parser.setAutomask(automask);
 
-  parser.parse(std::forward<Args>(args)...);
+    // as_json_key transforme chaque const char[N] en const JSONKey& mémoïsée.
+    // Les autres arguments (références vers les valeurs) sont transmis tels quels.
+    parser.parse(std::forward<Args>(args)...);
 
-  mask = parser.keyMask();
+    mask = parser.keyMask();
 
-  uint64_t end = now();
-
-  return ParseResult(&parser, end - start);
+    uint64_t end = now();
+    return ParseResult(&parser, end - start);
 }
 
-// Parse without mask
+// Parse sans mask (JSONCallbackObject ou UnknownValueType)
 template <typename Cursor, typename... Args>
-enable_if_args_valid<Args...> __parse(JSON_PARSER_NAME_ARG Cursor &cursor,
-                                      Args &&...args) {
-  uint64_t start = now();
+ParseResult __parse(JSON_PARSER_NAME_ARG Cursor& cursor, Args&&... args) {
+    uint64_t start = now();
 
-  JSONParserBase<Cursor> parser(JSON_PARSER_NAME_PASS cursor);
-  parser.setUseMask(false);
-  parser.parse(std::forward<Args>(args)...);
+    JSONParserBase<Cursor> parser(JSON_PARSER_NAME_PASS cursor);
+    parser.setUseMask(false);
 
-  uint64_t end = now();
+    parser.parse(std::forward<Args>(args)...);
 
-  return ParseResult(&parser, end - start);
+    uint64_t end = now();
+    return ParseResult(&parser, end - start);
 }
 
 template <typename... Args>
@@ -141,13 +144,14 @@ NAMESPACE_JSON_END
 
 JSON::ParseResult
 UnknownValueType::fromJSON(JSON_PARSER_NAME_ARG JSON::StreamCursor &cursor) {
-  return JSON::__parse(JSON_PARSER_NAME_PASS cursor);
+  static UnknownValueType dummy;
+  return JSON::__parse(JSON_PARSER_NAME_PASS cursor, dummy);
 }
 
 JSON::ParseResult UnknownValueType::fromJSON(
     JSON_PARSER_NAME_ARG const JSON::PointerCursorReader &cursor) {
-  // const PointerCursorReader c = cursor;
-  return JSON::__parse(JSON_PARSER_NAME_PASS cursor);
+    static UnknownValueType dummy;
+  return JSON::__parse(JSON_PARSER_NAME_PASS cursor, dummy);
 }
 
 JSON::ParseResult JSONCallbackObject::fromJSON(

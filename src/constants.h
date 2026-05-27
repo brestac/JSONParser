@@ -13,13 +13,13 @@ constexpr size_t MAX_KEY_LENGTH = 1 << 8;    // 255
 constexpr size_t MAX_VALUE_LENGTH = 1 << 8;  // 255
 constexpr size_t MAX_ARRAY_LENGTH = 1 << 16; // 65536
 constexpr size_t DEBUG_COLUMN_WIDTH = 80;
+constexpr size_t MAX_KEY_VALUE_COUNT = 32;                                   // Maximum autorisé par la macro
 
 inline uint8_t PARSER_ID = 0;
 inline uint8_t VERSION = 1;
 inline bool PRINT_BUFFER_AS_HEX = false;
 inline size_t MAX_PRINTF_BUFFER_SIZE = 4096;
 inline size_t MAX_POINTER_CURSOR_SIZE = std::numeric_limits<uint32_t>::max(); // Equals to 4294967295 bytes (4GB)
-inline size_t MAX_KEY_VALUE_COUNT = 1 << 8;                                   // 255
 inline size_t MAX_ITERATIONS = 1 << 16;                                       // 65536
 inline size_t MAX_JSON_DEPTH = 1 << 8;
 
