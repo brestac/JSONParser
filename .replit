@@ -84,7 +84,7 @@ task = "workflow.run"
 args = "Desktop tests"
 
 [[workflows.workflow]]
-name = "Desktop tests"
+name = "Desktop tests Release"
 author = "agent"
 
 [[workflows.workflow.tasks]]
@@ -93,6 +93,24 @@ args = "make desktop-test && cd build && ./desktop-test "
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "Desktop tests Debug"
+mode = "sequential"
+author = 564070
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "make desktop-test-debug && cd build && ./desktop-test-debug"
+
+[[workflows.workflow]]
+name = "Desktop Test Arduino g++ flags"
+mode = "sequential"
+author = 564070
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "make desktop-test-arduino && cd build && ./desktop-test-arduino"
 
 [postMerge]
 path = "scripts/post-merge.sh"
