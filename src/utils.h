@@ -36,7 +36,7 @@ template <typename T> bool get_unsigned_integral_fromHexString(T &value, const c
 
 template <typename T> constexpr T be_to_h(T value);
 
-uint64_t now();
+unsigned long long now();
 
 constexpr uint8_t _hex_to_dec(char c) {
   if (c >= '0' && c <= '9') {
@@ -167,7 +167,7 @@ void print_bitwise_mask(size_t mask, size_t count) {
   DEBUG_PRINTF("\n");
 }
 
-uint64_t now() {
+unsigned long long now() {
   auto now = std::chrono::steady_clock::now();
   return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 }
