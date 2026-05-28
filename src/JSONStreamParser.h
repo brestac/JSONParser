@@ -1061,9 +1061,22 @@ constexpr To JSONParserBase<Cursor>::clamp_to_max(From v) {
     if (v < 0)
       return 0;
   }
-  if (static_cast<From>(std::numeric_limits<To>::max()) < v)
-    return std::numeric_limits<To>::max();
-  if constexpr (std::is_signed_v<To>) {
+  // Upper-bound comparison is only safe when To::max fits in From without
+  // overflow.  That holds when sizeof(To) < sizeof(From), or when they are
+  // the same size and neither is signed→unsigned (which would make
+  // To::max > From::max and overflow the cast).
+  constexpr bool upper_safe =
+      (sizeof(To) < sizeof(From)) ||
+      (sizeof(To) == sizeof(From) &&
+       !(std::is_signed_v<From> && std::is_unsigned_v<To>));
+  if constexpr (upper_safe) {
+    if (static_cast<From>(std::numeric_limits<To>::max()) < v)
+      return std::numeric_limits<To>::max();
+  }
+  // Lower-bound comparison is only meaningful for signed To and only safe
+  // when To::min fits in From (i.e. sizeof(To) < sizeof(From) for signed).
+  if constexpr (std::is_signed_v<To> && std::is_signed_v<From> &&
+                sizeof(To) < sizeof(From)) {
     if (static_cast<From>(std::numeric_limits<To>::min()) > v)
       return std::numeric_limits<To>::min();
   }
