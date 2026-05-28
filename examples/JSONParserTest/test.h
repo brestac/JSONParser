@@ -50,6 +50,45 @@ static bool near(float a, float b, float tol = 0.01f) {
 // Structs
 // ----------------------------------------------------------------
 
+struct BigStruct : public JSONObject {
+  bool        f01 = false;
+  int8_t      f02 = 0;
+  int16_t     f03 = 0;
+  int32_t     f04 = 0;
+  int64_t     f05 = 0;
+  uint8_t     f06 = 0;
+  uint16_t    f07 = 0;
+  uint32_t    f08 = 0;
+  float       f09 = 0.0f;
+  double      f10 = 0.0;
+  char        f11[32] = {0};
+  char        f12[64] = {0};
+  std::string_view f13 = "";
+  std::string_view f14 = "";
+  bool        f15 = false;
+  int32_t     f16 = 0;
+  float       f17 = 0.0f;
+  double      f18 = 0.0;
+  uint8_t     f19[4] = {0};
+  uint16_t    f20[4] = {0};
+  uint32_t    f21[4] = {0};
+  float       f22[4] = {0.0f};
+  int32_t     f23[4] = {0};
+  int8_t      f24 = 0;
+  int16_t     f25 = 0;
+  uint8_t     f26 = 0;
+  uint16_t    f27 = 0;
+  bool        f28 = false;
+  double      f29 = 0.0;
+  char        f30[16] = {0};
+  std::string_view f31 = "";
+  int32_t     f32 = 0;
+  JSON_SERIALIZE_IMPL(f01, f02, f03, f04, f05, f06, f07, f08, f09, f10,
+                      f11, f12, f13, f14, f15, f16, f17, f18, f19, f20,
+                      f21, f22, f23, f24, f25, f26, f27, f28, f29, f30,
+                      f31, f32);
+};
+
 struct Sensor : public JSONObject {
   int id = 0;
   float temperature = 1.0f;
