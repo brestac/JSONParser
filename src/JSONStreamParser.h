@@ -694,7 +694,7 @@ JSONParserBase<Cursor>::parse_value(TableT& table, TupleT& args) {
     constexpr size_t NPairs = std::tuple_size<TupleT>::value / 2;  
     const std::string_view parsed_key(_key_start, _key_length);
 
-    const SimpleEntry* entry = table.find(hash32(parsed_key));
+    const StaticEntry* entry = table.find(hash32(parsed_key));
 
     if (!entry) {
       JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value key '%.*s' not found\n", (int)parsed_key.length(), parsed_key.data());
@@ -782,13 +782,16 @@ template <typename... Args>
 enable_if_t<args_not_empty<Args...>, void>
 JSONParserBase<Cursor>::parse(Args &&...args) {
   static_assert(sizeof...(Args) > 0, "::parse No arguments provided");
-
   using TupleT = std::tuple<Args&&...>;
-  TupleT args_as_tuple(std::forward<Args>(args)...);
   constexpr size_t NPairs = sizeof...(Args) / 2;
-  using TableT = SimpleDispatchTable<TupleT, NPairs>;
-  
-  static TableT table(args_as_tuple);
+
+  // Références runtime — reconstruites à chaque appel
+  TupleT refs(std::forward<Args>(args)...);
+
+  // Table statique — uniquement hash + index, pas de références
+  // static constexpr possible car ne dépend QUE des const char[N]
+  // qui sont des littéraux, stables pour toute la spécialisation
+  static const StaticDispatchTable<NPairs> table(refs);
 
   _nArgs = sizeof...(Args);
   size_t iteration = 0;
@@ -846,7 +849,7 @@ JSONParserBase<Cursor>::parse(Args &&...args) {
         continue;
       }
       
-      ParseValueResult r = parse_value(table, args_as_tuple);
+      ParseValueResult r = parse_value(table, refs);
 
       if (!r.keyFound()) { // The key was not found in the arguments. This is
                            // not an error.

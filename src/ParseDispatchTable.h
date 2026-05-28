@@ -33,31 +33,37 @@ struct SimpleEntry {
 //  Construite depuis les clés aux positions paires de TupleT.
 // ---------------------------------------------------------------------------
 
-template <typename TupleT, size_t NPairs>
-struct SimpleDispatchTable {
-    std::array<SimpleEntry, NPairs> entries{};
+// Nouvelle structure : uniquement les données statiques
+struct StaticEntry {
+    uint32_t hash      = 0;
+    int      key_index = -1;
+    size_t   arg_index = 0;
+};
 
-    template <size_t... I>
+template <size_t NPairs>
+struct StaticDispatchTable {
+    std::array<StaticEntry, NPairs> entries{};
+
+    template <size_t... I, typename TupleT>
     constexpr void fill(const TupleT& t, std::index_sequence<I...>) {
-        ((entries[I] = SimpleEntry{
-            // hash de la clé sans la partie "[N]" (extract_key la retire)
+        ((entries[I] = StaticEntry{
             hash32(extract_key(std::get<I * 2>(t)).data(),
                    extract_key(std::get<I * 2>(t)).length()),
-            I,
-            extract_index(std::get<I * 2>(t))
+            extract_index(std::get<I * 2>(t)),
+            I
         }), ...);
     }
 
-    constexpr SimpleDispatchTable(const TupleT& t) {
-        JSON_DEBUG_COLOR(COLOR_BLUE, "SimpleDispatchTable::SimpleDispatchTable\n");
-        fill(t, std::make_index_sequence<NPairs>{});
-    }
-
     // Recherche linéaire par hash — suffisant pour < 32 champs
-    const SimpleEntry* find(uint32_t h) const {
+    const StaticEntry* find(uint32_t h) const {
         for (size_t i = 0; i < NPairs; ++i)
             if (entries[i].hash == h) return &entries[i];
         return nullptr;
+    }
+    
+    template <typename TupleT>
+    constexpr StaticDispatchTable(const TupleT& t) {
+        fill(t, std::make_index_sequence<NPairs>{});
     }
 };
 
