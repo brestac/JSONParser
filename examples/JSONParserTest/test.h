@@ -897,8 +897,13 @@ void test_parse_big_struct() {
     "}";
 
   BigStruct b;
-  JSON::ParseResult r = b.fromJSON(JSON_DEBUG_PARSER_NAME json);
-
+  JSON::ParseResult r;
+  uint64_t start = now();
+  for (size_t i = 0; i < 10000; i++) {
+    r = b.fromJSON(JSON_DEBUG_PARSER_NAME json);
+  }
+  uint64_t elapsed = now() - start;
+  check(true, "Parsing time: %lu µs\n", elapsed);
   check(r.error == 0, "parse");
   check(b.f01 == true,                          "f01 == true");
   check(b.f02 == -12,                           "f02 == -12");
@@ -954,6 +959,7 @@ void run_parsing_tests() {
   test_partial_parse();
   test_parse_via_stream_template();
   test_parse_big_struct();
+  
 
   testGeoJSONParsingSmall();
 }
