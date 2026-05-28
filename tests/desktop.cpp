@@ -51,5 +51,6 @@ int main() {
   // test_parse_embedded_object();
   // testGeoJSONParsingBig();
 
+  test_parse_big_struct();
   return 0;
 }
