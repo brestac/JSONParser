@@ -853,6 +853,93 @@ void testParseGeoJSONFromFile() {
 }
 #endif
 
+// ----------------------------------------------------------------
+// Test – BigStruct round-trip parse
+// ----------------------------------------------------------------
+
+void test_parse_big_struct() {
+  DEBUG_PRINTF("\n--- Test: BigStruct parse ---\n");
+
+  const char *json =
+    "{"
+    "\"f01\":true,"
+    "\"f02\":-12,"
+    "\"f03\":1000,"
+    "\"f04\":123456,"
+    "\"f05\":999999,"
+    "\"f06\":200,"
+    "\"f07\":50000,"
+    "\"f08\":300000,"
+    "\"f09\":1.5,"
+    "\"f10\":2.71828,"
+    "\"f11\":\"hello\","
+    "\"f12\":\"world_string\","
+    "\"f13\":\"view_one\","
+    "\"f14\":\"view_two\","
+    "\"f15\":false,"
+    "\"f16\":-999,"
+    "\"f17\":3.14,"
+    "\"f18\":1.41421,"
+    "\"f19\":[1,2,3,4],"
+    "\"f20\":[100,200,300,400],"
+    "\"f21\":[1000,2000,3000,4000],"
+    "\"f22\":[1.1,2.2,3.3,4.4],"
+    "\"f23\":[-1,-2,-3,-4],"
+    "\"f24\":42,"
+    "\"f25\":-500,"
+    "\"f26\":255,"
+    "\"f27\":65000,"
+    "\"f28\":true,"
+    "\"f29\":0.12345,"
+    "\"f30\":\"short\","
+    "\"f31\":\"last_view\","
+    "\"f32\":77"
+    "}";
+
+  BigStruct b;
+  JSON::ParseResult r = b.fromJSON(JSON_DEBUG_PARSER_NAME json);
+
+  check(r.error == 0, "parse");
+  check(b.f01 == true,                          "f01 == true");
+  check(b.f02 == -12,                           "f02 == -12");
+  check(b.f03 == 1000,                          "f03 == 1000");
+  check(b.f04 == 123456,                        "f04 == 123456");
+  check(b.f05 == 999999,                        "f05 == 999999");
+  check(b.f06 == 200,                           "f06 == 200");
+  check(b.f07 == 50000,                         "f07 == 50000");
+  check(b.f08 == 300000,                        "f08 == 300000");
+  check(near(b.f09, 1.5f),                      "f09 ≈ 1.5");
+  check(near((float)b.f10, 2.71828f),           "f10 ≈ 2.71828");
+  check(strcmp(b.f11, "hello") == 0,            "f11 == 'hello'");
+  check(strcmp(b.f12, "world_string") == 0,     "f12 == 'world_string'");
+  check(b.f13 == std::string_view("view_one"),  "f13 == 'view_one'");
+  check(b.f14 == std::string_view("view_two"),  "f14 == 'view_two'");
+  check(b.f15 == false,                         "f15 == false");
+  check(b.f16 == -999,                          "f16 == -999");
+  check(near(b.f17, 3.14f),                     "f17 ≈ 3.14");
+  check(near((float)b.f18, 1.41421f),           "f18 ≈ 1.41421");
+  check(b.f19[0]==1 && b.f19[1]==2 && b.f19[2]==3 && b.f19[3]==4,
+        "f19 == [1,2,3,4]");
+  check(b.f20[0]==100 && b.f20[1]==200 && b.f20[2]==300 && b.f20[3]==400,
+        "f20 == [100,200,300,400]");
+  check(b.f21[0]==1000 && b.f21[1]==2000 && b.f21[2]==3000 && b.f21[3]==4000,
+        "f21 == [1000,2000,3000,4000]");
+  check(near(b.f22[0],1.1f) && near(b.f22[1],2.2f) &&
+        near(b.f22[2],3.3f) && near(b.f22[3],4.4f),
+        "f22 ≈ [1.1,2.2,3.3,4.4]");
+  check(b.f23[0]==-1 && b.f23[1]==-2 && b.f23[2]==-3 && b.f23[3]==-4,
+        "f23 == [-1,-2,-3,-4]");
+  check(b.f24 == 42,                            "f24 == 42");
+  check(b.f25 == -500,                          "f25 == -500");
+  check(b.f26 == 255,                           "f26 == 255");
+  check(b.f27 == 65000,                         "f27 == 65000");
+  check(b.f28 == true,                          "f28 == true");
+  check(near((float)b.f29, 0.12345f),           "f29 ≈ 0.12345");
+  check(strcmp(b.f30, "short") == 0,            "f30 == 'short'");
+  check(b.f31 == std::string_view("last_view"), "f31 == 'last_view'");
+  check(b.f32 == 77,                            "f32 == 77");
+}
+
 void run_parsing_tests() {
   // with callback
   test_callback();
@@ -866,6 +953,7 @@ void run_parsing_tests() {
   test_parse_from_stream();
   test_partial_parse();
   test_parse_via_stream_template();
+  test_parse_big_struct();
 
   testGeoJSONParsingSmall();
 }
