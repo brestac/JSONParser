@@ -22,23 +22,21 @@ template <typename T> class PointerCursor {
 public:
   explicit constexpr PointerCursor(T *start, size_t len)
       : _pos(start), _start(start), _end(start + len) {
-    JSON_DEBUG_WARNING("PointerCursor reader %p created with explicit buffer %p "
+    JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader %p created with buffer %p "
                        "explicit size %zu\n",
                        this, start, len);
   }
 
   constexpr PointerCursor(std::string_view& sv)
       : _pos(sv.data()), _start(sv.data()), _end(sv.data() + sv.length()) {
-    JSON_DEBUG_WARNING(
-        "PointerCursor reader created with string_view buffer %p size %zu\n",
+        JSON_DEBUG_COLOR(COLOR_BLUE,
+        "PointerCursor reader created with string_view %p size %zu\n",
         sv.data(), sv.length());
   }
 
   constexpr PointerCursor(const char *buffer)
       : _pos(buffer), _start(buffer), _end(buffer + str_length(buffer, MAX_POINTER_CURSOR_SIZE)) {
-    JSON_DEBUG_WARNING("PointerCursor reader created with const char* buffer "
-                       "%p deducted size %zu\n",
-                       buffer, str_length(buffer, MAX_POINTER_CURSOR_SIZE));
+      JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader created with const char* buffer %p deducted size %zu\n", buffer, str_length(buffer, MAX_POINTER_CURSOR_SIZE));
   }
 
   template <size_t N>
