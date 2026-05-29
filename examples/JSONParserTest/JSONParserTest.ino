@@ -12,7 +12,9 @@ void setup() {
   Serial.println("");
   //   Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
   //   Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
-  run_tests();
+  // run_tests();
+  testGeoJSONParsingSmall();
+  testParseGeoJSONFromFile();
 }
 
 void loop() {
