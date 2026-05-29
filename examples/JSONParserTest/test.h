@@ -1,4 +1,3 @@
-#include "StreamString.h"
 #ifdef ARDUINO
 #include "./generate_geojson_littlefs.h"
 #endif
@@ -121,9 +120,10 @@ struct IntegralArrayTest : JSONObject {
 
 struct Child : public JSONObject {
   std::string_view nom = "";
+  std::string_view prenom = "";
   uint8_t age = 0U;
 
-  JSON_SERIALIZE_IMPL(nom, age);
+  JSON_SERIALIZE_IMPL(nom, prenom, age);
 };
 
 struct Parent : public JSONObject {
@@ -293,13 +293,28 @@ void test_parse_embedded_object() {
   Child child;
   Parent parent;
   parent.child = child;
-  const char *json = "{\"nom\":\"Bob\",\"child\":{\"nom\":\"Alice\",\"age\":8},\"age\":40}";
+  const char *json = "{\"nom\":\"Bob\",\"child\":{\"prenom\":\"Alice\",\"age\":8},\"age\":40}";
   JSON::ParseResult pr = parent.fromJSON(JSON_DEBUG_PARSER_NAME json);
   check(pr.error == 0, "parse");
-  check(parent.nom == std::string_view("Bob"), "parent.nom == Bob");
-  check(parent.age == 40, "parent.age == 40");
-  check(parent.child.nom == std::string_view("Alice"), "parent.child.nom == Alice");
+  check(parent.nom == std::string_view("Bob"), "parent.nom == Bob, was %.*s", (int)parent.nom.length(), parent.nom.data());
+  check(parent.age == 40, "parent.age == 40, was %d", parent.age);
+  check(parent.child.prenom == std::string_view("Alice"), "parent.child.prenom == Alice, was %.*s", (int)parent.child.prenom.length(), parent.child.prenom.data());
 }
+
+void test_parse_embedded_object_from_stream() {
+  DEBUG_PRINTF("\nTEST EMBEDDED OBJECT FROM STREAM\n");
+  Child child;
+  Parent parent;
+  parent.child = child;
+  const char *json = "{\"nom\":\"Bob\",\"child\":{\"prenom\":\"Alice\",\"age\":8},\"age\":40}";
+  StreamString stream(json);
+  JSON::ParseResult pr = parent.fromJSON(JSON_DEBUG_PARSER_NAME stream);
+  check(pr.error == 0, "parse");
+  check(parent.nom == std::string_view("Bob"), "parent.nom == Bob, was %.*s", (int)parent.nom.length(), parent.nom.data());
+  check(parent.age == 40, "parent.age == 40, was %d", parent.age);
+  check(parent.child.prenom == std::string_view("Alice"), "parent.child.prenom == Alice, was %.*s", (int)parent.child.prenom.length(), parent.child.prenom.data());
+}
+
 // ----------------------------------------------------------------
 // test_parsing from const char *
 // ----------------------------------------------------------------
@@ -444,30 +459,23 @@ void testGeoJSONParsingSmall() {
   StreamString stream(json);
   JSON::ParseResult pr = fc.fromJSON(JSON_DEBUG_PARSER_NAME stream);
 
+  fc.toJSON(Serial, false);
+
   check(pr.error == 0, "parse");
-  check(fc.type == std::string_view("FeatureCollection"),
-        "type == FeatureCollection");
-  check(fc.features.size() == 1, "1 feature");
+  check(fc.type == "FeatureCollection", "type == FeatureCollection was %.*s", (int)fc.type.length(), fc.type.data());
+  check(fc.features.size() == 1, "1 feature, was %u", fc.features.size());
+
   if (fc.features.size() >= 1) {
-    check(fc.features[0].type == std::string_view("Feature"),
-          "feature.type == Feature");
-    check(fc.features[0].properties.name == std::string_view("Canada"),
-          "properties.name == Canada");
-    check(fc.features[0].geometry.type == std::string_view("Polygon"),
-          "geometry.type == Polygon");
-    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings");
+    check(fc.features[0].type == std::string_view("Feature"), "feature.type == Feature, was %.*s", (int)fc.features[0].type.length(), fc.features[0].type.data());
+    check(fc.features[0].properties.name == std::string_view("Canada"), "properties.name == Canada was %.*s", (int)fc.features[0].properties.name.length(), fc.features[0].properties.name.data());
+    check(fc.features[0].geometry.type == std::string_view("Polygon"), "geometry.type == Polygon was %.*s", fc.features[0].geometry.type.length(), fc.features[0].geometry.type.data());
+    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings was %u", fc.features[0].geometry.coordinates.size());
     if (fc.features[0].geometry.coordinates.size() >= 2) {
-      check(fc.features[0].geometry.coordinates[0].size() == 5,
-            "ring[0] has 5 points");
-      check(fc.features[0].geometry.coordinates[1].size() == 5,
-            "ring[1] has 5 points");
+      check(fc.features[0].geometry.coordinates[0].size() == 5, "ring[0] has 5 points was %u", fc.features[0].geometry.coordinates[0].size());
+      check(fc.features[0].geometry.coordinates[1].size() == 5, "ring[1] has 5 points was %u", fc.features[0].geometry.coordinates[1].size());
       // Spot-check first coordinate of ring[0]: [-140.99778, 41.675105]
-      check(near(fc.features[0].geometry.coordinates[0][0][0], -140.99778f,
-                 0.001f),
-            "ring[0][0].lon ≈ -140.998");
-      check(near(fc.features[0].geometry.coordinates[0][0][1], 41.675105f,
-                 0.001f),
-            "ring[0][0].lat ≈ 41.675");
+      check(near(fc.features[0].geometry.coordinates[0][0][0], -140.99778f, 0.001f), "ring[0][0].lon ≈ -140.998 was %f", fc.features[0].geometry.coordinates[0][0][0]);
+      check(near(fc.features[0].geometry.coordinates[0][0][1], 41.675105f, 0.001f), "ring[0][0].lat ≈ 41.675 was %f", fc.features[0].geometry.coordinates[0][0][1]);
     }
   }
 }
@@ -598,25 +606,6 @@ void test_partial_parse() {
   check(s.id == 99, "id unchanged (99)");
   check(s.temperature == 20, "temperature updated to 20");
   // s.toJSON(Serial);
-}
-
-// ----------------------------------------------------------------
-// Test 3 – fromJSON with StreamString
-// ----------------------------------------------------------------
-
-void test_parse_via_stream_template() {
-  DEBUG_PRINTF("\n--- Test: fromJSON(Stream&) template helper ---\n");
-
-  const char *json = "{\"version\":3,\"interval\":0.5}";
-  StreamString stream(json);
-
-  Config c;
-  JSON::ParseResult result = c.fromJSON(JSON_DEBUG_PARSER_NAME stream);
-
-  check(result.error == 0, "parse");
-  check(c.version == 3, "version == 3");
-  check(near(c.interval, 0.5f), "interval ≈ 0.5");
-  // c.toJSON(Serial);
 }
 
 // ----------------------------------------------------------------
@@ -949,10 +938,10 @@ void run_parsing_tests() {
   testIndexedParsing();
   testArrayParsing();
   test_parse_embedded_object();
+  test_parse_embedded_object_from_stream();
   test_parse_from_char_buffer();
   test_parse_from_stream();
   test_partial_parse();
-  test_parse_via_stream_template();
   test_parse_big_struct();
 
 

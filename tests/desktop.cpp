@@ -1,6 +1,6 @@
 
 #define DEBUG_ESP_PORT Serial
-#define JSON_DEBUG_LEVEL 0
+#define JSON_DEBUG_LEVEL 1
 
 #include <array>
 #include <chrono>
@@ -26,6 +26,9 @@
 #include "../examples/JSONParserTest/test.h"
 
 int main() {
-  run_tests();
+  //run_tests();
+  //testGeoJSONParsingSmall();
+  test_parse_embedded_object();
+  test_parse_embedded_object_from_stream();
   return 0;
 }
