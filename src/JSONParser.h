@@ -37,7 +37,7 @@ using enable_if_json_data_container_compatible =
 ///////////////////////////////////////////////////////////
 // Parse avec mask — convertit les const char[N] en JSONKey mémoïsées
 template <typename Cursor, typename... Args>
-enable_if_args_valid<Args...> _parse(JSON_PARSER_NAME_ARG uint32_t& mask,
+enable_if_args_valid<Args...> _parse(std::string_view name, uint32_t& mask,
                                      Cursor& cursor, Args&&... args) {
     uint64_t start = now();
 
@@ -49,7 +49,7 @@ enable_if_args_valid<Args...> _parse(JSON_PARSER_NAME_ARG uint32_t& mask,
     //     }
     // }
 
-    JSONParserBase<Cursor> parser(JSON_PARSER_NAME_PASS cursor);
+    JSONParserBase<Cursor> parser(name, cursor);
     bool automask = are_generic_keys(std::forward<Args>(args)...);
     parser.setAutomask(automask);
 
@@ -63,7 +63,7 @@ enable_if_args_valid<Args...> _parse(JSON_PARSER_NAME_ARG uint32_t& mask,
 
 // Parse sans mask (JSONCallbackObject ou UnknownValueType)
 template <typename Cursor, typename... Args>
-ParseResult __parse(JSON_PARSER_NAME_ARG Cursor& cursor, Args&&... args) {
+ParseResult __parse(std::string_view name, Cursor& cursor, Args&&... args) {
     uint64_t start = now();
 
     // if constexpr (std::is_same_v<remove_cvref_t<Cursor>, StreamCursor>) {
@@ -72,7 +72,7 @@ ParseResult __parse(JSON_PARSER_NAME_ARG Cursor& cursor, Args&&... args) {
     //     }
     // }
 
-    JSONParserBase<Cursor> parser(JSON_PARSER_NAME_PASS cursor);
+    JSONParserBase<Cursor> parser(name, cursor);
     parser.setUseMask(false);
 
     parser.parse(std::forward<Args>(args)...);
@@ -82,58 +82,46 @@ ParseResult __parse(JSON_PARSER_NAME_ARG Cursor& cursor, Args&&... args) {
 }
 
 template <typename... Args>
-ParseResult parse(JSON_PARSER_NAME_ARG uint32_t &mask,
-                  const PointerCursorReader &cursor, Args &&...args) {
-  return _parse(JSON_PARSER_NAME_PASS mask, cursor,
-                std::forward<Args>(args)...);
+ParseResult parse(uint32_t &mask, const PointerCursorReader &cursor, Args &&...args) {
+  return _parse("$ROOT", mask, cursor, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
-ParseResult parse(JSON_PARSER_NAME_ARG uint32_t &mask, StreamCursor &stream,
-                  Args &&...args) {
-  return _parse(JSON_PARSER_NAME_PASS mask, stream,
-                std::forward<Args>(args)...);
+ParseResult parse(uint32_t &mask, StreamCursor &stream, Args &&...args) {
+  return _parse("$ROOT", mask, stream, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
-ParseResult parse(JSON_PARSER_NAME_ARG uint32_t &mask, const char *input,
-                  Args &&...args) {
+ParseResult parse(uint32_t &mask, const char *input, Args &&...args) {
   const PointerCursorReader cursor(input, str_length(input, MAX_POINTER_CURSOR_SIZE));
-  return _parse(JSON_PARSER_NAME_PASS mask, cursor,
-                std::forward<Args>(args)...);
+  return _parse("$ROOT", mask, cursor, std::forward<Args>(args)...);
 }
 
 template <size_t N, typename... Args>
-ParseResult parse(JSON_PARSER_NAME_ARG uint32_t &mask, const char (&input)[N],
-                  Args &&...args) {
+ParseResult parse(uint32_t &mask, const char (&input)[N], Args &&...args) {
   const PointerCursorReader cursor(input, N - 1);
-  return _parse(JSON_PARSER_NAME_PASS mask, cursor,
-                std::forward<Args>(args)...);
+  return _parse("$ROOT", mask, cursor, std::forward<Args>(args)...);
 }
 
 template <typename T, typename... Args>
-enable_if_stream_compatible<T> parse(JSON_PARSER_NAME_ARG uint32_t &mask,
-                                     T &input, Args &&...args) {
+enable_if_stream_compatible<T> parse(uint32_t &mask, T &input, Args &&...args) {
   //constexpr size_t pool_size = sizeof...(Args) / 2 * MAX_KEY_LENGTH;
   StreamCursor stream(input);
-  return _parse(JSON_PARSER_NAME_PASS mask, stream,
-                std::forward<Args>(args)...);
+  return _parse("$ROOT", mask, stream, std::forward<Args>(args)...);
 }
 
 ////////////////////////////////////////////////////////////
 //  Parse With Callback
 ///////////////////////////////////////////////////////////
 
-ParseResult parse(JSON_PARSER_NAME_ARG StreamCursor &cursor,
-                  const JSONCallback &cb) {
+ParseResult parse(StreamCursor &cursor, const JSONCallback &cb) {
   JSONCallbackObject cb_obj(cb, "$ROOT");
-  return __parse(JSON_PARSER_NAME_PASS cursor, cb_obj);
+  return __parse("$ROOT", cursor, cb_obj);
 }
 
-ParseResult parse(JSON_PARSER_NAME_ARG const PointerCursorReader &cursor,
-                  const JSONCallback &cb) {
+ParseResult parse(const PointerCursorReader &cursor, const JSONCallback &cb) {
   JSONCallbackObject cb_obj(cb, "$ROOT");
-  return __parse(JSON_PARSER_NAME_PASS cursor, cb_obj);
+  return __parse("$ROOT", cursor, cb_obj);
 }
 
 ////////////////////////////////////////////////////////////
@@ -141,9 +129,8 @@ ParseResult parse(JSON_PARSER_NAME_ARG const PointerCursorReader &cursor,
 ///////////////////////////////////////////////////////////
 template <typename T>
 enable_if_json_data_container_compatible<T>
-parse(JSON_PARSER_NAME_ARG uint32_t &mask, const PointerCursorReader &cursor,
-      T &jsonObjects) {
-  return _parse(JSON_PARSER_NAME_PASS mask, cursor, jsonObjects);
+parse(uint32_t &mask, const PointerCursorReader &cursor, T &jsonObjects) {
+  return _parse("$ROOT", mask, cursor, jsonObjects);
 }
 
 // template <typename T>
@@ -154,26 +141,22 @@ parse(JSON_PARSER_NAME_ARG uint32_t &mask, const PointerCursorReader &cursor,
 
 NAMESPACE_JSON_END
 
-JSON::ParseResult
-UnknownValueType::fromJSON(JSON_PARSER_NAME_ARG JSON::StreamCursor &cursor) {
+JSON::ParseResult UnknownValueType::fromJSON(std::string_view name, JSON::StreamCursor &cursor) {
   static UnknownValueType dummy;
-  return JSON::__parse(JSON_PARSER_NAME_PASS cursor, dummy);
+  return JSON::__parse(name, cursor, dummy);
 }
 
-JSON::ParseResult UnknownValueType::fromJSON(
-    JSON_PARSER_NAME_ARG const JSON::PointerCursorReader &cursor) {
+JSON::ParseResult UnknownValueType::fromJSON(std::string_view name, const JSON::PointerCursorReader &cursor) {
     static UnknownValueType dummy;
-  return JSON::__parse(JSON_PARSER_NAME_PASS cursor, dummy);
+  return JSON::__parse(name, cursor, dummy);
 }
 
-JSON::ParseResult JSONCallbackObject::fromJSON(
-    JSON_PARSER_NAME_ARG const JSON::PointerCursorReader &cursor) {
-  return JSON::__parse(JSON_PARSER_NAME_PASS cursor, *this);
+JSON::ParseResult JSONCallbackObject::fromJSON(std::string_view name, const JSON::PointerCursorReader &cursor) {
+  return JSON::__parse(name, cursor, *this);
 }
 
-JSON::ParseResult
-JSONCallbackObject::fromJSON(JSON_PARSER_NAME_ARG JSON::StreamCursor &cursor) {
-  return JSON::__parse(JSON_PARSER_NAME_PASS cursor, *this);
+JSON::ParseResult JSONCallbackObject::fromJSON(std::string_view name, JSON::StreamCursor &cursor) {
+  return JSON::__parse(name, cursor, *this);
 }
 
 // #endif

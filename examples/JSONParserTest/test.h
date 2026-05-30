@@ -18,13 +18,6 @@ unsigned long long micros() {
 void yield() {}
 #endif
 
-#if JSON_DEBUG_LEVEL > 0
-std::string_view debug_name = "$ROOT";
-#define JSON_DEBUG_PARSER_NAME debug_name,
-#else
-#define JSON_DEBUG_PARSER_NAME
-#endif
-
 using namespace std;
 using namespace JSON;
 
@@ -340,7 +333,7 @@ void test_callback() {
 
   int liste_idx = 0;
   JSON::ParseResult pr =
-    JSON::parse(JSON_DEBUG_PARSER_NAME json, [&p, &liste_idx](const JSONKey &key,
+    JSON::parse(json, [&p, &liste_idx](const JSONKey &key,
                                                               const JSONValue &value, bool &stop) {
       if (key == "ville") {
         p.ville = value;
@@ -393,7 +386,7 @@ void testArrayCallback() {
   const char *json = "[{\"nom\":\"Bob\",\"age\":Infinity},{\"nom\":\"Alice\","
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
 
-  JSON::ParseResult pr = JSON::parse(JSON_DEBUG_PARSER_NAME json, [&personnes, p_length](const JSONKey &key, const JSONValue &value,
+  JSON::ParseResult pr = JSON::parse(json, [&personnes, p_length](const JSONKey &key, const JSONValue &value,
                                                                                          bool &stop) {
     int arrayIndex = key.getArrayIndex();
     if (arrayIndex >= (int)p_length || arrayIndex < 0)
@@ -429,7 +422,7 @@ void test_parse_embedded_object() {
   Parent parent;
   parent.child = child;
   const char *json = "{\"nom\":\"Bob\",\"child\":{\"prenom\":\"Alice\",\"age\":8},\"age\":40}";
-  JSON::ParseResult pr = parent.fromJSON(JSON_DEBUG_PARSER_NAME json);
+  JSON::ParseResult pr = parent.fromJSON(json);
   check(pr.error == 0, "parse");
   check(parent.nom == std::string_view("Bob"), "parent.nom == Bob, was %.*s", (int)parent.nom.length(), parent.nom.data());
   check(parent.age == 40, "parent.age == 40, was %d", parent.age);
@@ -443,7 +436,7 @@ void test_parse_embedded_object_from_stream() {
   parent.child = child;
   const char *json = "{\"nom\":\"Bob\",\"child\":{\"prenom\":\"Alice\",\"age\":8},\"age\":40}";
   StreamString stream(json);
-  JSON::ParseResult pr = parent.fromJSON(JSON_DEBUG_PARSER_NAME stream);
+  JSON::ParseResult pr = parent.fromJSON(stream);
   check(pr.error == 0, "parse");
   check(parent.nom == std::string_view("Bob"), "parent.nom == Bob, was %.*s", (int)parent.nom.length(), parent.nom.data());
   check(parent.age == 40, "parent.age == 40, was %d", parent.age);
@@ -482,7 +475,7 @@ void test_parsing() {
     "\"coordinates2\":[[1.0,2.0],[3.0,4.0],[5.0,6.0],[7.0,8.0]]"
     "}";
 
-  JSON::ParseResult result = p.fromJSON(JSON_DEBUG_PARSER_NAME json);
+  JSON::ParseResult result = p.fromJSON(json);
 
   check(result.error == 0, "parse");
   check(p.ville == std::string_view("Lyon"), "ville == Lyon");
@@ -537,7 +530,7 @@ void testArrayParsing() {
   const char *json = "[{\"nom\":\"Bob\",\"age\":40},{\"nom\":\"Alice\",\"age\":"
                      "30},{\"nom\":\"Roger\",\"age\":64}]";
   uint32_t mask = 0;
-  JSON::ParseResult r = JSON::parse(JSON_DEBUG_PARSER_NAME mask, json, personnes);
+  JSON::ParseResult r = JSON::parse(mask, json, personnes);
 
   check(r.error == 0, "parse");
   check(personnes[0].nom == std::string_view("Bob"), "personnes[0].nom == Bob");
@@ -564,7 +557,7 @@ void testIndexedParsing() {
 
   const char *json = "{ \"nom\":\"Bob\", \"age\":40, \"ville\":\"Paris\" }";
   uint32_t mask = 0;
-  JSON::ParseResult pr = JSON::parse(JSON_DEBUG_PARSER_NAME mask, json, "nom[0]", nom, "age[1]", age);
+  JSON::ParseResult pr = JSON::parse(mask, json, "nom[0]", nom, "age[1]", age);
 
   check(pr.error == 0, "parse");
   check(nom == std::string_view("Bob"), "nom == Bob");
@@ -592,7 +585,7 @@ void testGeoJSONParsingSmall() {
 
   FeatureCollection fc;
   StreamString stream(json);
-  JSON::ParseResult pr = fc.fromJSON(JSON_DEBUG_PARSER_NAME stream);
+  JSON::ParseResult pr = fc.fromJSON(stream);
 
   check(pr.error == 0, "parse");
   check(fc.type == "FeatureCollection", "type == FeatureCollection was %.*s", (int)fc.type.length(), fc.type.data());
@@ -656,7 +649,7 @@ void testGeoJSONParsingBig() {
   char *json = read_file("./canada.json");
   FeatureCollection fc;
   uint64_t start = now();
-  JSON::ParseResult pr = fc.fromJSON(JSON_DEBUG_PARSER_NAME json);
+  JSON::ParseResult pr = fc.fromJSON(json);
   [[maybe_unused]] uint64_t elapsed1 = now() - start;
   check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error, pr.length);
 
@@ -682,7 +675,7 @@ void test_parse_from_char_buffer() {
                      "\"active\":true, \"num\":[1,2,3]}";
 
   Sensor s;
-  JSON::ParseResult result = s.fromJSON(JSON_DEBUG_PARSER_NAME json);
+  JSON::ParseResult result = s.fromJSON(json);
 
   check(result.error == 0, "parse");
   check(s.id == 42, "id == 42");
@@ -706,7 +699,7 @@ void test_parse_from_stream() {
   s.id = 0;
   s.temperature = 0.0f;
   s.active = false;
-  JSON::ParseResult result = s.fromJSON(JSON_DEBUG_PARSER_NAME stream);
+  JSON::ParseResult result = s.fromJSON(stream);
 
   check(result.error == 0, "parse");
   check(s.id == 42, "id == 42");
@@ -731,7 +724,7 @@ void test_partial_parse() {
   // Only update "active"
   const char *json = "{\"temperature\":20}";
   StreamString stream(json);
-  JSON::ParseResult result = s.fromJSON(JSON_DEBUG_PARSER_NAME stream);
+  JSON::ParseResult result = s.fromJSON(stream);
 
   check(result.error == 0, "parse");
   check(s.id == 99, "id unchanged (99)");
@@ -857,7 +850,7 @@ void test_roundtrip() {
 
   StreamString stream(buf);
   Sensor copy;
-  JSON::ParseResult result = copy.fromJSON(JSON_DEBUG_PARSER_NAME stream);
+  JSON::ParseResult result = copy.fromJSON(stream);
 
   check(result.error == 0, "parse");
   check(copy.id == 72, "id == 72");
@@ -902,7 +895,7 @@ void testSerializeToFile() {
   }
 
   Sensor s2;
-  JSON::ParseResult result = s2.fromJSON(JSON_DEBUG_PARSER_NAME file);
+  JSON::ParseResult result = s2.fromJSON(file);
   file.close();
 
   check(result.error == 0, "parse");
@@ -932,7 +925,7 @@ void test_parse_geojson_from_file() {
   }
   //char *json = read_file("./data.geojson");
   FeatureCollection fc;
-  JSON::ParseResult result = fc.fromJSON(JSON_DEBUG_PARSER_NAME file);
+  JSON::ParseResult result = fc.fromJSON(file);
   file.close();
 
   check(result.error == 0, "parse error %u, parsed length=%zu", result.error, result.length);
@@ -1002,7 +995,7 @@ void test_parse_big_struct() {
   JSON::ParseResult r;
   uint64_t start = now();
   for (size_t i = 0; i < 10000; i++) {
-    r = b.fromJSON(JSON_DEBUG_PARSER_NAME json);
+    r = b.fromJSON(json);
   }
   uint64_t elapsed = now() - start;
   check(true, "Parsing time: %lu µs\n", elapsed);

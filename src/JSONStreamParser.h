@@ -47,27 +47,26 @@ public:
   };
 
   // ── Constructeur PointerCursor ─
-  explicit JSONParserBase(
-      JSON_PARSER_NAME_ARG const PointerCursorReader &cursor)
+  explicit JSONParserBase(std::string_view& name, const PointerCursorReader &cursor)
       : _cursor(cursor), _bytesConsumed(cursor.bytesConsumed()), _state(IDLE),
         _automask(false), _usemask(true), _keyMask(0), _nKeys(0), _nParsed(0),
         _nConverted(0), _nUpdated(0), _key_start(nullptr), _key_length(0),
         _is_top_level_array(false), _nArgs(0),
         _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
-        _name(JSON_PARSER_NAME_PASS_SINGLE) {
+        _name(name) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "JSONParserBase(pointer) '%.*s' created\n",
                      (int)_jsonParserName.length(), _jsonParserName.data());
   }
 
   // ── Constructeur StreamCursor ─────────────────────────────
   // Used when Cursor = StreamCursor; never called for other cursor types.
-  explicit JSONParserBase(JSON_PARSER_NAME_ARG StreamCursor &cursor)
+  explicit JSONParserBase(std::string_view& name, StreamCursor &cursor)
       : _cursor(cursor), _bytesConsumed(cursor.bytesConsumed()), _state(IDLE),
         _automask(false), _usemask(true), _keyMask(0), _nKeys(0), _nParsed(0),
         _nConverted(0), _nUpdated(0), _key_start(nullptr), _key_length(0),
         _is_top_level_array(false), _nArgs(0),
         _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
-        _name(JSON_PARSER_NAME_PASS_SINGLE) {
+        _name(name) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "JSONParserBase(stream) '%.*s' created\n",
                      (int)_jsonParserName.length(), _jsonParserName.data());
   }
@@ -1260,7 +1259,6 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
     return ParseValueResult::NO_RESULT;
   }
 
-#if JSON_DEBUG_LEVEL > 0
   std::string_view name = (_key_start == nullptr || _key_length == 0)
                               ? std::string_view("$ROOT", 5)
                               : copy_to_sv(_key_start, _key_length);
@@ -1268,9 +1266,6 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
                   name.data());
   JSON_DEBUG_INFO("Cursor position is now at %zu\n", bytesConsumed());
   JSON::ParseResult r = arg_value.fromJSON(name, _cursor);
-#else
-  JSON::ParseResult r = arg_value.fromJSON(_cursor);
-#endif
 
 #if JSON_DEBUG_LEVEL > 0
   JSON_DEBUG_INFO("In previous JSONParser %.*s parse_object result: ",
