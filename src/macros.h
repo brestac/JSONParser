@@ -217,18 +217,18 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
 
 #define FROM_JSON_OVERRIDE(...)                                                \
   template <typename T>                                                        \
-  JSON::ParseResult fromJSON(std::string_view name, T &input) {                  \
-    return JSON::_parse(name, this->updated, input,             \
+  JSON::ParseResult fromJSON(std::string_view _json_name_, T &input) {          \
+    return JSON::_parse(_json_name_, this->updated, input,                     \
                        MACRO(__VA_ARGS__));                                    \
   }                                                                            \
   JSON::ParseResult fromJSON(                                                  \
-std::string_view name, const PointerCursorReader &cursor) override {       \
-    return JSON::_parse(name, this->updated, cursor,            \
+std::string_view _json_name_, const PointerCursorReader &cursor) override {\
+    return JSON::_parse(_json_name_, this->updated, cursor,                    \
                        MACRO(__VA_ARGS__));                                    \
   }                                                                            \
-  JSON::ParseResult fromJSON(std::string_view name, StreamCursor &cursor)        \
+  JSON::ParseResult fromJSON(std::string_view _json_name_, StreamCursor &cursor)\
       override {                                                               \
-    return JSON::_parse(name, this->updated, cursor,            \
+    return JSON::_parse(_json_name_, this->updated, cursor,                    \
                        MACRO(__VA_ARGS__));                                    \
   }
 
