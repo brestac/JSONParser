@@ -1,5 +1,21 @@
-#ifdef ARDUINO
-#include "./generate_geojson_littlefs.h"
+#include <math.h>
+#include <stdlib.h>
+#include <chrono>
+
+#ifndef ARDUINO
+#include "../../include/FileStream.h"
+void randomSeed(uint32_t seed) { srand(seed); }
+// get a ramdom number between 0 and max
+int random(int max) {
+  return rand() % max;
+}
+
+unsigned long long micros() {
+  auto now = std::chrono::steady_clock::now();
+  return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+}
+
+void yield() {}
 #endif
 
 #if JSON_DEBUG_LEVEL > 0
@@ -11,6 +27,125 @@ std::string_view debug_name = "$ROOT";
 
 using namespace std;
 using namespace JSON;
+
+
+static void _geojson_write_polygon(File& f, double cx, double cy,
+                                   int rings, int points_per_ring) {
+    f.print("{\"type\":\"Polygon\",\"coordinates\":[");
+
+    for (int r = 0; r < rings; r++) {
+        if (r > 0) f.print(",");
+
+        double radius = 0.01 + (rand() % 100) * 0.001;
+
+        f.print("[");
+        for (int i = 0; i <= points_per_ring; i++) {
+            if (i > 0) f.print(",");
+
+            double angle = (2.0 * M_PI * i) / points_per_ring;
+            double lon   = cx + radius * cos(angle);
+            double lat   = cy + radius * sin(angle);
+
+            if (lon >  180.0) lon =  180.0;
+            if (lon < -180.0) lon = -180.0;
+            if (lat >   90.0) lat =   90.0;
+            if (lat <  -90.0) lat =  -90.0;
+
+            f.print("[");
+            f.printf("%f", lon);
+            f.print(",");
+            f.printf("%f", lat);
+            f.print("]");
+        }
+        f.print("]");
+    }
+
+    f.print("]}");
+}
+
+// ---------------------------------------------------------------------------
+//  generate_geojson
+//
+//  Génère un fichier GeoJSON d'environ target_kb kilo-octets dans LittleFS.
+//
+//  Paramètres :
+//    path            – chemin dans LittleFS, ex: "/test.geojson"
+//    target_kb       – taille cible en KB
+//    rings           – nombre de rings par polygone (défaut 1)
+//    points_per_ring – points par ring          (défaut 8)
+//
+//  Retourne la taille réelle écrite en octets, ou -1 en cas d'erreur.
+// ---------------------------------------------------------------------------
+
+long generate_geojson(const char* path, size_t target_kb,
+                      int rings = 1, int points_per_ring = 8) {
+  
+    // Supprimer le fichier existant éventuel
+    if (LittleFS.exists(path)) {
+      LittleFS.remove(path);
+    }
+
+    File f = LittleFS.open(path, "w");
+
+    if (!f) {
+        Serial.printf("[GeoJSON] Erreur: impossible d'ouvrir '%s'\n", path);
+        return -1;
+    }
+
+    randomSeed(micros());
+
+    const size_t target_bytes = target_kb * 1024UL;
+
+    f.print("{\"type\":\"FeatureCollection\",\"features\":[");
+
+    size_t written    = 0;
+    int    feat_count = 0;
+
+    while (true) {
+        // Coordonnées aléatoires
+        double cx = -180.0 + (random(36000)) * 0.01;
+        double cy =  -90.0 + (random(18000)) * 0.01;
+
+        // Estimation de la taille de la prochaine feature
+        size_t est = 120 + (size_t)(rings * (points_per_ring + 1)) * 22;
+
+        if (written + est > target_bytes * 95 / 100)
+            break;
+
+        if (feat_count > 0) f.print(",");
+
+        char name[32];
+        snprintf(name, sizeof(name), "feature_%d", feat_count);
+
+        f.print("{\"type\":\"Feature\","
+                "\"properties\":{\"name\":\"");
+        f.print(name);
+        f.print("\",\"id\":");
+        f.printf("%d", feat_count);
+        f.print("},\"geometry\":");
+
+        _geojson_write_polygon(f, cx, cy, rings, points_per_ring);
+
+        f.print("}");
+
+        written += est;
+        feat_count++;
+
+        // Laisser respirer le watchdog sur ESP8266/ESP32
+        yield();
+    }
+
+    f.print("]}");
+    f.flush();
+
+    size_t actual = f.size();
+    f.close();
+
+    Serial.printf("[GeoJSON] %d features → %zu octets (%.1f KB) dans '%s'\n",
+                  feat_count, actual, actual / 1024.0f, path);
+
+    return (long)actual;
+}
 
 // ----------------------------------------------------------------
 // Test infrastructure
@@ -459,8 +594,6 @@ void testGeoJSONParsingSmall() {
   StreamString stream(json);
   JSON::ParseResult pr = fc.fromJSON(JSON_DEBUG_PARSER_NAME stream);
 
-  fc.toJSON(Serial, false);
-
   check(pr.error == 0, "parse");
   check(fc.type == "FeatureCollection", "type == FeatureCollection was %.*s", (int)fc.type.length(), fc.type.data());
   check(fc.features.size() == 1, "1 feature, was %u", fc.features.size());
@@ -513,10 +646,8 @@ void testGeoJSONParsingBig() {
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
 
-  FILE *file = fopen("tests/canada.json", "r");
-  if (!file) {
-    file = fopen("./canada.json", "r");
-  }
+  FILE *file = fopen("./canada.json", "r");
+
   if (!file) {
     DEBUG_PRINTF("ERROR: Could not open canada.json\n");
     return;
@@ -779,64 +910,50 @@ void testSerializeToFile() {
   check(near(s2.temperature, 36.6f), "temperature ≈ 36.6");
   // check(std::memcmp(&s1, &s2, sizeof(Sensor)) == 0, "s1 == s2");
 }
+#endif
 
-void testParseGeoJSONFromFile() {
+void test_parse_geojson_from_file() {
   DEBUG_PRINTF("\n--- Test: parse GeoJSON from file ---\n");
-  if (!LittleFS.begin()) {
-    Serial.println("Failed to mount LIttleFS");
-    return;
-  }
 
   // write geojson to file
-  const char *filename = "/data.geojson";
-
-  // delete file if it exists
-  if (LittleFS.exists(filename)) {
-    LittleFS.remove(filename);
-  }
-
+  const char *filename = "./data.geojson";
+  
   size_t size = generate_geojson(filename, 1);
 
   check(LittleFS.exists(filename), "Generated geojson file size=%zuB\n", size);
 
   // read file back
   File file = LittleFS.open(filename, "r");
+  
   if (!file) {
     DEBUG_PRINTF("Failed to open file for reading\n");
     check(false, "Failed to open file for reading\n");
     return;
   }
-
-  while (file.available()) {
-      Serial.write(file.read());
-  }
-  Serial.println();
-  file.seek(0);
-
+  //char *json = read_file("./data.geojson");
   FeatureCollection fc;
   JSON::ParseResult result = fc.fromJSON(JSON_DEBUG_PARSER_NAME file);
   file.close();
 
   check(result.error == 0, "parse error %u, parsed length=%zu", result.error, result.length);
-  fc.toJSON(Serial, false);
-  return;
+  //fc.toJSON(Serial, false);
+ 
   check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)fc.type.length(), fc.type.data());
 
   if (fc.features.size() >= 1) {
-    check(fc.features[0].type == "Feature", "feature.type == Feature, was %.*s", (int)fc.features[0].type.length(), fc.features[0].type.data());
-    check(fc.features[0].properties.name == "feature_0", "properties.name == feature_0, was %.*s", (int)fc.features[0].properties.name.length(), fc.features[0].properties.name.data());
-    check(fc.features[0].geometry.type == "Polygon", "geometry.type == Polygon, was %.*s", fc.features[0].geometry.type.length(), fc.features[0].geometry.type.data());
-    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings, was %u", fc.features[0].geometry.coordinates.size());
+    check(fc.features[0].type == "Feature", "feature[0].type == Feature, was %.*s", (int)fc.features[0].type.length(), fc.features[0].type.data());
+    check(fc.features[0].properties.name == "feature_0", "feature[0].properties.name == feature_0, was %.*s", (int)fc.features[0].properties.name.length(), fc.features[0].properties.name.data());
+    check(fc.features[0].geometry.type == "Polygon", "feature[0].geometry.type == Polygon, was %.*s", fc.features[0].geometry.type.length(), fc.features[0].geometry.type.data());
+    check(fc.features[0].geometry.coordinates.size() == 1, "feature[0].geometry has 1 rings, was %u", fc.features[0].geometry.coordinates.size());
 
     if (fc.features[0].geometry.coordinates.size() >= 2) {
-      check(fc.features[0].geometry.coordinates[0].size() == 5, "ring[0] has 5 points");
+      check(fc.features[0].geometry.coordinates[0].size() == 5, "ring[0] has 5 points, was %u", fc.features[0].geometry.coordinates[0].size());
     }
   }
 
   // delete file
-  LittleFS.remove(filename);
+  //LittleFS.remove(filename);
 }
-#endif
 
 // ----------------------------------------------------------------
 // Test – BigStruct round-trip parse
@@ -943,9 +1060,8 @@ void run_parsing_tests() {
   test_parse_from_stream();
   test_partial_parse();
   test_parse_big_struct();
-
-
   testGeoJSONParsingSmall();
+  test_parse_geojson_from_file();
 }
 
 void run_printing_tests() {
@@ -972,7 +1088,6 @@ void run_tests() {
   test_roundtrip();
 #ifdef ARDUINO
   testSerializeToFile();
-  testParseGeoJSONFromFile();
 #else
   testGeoJSONParsingBig();
 #endif

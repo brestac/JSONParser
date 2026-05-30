@@ -278,6 +278,8 @@ template <typename Cursor> void JSONParserBase<Cursor>::reset() {
   _state = IDLE;
   _key_start = nullptr;
   _key_length = 0;
+  //_key_buf[0] = '\0';
+  //_val_buf[0] = '\0';
   _is_top_level_array = false;
   _nArgs = 0;
   _lastError = ParserError::NO_ERROR;
@@ -445,7 +447,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_string(V &arg_value) {
 
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
-
+  
   std::string_view parsed_value(_val_buf, n);
   return ParseValueResult::VALUE_PARSED |
          assign_parsed_value_to_value(parsed_value, arg_value);

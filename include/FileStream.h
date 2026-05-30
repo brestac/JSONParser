@@ -1,19 +1,41 @@
+#pragma once
 // Like Arduino Stream.h but for files
+#include <filesystem>
+#include <fstream>
 #include <iostream>
-#include "Stream.h"
 #include <limits.h>
 
-class FileStream : public Stream {
+#include "Stream.h"
+
+class File : public Stream {
 public:
-  FileStream(FILE *file) : _file(file) {
-    fseek(_file, 0, SEEK_END);
-    _size = ftell(_file);
-    fseek(_file, 0, SEEK_SET);
+  explicit File(FILE *file, const char *mode = "r") : _file(file) {
+    if (strcmp(mode, "r") == 0) {
+      fseek(_file, 0, SEEK_END);
+      _size = ftell(_file);
+      fseek(_file, 0, SEEK_SET);
+    }
   }
+
+  ~File() {
+    close();
+  }
+
+  void close() {
+    if (_file) {
+      fseek(_file, 0, SEEK_SET);
+      fclose(_file);
+      _file = nullptr;
+      _size = 0;
+    }
+  }
+
+  void seek(size_t pos) { fseek(_file, pos, SEEK_SET); }
+
   void _update_size() {
     long current_pos = ftell(_file);
     if (current_pos > _size) {
-      _size = current_pos;
+      _size = current_pos + 1;
     }
   }
   void flush() override {}
@@ -39,22 +61,45 @@ public:
   bool eof() const { return feof(_file); }
   size_t bytesConsumed() const { return ftell(_file); }
   size_t size() { return _size; }
-  template <typename... Args> size_t printf(const char *format, Args &&...args) {
+
+  template <typename... Args>
+  size_t printf(const char *format, Args &&...args) {
     size_t written = fprintf(_file, format, std::forward<Args>(args)...);
     _update_size();
     return written;
   }
-  template <size_t N> size_t printf(const char (&buffer)[N]) {
+
+  template <size_t N> size_t print(const char (&buffer)[N]) {
     size_t written = fprintf(_file, "%s", buffer);
     _update_size();
     return written;
   }
+
   template <size_t N> size_t println(const char (&buffer)[N]) {
     size_t written = fprintf(_file, "%s\n", buffer);
     _update_size();
     return written;
   }
+
+  bool operator!() const { return _file == nullptr; }
+
 private:
   FILE *_file;
   size_t _size;
 };
+
+class FileSystemImpl {
+public:
+  File open(const char *filename, const char *mode) {
+    FILE *f = fopen(filename, mode);
+    return File(f, mode);
+  }
+
+  bool exists(const char *filename) {
+    return std::filesystem::exists(filename);
+  }
+
+  bool remove(const char *filename) { return std::remove(filename); }
+};
+
+FileSystemImpl LittleFS;
