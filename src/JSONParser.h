@@ -41,12 +41,18 @@ enable_if_args_valid<Args...> _parse(JSON_PARSER_NAME_ARG uint32_t& mask,
                                      Cursor& cursor, Args&&... args) {
     uint64_t start = now();
 
+    // Reset du string pool uniquement pour le parser racine (bytesConsumed==0)
+    // Les parsers enfants partagent le même curseur et ne doivent pas resetter.
+    // if constexpr (std::is_same_v<remove_cvref_t<Cursor>, StreamCursor>) {
+    //     if (cursor.bytesConsumed() == 0) {
+    //         cursor.reset_string_pool();
+    //     }
+    // }
+
     JSONParserBase<Cursor> parser(JSON_PARSER_NAME_PASS cursor);
     bool automask = are_generic_keys(std::forward<Args>(args)...);
     parser.setAutomask(automask);
 
-    // as_json_key transforme chaque const char[N] en const JSONKey& mémoïsée.
-    // Les autres arguments (références vers les valeurs) sont transmis tels quels.
     parser.parse(std::forward<Args>(args)...);
 
     mask = parser.keyMask();
@@ -59,6 +65,12 @@ enable_if_args_valid<Args...> _parse(JSON_PARSER_NAME_ARG uint32_t& mask,
 template <typename Cursor, typename... Args>
 ParseResult __parse(JSON_PARSER_NAME_ARG Cursor& cursor, Args&&... args) {
     uint64_t start = now();
+
+    // if constexpr (std::is_same_v<remove_cvref_t<Cursor>, StreamCursor>) {
+    //     if (cursor.bytesConsumed() == 0) {
+    //         cursor.reset_string_pool();
+    //     }
+    // }
 
     JSONParserBase<Cursor> parser(JSON_PARSER_NAME_PASS cursor);
     parser.setUseMask(false);
@@ -102,6 +114,7 @@ ParseResult parse(JSON_PARSER_NAME_ARG uint32_t &mask, const char (&input)[N],
 template <typename T, typename... Args>
 enable_if_stream_compatible<T> parse(JSON_PARSER_NAME_ARG uint32_t &mask,
                                      T &input, Args &&...args) {
+  //constexpr size_t pool_size = sizeof...(Args) / 2 * MAX_KEY_LENGTH;
   StreamCursor stream(input);
   return _parse(JSON_PARSER_NAME_PASS mask, stream,
                 std::forward<Args>(args)...);
@@ -130,7 +143,6 @@ template <typename T>
 enable_if_json_data_container_compatible<T>
 parse(JSON_PARSER_NAME_ARG uint32_t &mask, const PointerCursorReader &cursor,
       T &jsonObjects) {
-  // const PointerCursorReader c = cursor;
   return _parse(JSON_PARSER_NAME_PASS mask, cursor, jsonObjects);
 }
 
@@ -156,7 +168,6 @@ JSON::ParseResult UnknownValueType::fromJSON(
 
 JSON::ParseResult JSONCallbackObject::fromJSON(
     JSON_PARSER_NAME_ARG const JSON::PointerCursorReader &cursor) {
-  // const PointerCursorReader c = cursor;
   return JSON::__parse(JSON_PARSER_NAME_PASS cursor, *this);
 }
 

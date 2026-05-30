@@ -143,6 +143,10 @@ void advance_to(size_t index) const {
 
   T *start() const { return _start; }
 
+  std::string_view intern_string(const char* src, size_t len) const {
+    return std::string_view(src, len);
+  }
+
 private:
   mutable T *_pos;
   T *_start;

@@ -447,8 +447,13 @@ ParseValueResult JSONParserBase<Cursor>::parse_string(V &arg_value) {
 
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
-  
-  std::string_view parsed_value(_val_buf, n);
+
+  // Si la cible est std::string_view et le curseur est StreamCursor,
+  // copier dans le pool du curseur pour garantir la stabilité des pointeurs
+  // après destruction des parsers enfants (évite le dangling string_view).
+
+  std::string_view parsed_value = _cursor.intern_string(_val_buf, n);
+
   return ParseValueResult::VALUE_PARSED |
          assign_parsed_value_to_value(parsed_value, arg_value);
 }

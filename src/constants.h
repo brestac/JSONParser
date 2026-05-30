@@ -12,6 +12,7 @@ NAMESPACE_JSON_BEGIN
 
 constexpr size_t STREAM_BUFFER_SIZE = 128;
 constexpr size_t RING_BUFFER_SIZE = 256;
+constexpr size_t STREAM_STRING_POOL_SIZE = 1 << 12; // 4096 octets
 constexpr size_t MAX_JSON_LENGTH = 1 << 24;  // 16777216 bytes = 16MB
 constexpr size_t MAX_KEY_LENGTH = 1 << 8;    // 255
 constexpr size_t MAX_VALUE_LENGTH = 1 << 8;  // 255
