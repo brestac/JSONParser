@@ -9,6 +9,7 @@
 // uniquement sur le type de curseur. L'API publique est identique à
 #include <limits>
 
+#include "ParseDispatchTable.h"
 #include "demangled.h"
 #include "types.h"
 #include "utils.h"
@@ -24,6 +25,14 @@ using namespace JSON;
 //  JSONStreamParser<N>.
 // ============================================================
 template <typename Cursor> class JSONParserBase {
+
+template <typename ParserT, typename TableT, typename TupleT>
+friend ParseValueResult lookup_impl(
+        void*                   parser_ptr,
+        void*                   table_ptr,
+        void*                   refs_ptr,
+        const std::string_view& parsed_key);
+
 public:
   enum ParserState : uint8_t {
     IDLE = 0,
@@ -128,17 +137,6 @@ public:
 
   template <class From, class To> constexpr To clamp_to_max(From v);
 
-  // ── Recherche de valeur par clé ────────────────────────────
-
-  inline ParseValueResult
-  searchValueArgumentForKey(size_t idx, const std::string_view &parsed_key);
-
-  template <typename V, typename... Args>
-  ParseValueResult searchValueArgumentForKey(size_t idx,
-                                             const std::string_view &parsed_key,
-                                             const JSONKey &arg_key,
-                                             V &arg_value, Args &&...args);
-
   template <typename V> ParseValueResult parse_into_value(V &arg_value);
 
   ParseValueResult parse_into_array_at_index(JSONCallbackObject &cb,
@@ -223,7 +221,12 @@ private:
 
   template <class... Args>
   enable_if_t<args_are_pairs<Args...>, ParseValueResult>
-  parse_value(Args &&...args);
+  template <typename TupleT, typename TableT>
+  std::enable_if_t<(std::tuple_size<TupleT>::value == 1), ParseValueResult>
+  parse_value(TableT& table, TupleT& args);
+  template <typename TupleT, typename TableT>
+  std::enable_if_t<(std::tuple_size<TupleT>::value > 1), ParseValueResult>
+  parse_value(TableT& table, TupleT& args);
 
   template <typename V> ParseValueResult parse_string(V &v);
   template <typename V, typename Type> ParseValueResult parse_numeric(V &v);
@@ -711,6 +714,50 @@ JSONParserBase<Cursor>::parse_value(Args &&...args) {
   JSON_DEBUG_COLOR(COLOR_GREEN, "Looking for key '%.*s' in passed args\n",
                    (int)parsed_key.length(), parsed_key.data());
   return searchValueArgumentForKey(0, parsed_key, std::forward<Args>(args)...);
+template <typename Cursor>
+ParseValueResult JSONParserBase<Cursor>::parse_value(UnknownValueType &value) {
+  // An unknown value comes from an unmatched key or an array overflow
+  // We don't need to update the mask or the counters nUpdated, nConverted, nParsed
+  return ParseValueResult::KEY_FOUND | parse_into_value(value);
+}
+
+template<typename Cursor>
+template <typename TupleT, typename TableT>
+std::enable_if_t<(std::tuple_size<TupleT>::value == 1), ParseValueResult>
+JSONParserBase<Cursor>::parse_value(TableT& table, TupleT& args) {
+  return parse_value(std::get<0>(args));
+}
+
+template<typename Cursor>
+template <typename TupleT, typename TableT>
+std::enable_if_t<(std::tuple_size<TupleT>::value > 1), ParseValueResult>
+JSONParserBase<Cursor>::parse_value(TableT& table, TupleT& args) {
+    constexpr size_t NPairs = std::tuple_size<TupleT>::value / 2;  
+    const std::string_view parsed_key(_key_start, _key_length);
+
+    const StaticEntry* entry = table.find(hash32(parsed_key));
+
+    if (!entry) {
+      JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value key '%.*s' not found\n", (int)parsed_key.length(), parsed_key.data());
+      return ParseValueResult::NO_RESULT;
+    }
+
+  ParseValueResult result = ParseValueResult(ParseValueResult::KEY_FOUND);
+  result |= dispatch_by_index(entry->arg_index, *this, args, std::make_index_sequence<NPairs>{});
+    
+  if (result.updated()) {
+    if (_usemask) {
+        const size_t mask_idx = _automask
+            ? entry->arg_index
+            : static_cast<size_t>(entry->key_index);
+      _keyMask |= (1u << mask_idx);
+    }
+  _nUpdated++;
+  }
+
+  if (result.converted()) _nConverted++;
+  
+  return result;
 }
 
 // ── parse_into_value ─────────────────────────────────────────
@@ -774,6 +821,17 @@ JSONParserBase<Cursor>::parse(T &jsonObjects) {
 template <typename Cursor>
 template <typename... Args>
 void JSONParserBase<Cursor>::parse(Args &&...args) {
+  static_assert(sizeof...(Args) > 0, "::parse No arguments provided");
+  using TupleT = std::tuple<Args&&...>;
+  constexpr size_t NPairs = sizeof...(Args) / 2;
+
+  // Références runtime — reconstruites à chaque appel
+  TupleT refs(std::forward<Args>(args)...);
+
+  // Table statique — uniquement hash + index, pas de références
+  // static constexpr possible car ne dépend QUE des const char[N]
+  // qui sont des littéraux, stables pour toute la spécialisation
+  static const StaticDispatchTable<NPairs> table(refs);
 
   _nArgs = sizeof...(Args);
   size_t iteration = 0;
