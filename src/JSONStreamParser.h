@@ -26,12 +26,10 @@ using namespace JSON;
 // ============================================================
 template <typename Cursor> class JSONParserBase {
 
-template <typename ParserT, typename TableT, typename TupleT>
-friend ParseValueResult lookup_impl(
-        void*                   parser_ptr,
-        void*                   table_ptr,
-        void*                   refs_ptr,
-        const std::string_view& parsed_key);
+  template <typename ParserT, typename TableT, typename TupleT>
+  friend ParseValueResult lookup_impl(void *parser_ptr, void *table_ptr,
+                                      void *refs_ptr,
+                                      const std::string_view &parsed_key);
 
 public:
   enum ParserState : uint8_t {
@@ -56,10 +54,11 @@ public:
   };
 
   // ── Constructeur PointerCursor ─
-  explicit JSONParserBase(std::string_view& name, const PointerCursorReader &cursor)
+  explicit JSONParserBase(std::string_view &name,
+                          const PointerCursorReader &cursor)
       : _cursor(cursor), _bytesConsumed(cursor.bytesConsumed()), _state(IDLE),
         _automask(false), _usemask(true), _keyMask(0), _nKeys(0), _nParsed(0),
-        _nConverted(0), _nUpdated(0), _key_start(nullptr), _key_length(0),
+        _nConverted(0), _nUpdated(0), _key_length(0),
         _is_top_level_array(false), _nArgs(0),
         _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
         _name(name) {
@@ -69,10 +68,10 @@ public:
 
   // ── Constructeur StreamCursor ─────────────────────────────
   // Used when Cursor = StreamCursor; never called for other cursor types.
-  explicit JSONParserBase(std::string_view& name, StreamCursor &cursor)
+  explicit JSONParserBase(std::string_view &name, StreamCursor &cursor)
       : _cursor(cursor), _bytesConsumed(cursor.bytesConsumed()), _state(IDLE),
         _automask(false), _usemask(true), _keyMask(0), _nKeys(0), _nParsed(0),
-        _nConverted(0), _nUpdated(0), _key_start(nullptr), _key_length(0),
+        _nConverted(0), _nUpdated(0), _key_length(0),
         _is_top_level_array(false), _nArgs(0),
         _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
         _name(name) {
@@ -183,7 +182,6 @@ private:
   size_t _nParsed;
   size_t _nConverted;
   size_t _nUpdated;
-  char *_key_start;
   size_t _key_length;
   char _key_buf[JSON::MAX_KEY_LENGTH + 1];
   char _val_buf[JSON::MAX_VALUE_LENGTH + 1];
@@ -219,14 +217,13 @@ private:
   ParseValueResult parse_value(JSONCallbackObject &cb);
   ParseValueResult parse_value(UnknownValueType &unknown);
 
-  template <class... Args>
-  enable_if_t<args_are_pairs<Args...>, ParseValueResult>
   template <typename TupleT, typename TableT>
   std::enable_if_t<(std::tuple_size<TupleT>::value == 1), ParseValueResult>
-  parse_value(TableT& table, TupleT& args);
+  parse_value(TableT &table, TupleT &args);
+
   template <typename TupleT, typename TableT>
   std::enable_if_t<(std::tuple_size<TupleT>::value > 1), ParseValueResult>
-  parse_value(TableT& table, TupleT& args);
+  parse_value(TableT &table, TupleT &args);
 
   template <typename V> ParseValueResult parse_string(V &v);
   template <typename V, typename Type> ParseValueResult parse_numeric(V &v);
@@ -278,7 +275,6 @@ template <typename Cursor> void JSONParserBase<Cursor>::reset() {
   _nConverted = 0;
   _nUpdated = 0;
   _state = IDLE;
-  _key_start = nullptr;
   _key_length = 0;
   //_key_buf[0] = '\0';
   //_val_buf[0] = '\0';
@@ -295,7 +291,7 @@ void JSONParserBase<Cursor>::set_state(ParserState s) {
     return;
   _state = s;
   if (_state == COMMA) {
-    _key_start = nullptr;
+    _key_buf[0] = '\0';
     _key_length = 0;
   }
 }
@@ -303,7 +299,7 @@ void JSONParserBase<Cursor>::set_state(ParserState s) {
 // ── parse_key ────────────────────────────────────────────────
 template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true)) {
-    _key_start = nullptr;
+    _key_buf[0] = '\0';
     _key_length = 0;
     return false;
   }
@@ -316,7 +312,7 @@ template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
   while (n < JSON::MAX_KEY_LENGTH) {
     int c = _cursor.peek(n);
     if (c < 0) {
-      _key_start = nullptr;
+      _key_buf[0] = '\0';
       _key_length = 0;
       return false;
     }
@@ -331,7 +327,7 @@ template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
   _key_buf[n] = '\0';
 
   if (n == 0) {
-    _key_start = nullptr;
+    _key_buf[0] = '\0';
     _key_length = 0;
     return false;
   }
@@ -339,12 +335,11 @@ template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
   _cursor.advance(n); // consomme les caractères de la clé
 
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true)) {
-    _key_start = nullptr;
+    _key_buf[0] = '\0';
     _key_length = 0;
     return false;
   }
 
-  _key_start = _key_buf;
   _key_length = n;
 
   JSON_DEBUG_INFO("JSONParserBase::parse_key '%.*s'\n", (int)n, _key_buf);
@@ -685,7 +680,7 @@ template <typename Cursor>
 ParseValueResult JSONParserBase<Cursor>::parse_value(JSONCallbackObject &cb) {
   JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value with callback\n");
 
-  cb.setKey(_key_start, _key_length);
+  cb.setKey(_key_buf, _key_length);
 
   if (_is_top_level_array) {
     JSON_DEBUG_INFO("JSONParserBase<Cursor>::parse_value top level array\n");
@@ -703,60 +698,45 @@ JSONParserBase<Cursor>::parse_value(UnknownValueType &unknown) {
   return ParseValueResult::KEY_FOUND | parse_into_value(unknown);
 }
 
-// ── parse_value (args) ────────────────────────────────────────
 template <typename Cursor>
-template <class... Args>
-enable_if_t<args_are_pairs<Args...>, ParseValueResult>
-JSONParserBase<Cursor>::parse_value(Args &&...args) {
-  JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value\n");
-  // JSONKey parsed_key(_key_start, _key_length);
-  const std::string_view parsed_key(_key_start, _key_length);
-  JSON_DEBUG_COLOR(COLOR_GREEN, "Looking for key '%.*s' in passed args\n",
-                   (int)parsed_key.length(), parsed_key.data());
-  return searchValueArgumentForKey(0, parsed_key, std::forward<Args>(args)...);
-template <typename Cursor>
-ParseValueResult JSONParserBase<Cursor>::parse_value(UnknownValueType &value) {
-  // An unknown value comes from an unmatched key or an array overflow
-  // We don't need to update the mask or the counters nUpdated, nConverted, nParsed
-  return ParseValueResult::KEY_FOUND | parse_into_value(value);
-}
-
-template<typename Cursor>
 template <typename TupleT, typename TableT>
 std::enable_if_t<(std::tuple_size<TupleT>::value == 1), ParseValueResult>
-JSONParserBase<Cursor>::parse_value(TableT& table, TupleT& args) {
+JSONParserBase<Cursor>::parse_value(TableT &table, TupleT &args) {
   return parse_value(std::get<0>(args));
 }
 
-template<typename Cursor>
+template <typename Cursor>
 template <typename TupleT, typename TableT>
 std::enable_if_t<(std::tuple_size<TupleT>::value > 1), ParseValueResult>
-JSONParserBase<Cursor>::parse_value(TableT& table, TupleT& args) {
-    constexpr size_t NPairs = std::tuple_size<TupleT>::value / 2;  
-    const std::string_view parsed_key(_key_start, _key_length);
+JSONParserBase<Cursor>::parse_value(TableT &table, TupleT &args) {
+  constexpr size_t NPairs = std::tuple_size<TupleT>::value / 2;
+  const std::string_view parsed_key(_key_buf, _key_length);
 
-    const StaticEntry* entry = table.find(hash32(parsed_key));
+  const StaticEntry *entry = table.find(hash32(parsed_key));
 
-    if (!entry) {
-      JSON_DEBUG_WARNING("JSONParserBase<Cursor>::parse_value key '%.*s' not found\n", (int)parsed_key.length(), parsed_key.data());
-      return ParseValueResult::NO_RESULT;
-    }
-
-  ParseValueResult result = ParseValueResult(ParseValueResult::KEY_FOUND);
-  result |= dispatch_by_index(entry->arg_index, *this, args, std::make_index_sequence<NPairs>{});
-    
-  if (result.updated()) {
-    if (_usemask) {
-        const size_t mask_idx = _automask
-            ? entry->arg_index
-            : static_cast<size_t>(entry->key_index);
-      _keyMask |= (1u << mask_idx);
-    }
-  _nUpdated++;
+  if (!entry) {
+    JSON_DEBUG_WARNING(
+        "JSONParserBase<Cursor>::parse_value key '%.*s' not found\n",
+        (int)parsed_key.length(), parsed_key.data());
+    return ParseValueResult::NO_RESULT;
   }
 
-  if (result.converted()) _nConverted++;
-  
+  ParseValueResult result = ParseValueResult(ParseValueResult::KEY_FOUND);
+  result |= dispatch_by_index(entry->arg_index, *this, args,
+                              std::make_index_sequence<NPairs>{});
+
+  if (result.updated()) {
+    if (_usemask) {
+      const size_t mask_idx =
+          _automask ? entry->arg_index : static_cast<size_t>(entry->key_index);
+      _keyMask |= (1u << mask_idx);
+    }
+    _nUpdated++;
+  }
+
+  if (result.converted())
+    _nConverted++;
+
   return result;
 }
 
@@ -822,7 +802,7 @@ template <typename Cursor>
 template <typename... Args>
 void JSONParserBase<Cursor>::parse(Args &&...args) {
   static_assert(sizeof...(Args) > 0, "::parse No arguments provided");
-  using TupleT = std::tuple<Args&&...>;
+  using TupleT = std::tuple<Args &&...>;
   constexpr size_t NPairs = sizeof...(Args) / 2;
 
   // Références runtime — reconstruites à chaque appel
@@ -889,7 +869,7 @@ void JSONParserBase<Cursor>::parse(Args &&...args) {
         continue;
       }
 
-      ParseValueResult r = parse_value(std::forward<Args>(args)...);
+      ParseValueResult r = parse_value(table, refs);
 
       if (!r.keyFound()) { // The key was not found in the arguments. This is
                            // not an error.
@@ -941,58 +921,6 @@ void JSONParserBase<Cursor>::parse(Args &&...args) {
       return;
     }
   }
-}
-
-// ── searchValueArgumentForKey ─────────────────────────────────
-template <typename Cursor>
-inline ParseValueResult JSONParserBase<Cursor>::searchValueArgumentForKey(
-    size_t /*idx*/, const std::string_view &parsed_key) {
-  JSON_DEBUG_INFO("Key '%.*s' not found in parameters\n",
-                  (int)parsed_key.length(), parsed_key.data());
-  return ParseValueResult::NO_RESULT;
-}
-
-template <typename Cursor>
-template <typename V, typename... Args>
-ParseValueResult JSONParserBase<Cursor>::searchValueArgumentForKey(
-    size_t idx, const std::string_view &parsed_key, const JSONKey &arg_key,
-    V &arg_value, Args &&...args) {
-  ParseValueResult result = ParseValueResult::NO_RESULT;
-
-  JSON_DEBUG_WARNING("searchValueArgumentForKey idx=%zu parsed_key='%.*s' arg_key='%.*s'\n", idx,
-                     (int)parsed_key.length(), parsed_key.data(),
-                     (int)arg_key.length(), arg_key.data());
-
-  if (arg_key == parsed_key) {
-    JSON_DEBUG_COLOR(COLOR_GREEN, "Found key '%.*s' in args ", (int)arg_key.length(), arg_key.data());
-    JSON_DEBUG_TYPES("with arg value of type %s\n", arg_value);
-    result |= ParseValueResult::KEY_FOUND | parse_into_value(arg_value);
-
-    _nKeys++;
-
-    if (result.updated()) {
-
-      if (_usemask) {
-        _keyMask |= _automask ? (1 << idx) : (1 << arg_key.getIndex());
-      }
-
-      _nUpdated++;
-    }
-
-    if (result.converted()) {
-      _nConverted++;
-    }
-
-    if (_state == STOPPED) {
-      _state = END;
-      return result;
-    }
-  } else {
-    result = searchValueArgumentForKey(idx + 1, parsed_key,
-                                       std::forward<Args>(args)...);
-  }
-
-  return result;
 }
 
 // ── Méthodes d'assignation (logique identique à JSONParser) ───
@@ -1317,9 +1245,9 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
     return ParseValueResult::NO_RESULT;
   }
 
-  std::string_view name = (_key_start == nullptr || _key_length == 0)
+  std::string_view name = (_key_buf[0] == '\0' || _key_length == 0)
                               ? std::string_view("$ROOT", 5)
-                              : copy_to_sv(_key_start, _key_length);
+                              : copy_to_sv(_key_buf, _key_length);
   JSON_DEBUG_INFO("Will parse object '%.*s'\n", (int)name.length(),
                   name.data());
   JSON_DEBUG_INFO("Cursor position is now at %zu\n", bytesConsumed());
@@ -1408,7 +1336,7 @@ void JSONParserBase<Cursor>::print_state(size_t iteration) {
                  (const char *)output, dots, bytesConsumed(), iteration, this,
                  color, (int)(11 + _name.length() + col_pos + 1), '^',
                  get_state_name().data(), error, errorValueType,
-                 (int)_key_length, _key_start);
+                 (int)_key_length, _key_buf);
 
     free(output);
   }
