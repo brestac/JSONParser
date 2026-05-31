@@ -242,3 +242,23 @@ constexpr bool arg_is_valid<Arg> =
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList, typename... Args>
 bool constexpr key_value_checker_v =
     arg_is_valid<Args...> || key_value_checker<CastableTypeList, TypeList, ArrayTypeList, Args...>::value;
+
+// ---------------------------------------------------------------------------
+//  count_string_view_args_v<Args...>
+//  Compte le nombre de std::string_view aux positions impaires de Args
+//  (positions des valeurs dans les paires clé-valeur).
+//  Utilisé pour dimensionner le string pool du StreamCursor à la construction.
+// ---------------------------------------------------------------------------
+
+template <typename... Args>
+struct string_view_arg_counter { static constexpr size_t value = 0; };
+
+template <typename Key, typename Value, typename... Rest>
+struct string_view_arg_counter<Key, Value, Rest...> {
+    static constexpr size_t value =
+        (std::is_same_v<remove_cvref_t<Value>, std::string_view> ? 1 : 0) +
+        string_view_arg_counter<Rest...>::value;
+};
+
+template <typename... Args>
+constexpr size_t count_string_view_args_v = string_view_arg_counter<Args...>::value;

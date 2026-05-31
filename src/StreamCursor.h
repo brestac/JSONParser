@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdlib>
 #include <cstring>
 #ifdef ARDUINO
 #include "Stream.h"
@@ -88,9 +89,12 @@ private:
 
 class StreamCursor {
 public:
-  StreamCursor(Stream &stream) : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
-    reset_string_pool();
+  StreamCursor(Stream &stream, size_t pool_limit = JSON::STREAM_STRING_POOL_SIZE)
+      : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false),
+        _pool_limit(pool_limit) {
     JSON_DEBUG_TYPES("StreamCursor created from %s\n", stream);
+    ensure_pool(_pool_limit);  // alloue ou agrandit si nécessaire
+    reset_string_pool();       // remet l'offset à 0
   }
 
   // --------------------------------------------------------
@@ -257,15 +261,15 @@ public:
   size_t bytesWritten() const { return _written; }
 
   // ── String pool ───────────────────────────────────────────────
-  // Pool statique global : survit à tous les StreamCursor et parsers enfants.
-  // Réinitialisé uniquement au début d'un parsing racine via reset_string_pool().
+  // Pool heap statique : alloué au premier appel ou agrandi si nécessaire.
+  // Survit à tous les StreamCursor et parsers enfants (pool statique).
   // Sur Arduino (mono-thread) un pool statique est parfaitement sûr.
+  // Le pool ne rétrécit jamais — il atteint le maximum demandé et y reste.
 
-  static std::string_view intern_string(const char* src, size_t len) {
+  std::string_view get_sv(const char* src, size_t len) {
     if (len == 0) return std::string_view("", 0);
-    if (s_pool_offset + len + 1 > STRING_POOL_SIZE) {
-      // Pool plein : retourner une vue sur src (comportement dégradé)
-      JSON_DEBUG_WARNING("StreamCursor: string pool plein, fallback sur src\n");
+    if (s_string_pool == nullptr || s_pool_offset + len + 1 > _pool_limit) {
+      JSON_DEBUG_WARNING("StreamCursor: string pool plein ou non alloué, fallback sur src\n");
       return std::string_view(src, len);
     }
     char* dst = s_string_pool + s_pool_offset;
@@ -275,22 +279,38 @@ public:
     return std::string_view(dst, len);
   }
 
-  static void reset_string_pool() { s_pool_offset = 0; }
+  void reset_string_pool() { s_pool_offset = 0; }
 
 private:
-  static constexpr size_t STRING_POOL_SIZE = JSON::STREAM_STRING_POOL_SIZE;
-  static char   s_string_pool[STRING_POOL_SIZE];
-  static size_t s_pool_offset;
+  // Alloue ou agrandit le pool si pool_limit > taille actuelle.
+  // Appelé depuis le constructeur avant tout parsing.
+  static void ensure_pool(size_t pool_limit) {
+    if (pool_limit == 0) return;
+    if (pool_limit <= s_pool_size) return;  // déjà suffisant
+    char* p = static_cast<char*>(realloc(s_string_pool, pool_limit));
+    if (p) {
+      s_string_pool = p;
+      s_pool_size   = pool_limit;
+      JSON_DEBUG_INFO("StreamCursor: pool agrandi à %zu octets\n", pool_limit);
+    } else {
+      JSON_DEBUG_WARNING("StreamCursor: realloc échoué pour %zu octets\n", pool_limit);
+    }
+  }
 
   RingBuffer<JSON::RING_BUFFER_SIZE> _ring;
   Stream &_stream; // référence directe pour l'écriture
   size_t _consumed;
   size_t _written;
   bool _eof;
+  size_t _pool_limit;  // limite pour cette instance (calculée à la construction)
+  static char*  s_string_pool;  // pointeur heap, nullptr jusqu'au premier appel
+  static size_t s_pool_size;    // taille actuellement allouée
+  static size_t s_pool_offset;  // offset courant dans le pool
 };
 
 // Définitions des membres statiques (C++17 inline)
-inline char   JSON::StreamCursor::s_string_pool[JSON::StreamCursor::STRING_POOL_SIZE] = {};
+inline char*  JSON::StreamCursor::s_string_pool = nullptr;
+inline size_t JSON::StreamCursor::s_pool_size   = 0;
 inline size_t JSON::StreamCursor::s_pool_offset = 0;
 
 NAMESPACE_JSON_END

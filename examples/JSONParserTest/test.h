@@ -945,7 +945,7 @@ void test_parse_geojson_from_file() {
   }
 
   // delete file
-  //LittleFS.remove(filename);
+  LittleFS.remove(filename);
 }
 
 // ----------------------------------------------------------------
@@ -972,6 +972,7 @@ void test_parse_big_struct() {
     "\"f13\":\"view_one\","
     "\"f14\":\"view_two\","
     "\"f15\":false,"
+    "\"f33\":\"unknown_key\","
     "\"f16\":-999,"
     "\"f17\":3.14,"
     "\"f18\":1.41421,"
@@ -1039,6 +1040,15 @@ void test_parse_big_struct() {
   check(b.f32 == 77, "f32 == 77");
 }
 
+void test_parse_escape_sequence() {
+  DEBUG_PRINTF("\n--- Test: parse escape sequence ---\n");
+  const char *json = "{\"nom\":\"Jean dit \\\"Jeannot\\\" Michel\"}";
+  Parent p;
+  JSON::ParseResult r = p.fromJSON(json);
+  check(r.error == 0, "parse");
+  check(p.nom == std::string_view("Jean dit \"Jeannot\" Michel"), "name == 'Jean dit \"Jeannot\" Michel'");
+}
+
 void run_parsing_tests() {
   // with callback
   test_callback();
@@ -1055,6 +1065,7 @@ void run_parsing_tests() {
   test_parse_big_struct();
   testGeoJSONParsingSmall();
   test_parse_geojson_from_file();
+  test_parse_escape_sequence();
 }
 
 void run_printing_tests() {

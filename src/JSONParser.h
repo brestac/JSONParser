@@ -95,7 +95,12 @@ ParseResult parse(uint32_t &mask, const char (&input)[N], Args &&...args) {
 
 template <typename T, typename... Args>
 enable_if_stream_compatible<T> parse(uint32_t &mask, T &input, Args &&...args) {
-  StreamCursor stream(input);
+  // pool_limit calculé à la compilation : n_string_views * MAX_VALUE_LENGTH
+  constexpr size_t n_sv      = count_string_view_args_v<Args...>;
+  constexpr size_t pool_limit = (n_sv == 0)
+      ? JSON::STREAM_STRING_POOL_SIZE
+      : n_sv * JSON::MAX_VALUE_LENGTH;
+  StreamCursor stream(input, pool_limit);
   return _parse("$ROOT", mask, stream, std::forward<Args>(args)...);
 }
 

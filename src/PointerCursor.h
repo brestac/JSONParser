@@ -143,7 +143,7 @@ void advance_to(size_t index) const {
 
   T *start() const { return _start; }
 
-  std::string_view intern_string(const char* src, size_t len) const {
+  std::string_view get_sv(const char* src, size_t len) const {
     return std::string_view(src, len);
   }
 

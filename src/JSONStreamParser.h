@@ -225,6 +225,7 @@ private:
   std::enable_if_t<(std::tuple_size<TupleT>::value > 1), ParseValueResult>
   parse_value(TableT &table, TupleT &args);
 
+  void _reset_key();
   template <typename V> ParseValueResult parse_string(V &v);
   template <typename V, typename Type> ParseValueResult parse_numeric(V &v);
   template <typename V> ParseValueResult parse_floating_point(V &v);
@@ -291,16 +292,19 @@ void JSONParserBase<Cursor>::set_state(ParserState s) {
     return;
   _state = s;
   if (_state == COMMA) {
-    _key_buf[0] = '\0';
-    _key_length = 0;
+      _reset_key();
   }
+}
+
+template <typename Cursor> void JSONParserBase<Cursor>::_reset_key() {
+  _key_buf[0] = '\0';
+  _key_length = 0;
 }
 
 // ── parse_key ────────────────────────────────────────────────
 template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true)) {
-    _key_buf[0] = '\0';
-    _key_length = 0;
+    _reset_key();
     return false;
   }
 
@@ -312,8 +316,7 @@ template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
   while (n < JSON::MAX_KEY_LENGTH) {
     int c = _cursor.peek(n);
     if (c < 0) {
-      _key_buf[0] = '\0';
-      _key_length = 0;
+      _reset_key();
       return false;
     }
     char ch = static_cast<char>(c);
@@ -324,25 +327,21 @@ template <typename Cursor> bool JSONParserBase<Cursor>::parse_key() {
       break;
     _key_buf[n++] = ch;
   }
-  _key_buf[n] = '\0';
-
+  
   if (n == 0) {
-    _key_buf[0] = '\0';
-    _key_length = 0;
     return false;
   }
 
   _cursor.advance(n); // consomme les caractères de la clé
 
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true)) {
-    _key_buf[0] = '\0';
-    _key_length = 0;
+    _reset_key();
     return false;
   }
 
   _key_length = n;
 
-  JSON_DEBUG_INFO("JSONParserBase::parse_key '%.*s'\n", (int)n, _key_buf);
+  JSON_DEBUG_INFO("JSONParserBase::parse_key '%.*s'\n", (int)_key_length, _key_buf);
   return true;
 }
 
@@ -449,10 +448,9 @@ ParseValueResult JSONParserBase<Cursor>::parse_string(V &arg_value) {
   // copier dans le pool du curseur pour garantir la stabilité des pointeurs
   // après destruction des parsers enfants (évite le dangling string_view).
 
-  std::string_view parsed_value = _cursor.intern_string(_val_buf, n);
+  std::string_view parsed_value = _cursor.get_sv(_val_buf, n);
 
-  return ParseValueResult::VALUE_PARSED |
-         assign_parsed_value_to_value(parsed_value, arg_value);
+  return ParseValueResult::VALUE_PARSED | assign_parsed_value_to_value(parsed_value, arg_value);
 }
 
 // ── parse_integer ────────────────────────────────────────────
