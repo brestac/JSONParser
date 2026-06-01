@@ -2,20 +2,13 @@
 #include <stdlib.h>
 #include <chrono>
 
-#ifndef ARDUINO
+#ifdef ARDUINO
+#define GEOJSON_TEST_FILE_PATH "/data.geojson"
+#include <LittleFS.h>
+#else
+#define GEOJSON_TEST_FILE_PATH "./data.geojson"
+#include "../../include/ArduinoCompat.h"
 #include "../../include/FileStream.h"
-void randomSeed(uint32_t seed) { srand(seed); }
-// get a ramdom number between 0 and max
-int random(int max) {
-  return rand() % max;
-}
-
-unsigned long long micros() {
-  auto now = std::chrono::steady_clock::now();
-  return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
-}
-
-void yield() {}
 #endif
 
 using namespace std;
