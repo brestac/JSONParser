@@ -38,7 +38,15 @@ ParseResult _parse_impl(std::string_view name, uint32_t& mask, Cursor& cursor, A
     uint64_t start = now();
 
     JSONParserBase<Cursor> parser(name, cursor);
+    if constexpr (std::is_same_v<Cursor, StreamCursor>) {
+        // pool_limit calculé à la compilation : n_string_views * MAX_VALUE_LENGTH
+        constexpr size_t n_sv      = count_string_view_args_v<Args...>;
+        constexpr size_t pool_size = n_sv * JSON::MAX_VALUE_LENGTH;
+        parser.set_pool_size(pool_size);
+    }
 
+    parser.reset_string_pool();
+    
     if constexpr (UseMask) {
         const bool automask = are_generic_keys(std::forward<Args>(args)...);
         parser.setAutomask(automask);
@@ -101,12 +109,7 @@ ParseResult parse(uint32_t &mask, const char (&input)[N], Args &&...args) {
 
 template <typename T, typename... Args>
 enable_if_stream_compatible<T> parse(uint32_t &mask, T &input, Args &&...args) {
-  // pool_limit calculé à la compilation : n_string_views * MAX_VALUE_LENGTH
-  constexpr size_t n_sv      = count_string_view_args_v<Args...>;
-  constexpr size_t pool_limit = (n_sv == 0)
-      ? JSON::STREAM_STRING_POOL_SIZE
-      : n_sv * JSON::MAX_VALUE_LENGTH;
-  StreamCursor stream(input, pool_limit);
+  StreamCursor stream(input);
   return _parse("$ROOT", mask, stream, std::forward<Args>(args)...);
 }
 

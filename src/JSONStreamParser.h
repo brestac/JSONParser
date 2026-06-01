@@ -170,6 +170,21 @@ public:
   bool stopped() { return _state == STOPPED; }
   void setName(std::string_view name) { _name = name; }
   std::string_view name() { return _name; }
+  void reset_string_pool() { s_pool_offset = 0; }
+  // Alloue ou agrandit le pool si pool_limit > taille actuelle.
+  // Appelé depuis le constructeur avant tout parsing.
+  static void set_pool_size(size_t pool_limit) {
+    if (pool_limit == 0) return;
+    if (pool_limit <= s_pool_size) return;  // déjà suffisant
+    char* p = static_cast<char*>(realloc(s_string_pool, pool_limit));
+    if (p) {
+      s_string_pool = p;
+      s_pool_size   = pool_limit;
+      JSON_DEBUG_INFO("StreamCursor: pool agrandi à %zu octets\n", pool_limit);
+    } else {
+      JSON_DEBUG_WARNING("StreamCursor: realloc échoué pour %zu octets\n", pool_limit);
+    }
+  }
 
 private:
   Cursor &_cursor; // ← reference: shared across nested parsers
@@ -190,7 +205,9 @@ private:
   ParserError _lastError;
   ParseValueResult _lastParseValueResult;
   std::string_view _name;
-
+  static char*  s_string_pool;  // pointeur heap, nullptr jusqu'au premier appel
+  static size_t s_pool_size;    // taille actuellement allouée
+  static size_t s_pool_offset;  // offset courant dans le pool
   void reset();
 
   // ── Primitives de lecture via curseur ──────────────────────
@@ -226,6 +243,7 @@ private:
   parse_value(TableT &table, TupleT &args);
 
   void _reset_key();
+  bool scan_escaped_string(std::string_view &sv);
   template <typename V> ParseValueResult parse_string(V &v);
   template <typename V, typename Type> ParseValueResult parse_numeric(V &v);
   template <typename V> ParseValueResult parse_floating_point(V &v);
@@ -260,6 +278,11 @@ private:
   const char *errorToString(ParserError error);
   const char *parsedValueTypeToString(ParseValueResult error);
 };
+
+// Définitions des membres statiques (C++17 inline)
+template <typename Cursor> inline char* JSONParserBase<Cursor>::s_string_pool = nullptr;
+template <typename Cursor> inline size_t JSONParserBase<Cursor>::s_pool_size   = 0;
+template <typename Cursor> inline size_t JSONParserBase<Cursor>::s_pool_offset = 0;
 
 // ============================================================
 //  Implémentation des méthodes
@@ -373,82 +396,90 @@ size_t JSONParserBase<Cursor>::scan_digits(size_t max_length) {
   return n;
 }
 
-// ── parse_string ─────────────────────────────────────────────
-// For const PointerCursorReader without escape sequences: constructs a
-// string_view pointing directly into the input buffer (zero-copy, avoids static
-// buffer aliasing when the same field is parsed into multiple struct
-// instances). For StreamCursor or strings containing escape sequences: copies
-// into a static buffer (single-parser use only; char[] targets always copy
-// safely).
+// Get a string_view from the cursor, handling multiple escape sequences
+// We write from the cursor to the static string pool, and build a string_view from it.
+// The resulting string_view is passed as reference to the caller.
 template <typename Cursor>
+bool JSONParserBase<Cursor>::scan_escaped_string(std::string_view &sv) {
+  bool escaped = false;
+  size_t n = 0;
+  char *pool_start = s_string_pool + s_pool_offset;
+  
+  while (n < JSON::MAX_VALUE_LENGTH) {
+    int c = _cursor.peek(n);
+    if (c < 0)
+      break;
+    char ch = static_cast<char>(c);
+    if (ch == JSON_ESCAPE_CHARACTER) {
+      escaped = true;
+      n++;
+      continue;
+    }
+    if (ch == JSON_QUOTE_CHARACTER && !escaped) {
+      break;
+    }
+    pool_start[n] = ch;
+    n++;
+  }
+
+  if (n == 0)
+    return false;
+
+  sv = std::string_view(pool_start, n);
+  s_pool_offset += n;
+  _cursor.advance(n);
+
+  return true;
+}
+
+// For the PointerCursorReader, we scan the string as we would normally do for non escaped strings.
+// Then we peek back by one and check if the previous character was an escape character.
+// If it was, we go back to the start of the string and scan it again, this time handling escape sequences.
+// Then we advance the cursor by the length of the string.
+template <>
 template <typename V>
-ParseValueResult JSONParserBase<Cursor>::parse_string(V &arg_value) {
+ParseValueResult JSONParserBase<PointerCursorReader>::parse_string(V &arg_value) {
+  JSON_DEBUG_INFO("JSONParserBase::parse_string\n");
+  const char * start = _cursor.ptr();
+  
+  if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
+    return ParseValueResult::NO_RESULT;
+
+  if (!cursor_scan_until(_cursor, JSON_QUOTE_CHARACTER, MAX_VALUE_LENGTH, true, false)) {
+    return ParseValueResult::NO_RESULT;
+  }
+
+  std::string_view parsed_value(start, _cursor.ptr() - start);
+
+  if (_cursor.peek(-1) == JSON_ESCAPE_CHARACTER) {
+    _cursor.advance_to(start);
+    if (!scan_escaped_string(parsed_value)) {
+      return ParseValueResult::NO_RESULT;
+    }
+    _cursor.advance();
+  }
+
+  if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
+    return ParseValueResult::NO_RESULT;
+
+  return ParseValueResult::VALUE_PARSED | assign_parsed_value_to_value(parsed_value, arg_value);
+}
+
+// For the streamCursor, the static string pool is mandatory to store the string.
+template <>
+template <typename V>
+ParseValueResult JSONParserBase<StreamCursor>::parse_string(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_string\n");
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
 
-  if constexpr (std::is_same_v<remove_cvref_t<Cursor>, PointerCursorReader>) {
-    // Peek ahead to find closing quote without advancing, detecting escapes.
-    const char *str_start = _cursor.ptr();
-    size_t n = 0;
-    bool has_escape = false;
-    while (n < JSON::MAX_VALUE_LENGTH) {
-      int c = _cursor.peek(n);
-      if (c < 0)
-        return ParseValueResult::NO_RESULT;
-      char ch = static_cast<char>(c);
-      if (ch == JSON_QUOTE_CHARACTER)
-        break;
-      if (ch == JSON_ESCAPE_CHARACTER) {
-        has_escape = true;
-        break;
-      }
-      n++;
-    }
-    if (!has_escape) {
-      // Zero-copy path: string_view points directly into the JSON input buffer.
-      _cursor.advance(n);
-      if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
-        return ParseValueResult::NO_RESULT;
-      std::string_view parsed_value(str_start, n);
-      return ParseValueResult::VALUE_PARSED |
-             assign_parsed_value_to_value(parsed_value, arg_value);
-    }
-    // Escape present: fall through to copy path below.
+  std::string_view parsed_value;
+  if (!scan_escaped_string(parsed_value)) {
+    return ParseValueResult::NO_RESULT;
   }
-
-  // Copy path: used for StreamCursor or when escape sequences are present.
-  size_t n = 0;
-
-  while (n < JSON::MAX_VALUE_LENGTH) {
-    int c = _cursor.peek();
-    if (c < 0)
-      return ParseValueResult::NO_RESULT;
-    char ch = static_cast<char>(c);
-    if (ch == JSON_QUOTE_CHARACTER)
-      break;
-    if (ch == JSON_ESCAPE_CHARACTER) {
-      _cursor.advance(); // consomme '\'
-      int esc = _cursor.peek();
-      if (esc < 0)
-        return ParseValueResult::NO_RESULT;
-      _val_buf[n++] = static_cast<char>(esc);
-      _cursor.advance();
-      continue;
-    }
-    _val_buf[n++] = ch;
-    _cursor.advance();
-  }
-  _val_buf[n] = '\0';
 
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
-
-  // Si la cible est std::string_view et le curseur est StreamCursor,
-  // copier dans le pool du curseur pour garantir la stabilité des pointeurs
-  // après destruction des parsers enfants (évite le dangling string_view).
-
-  std::string_view parsed_value = _cursor.get_sv(_val_buf, n);
 
   return ParseValueResult::VALUE_PARSED | assign_parsed_value_to_value(parsed_value, arg_value);
 }
