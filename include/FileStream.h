@@ -9,7 +9,8 @@
 
 class File : public Stream {
 public:
-  explicit File(FILE *file, const char *mode = "r") : _file(file) {
+  explicit File(FILE *file, const char *mode = "r") : _file(file), _size(0) {
+    if (_file == nullptr) return;
     if (strcmp(mode, "r") == 0) {
       fseek(_file, 0, SEEK_END);
       _size = ftell(_file);
@@ -34,8 +35,8 @@ public:
 
   void _update_size() {
     long current_pos = ftell(_file);
-    if (current_pos > _size) {
-      _size = current_pos + 1;
+    if (current_pos >= 0 && (size_t)current_pos > _size) {
+      _size = (size_t)current_pos;
     }
   }
   void flush() override {}
