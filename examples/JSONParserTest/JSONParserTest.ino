@@ -9,12 +9,12 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
+  LittleFS.begin();
+
   Serial.println("");
   //   Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
   //   Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
-  // run_tests();
-  testGeoJSONParsingSmall();
-  testParseGeoJSONFromFile();
+  run_tests();
 }
 
 void loop() {
