@@ -438,7 +438,7 @@ bool JSONParserBase<Cursor>::scan_escaped_string(std::string_view &sv) {
 // Then we advance the cursor by the length of the string.
 template <>
 template <typename V>
-ParseValueResult JSONParserBase<PointerCursorReader>::parse_string(V &arg_value) {
+ParseValueResult JSONParserBase<const PointerCursorReader>::parse_string(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_string\n");
   const char * start = _cursor.ptr();
   
