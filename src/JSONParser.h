@@ -32,40 +32,46 @@ template <typename T>
 using enable_if_json_data_container_compatible =
     std::enable_if_t<is_derived_json_data_container_v<T>, ParseResult>;
 
-////////////////////////////////////////////////////////////
-//  _parse — key-value args (at least 2 args, mask tracked)
-////////////////////////////////////////////////////////////
-template <typename Cursor, typename... Args>
-enable_if_args_valid<Args...> _parse(std::string_view name, uint32_t& mask,
-                                     Cursor& cursor, Args&&... args) {
+// Implémentation interne unique, UseMask en template bool direct
+template <bool UseMask, typename Cursor, typename... Args>
+ParseResult _parse_impl(std::string_view name, uint32_t& mask, Cursor& cursor, Args&&... args) {
     uint64_t start = now();
 
     JSONParserBase<Cursor> parser(name, cursor);
-    bool automask = are_generic_keys(std::forward<Args>(args)...);
-    parser.setAutomask(automask);
+
+    if constexpr (UseMask) {
+        const bool automask = are_generic_keys(std::forward<Args>(args)...);
+        parser.setAutomask(automask);
+        parser.setUseMask(true);
+    } else {
+        parser.setUseMask(false);
+    }
 
     parser.parse(std::forward<Args>(args)...);
 
-    mask = parser.keyMask();
+    if constexpr (UseMask) {
+        mask = parser.keyMask();
+    }
 
     uint64_t end = now();
     return ParseResult(&parser, end - start);
 }
 
 ////////////////////////////////////////////////////////////
-//  _parse — single argument (JSONCallbackObject or UnknownValueType, no mask)
+//  _parse — key-value args (mask tracked)
+////////////////////////////////////////////////////////////
+template <typename Cursor, typename... Args>
+enable_if_args_valid<Args...> _parse(std::string_view name, uint32_t& mask, Cursor& cursor, Args&&... args) {
+    return _parse_impl<true>(name, mask, cursor, std::forward<Args>(args)...);
+}
+
+////////////////////////////////////////////////////////////
+//  _parse — single argument (JSONCallbackObject ou UnknownValueType, no mask)
 ////////////////////////////////////////////////////////////
 template <typename Cursor, typename... Args>
 ParseResult _parse(std::string_view name, Cursor& cursor, Args&&... args) {
-    uint64_t start = now();
-
-    JSONParserBase<Cursor> parser(name, cursor);
-    parser.setUseMask(false);
-
-    parser.parse(std::forward<Args>(args)...);
-
-    uint64_t end = now();
-    return ParseResult(&parser, end - start);
+    uint32_t mask = 0;
+    return _parse_impl<false>(name, mask, cursor, std::forward<Args>(args)...);
 }
 
 ////////////////////////////////////////////////////////////
