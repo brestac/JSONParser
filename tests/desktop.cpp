@@ -27,9 +27,5 @@
 
 int main() {
   run_tests();
-  // testGeoJSONParsingSmall();
-  // test_parse_embedded_object();
-  // test_parse_embedded_object_from_stream();
-  // test_parse_geojson_from_file();
   return 0;
 }

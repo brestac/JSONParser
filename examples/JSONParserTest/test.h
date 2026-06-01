@@ -852,14 +852,9 @@ void test_roundtrip() {
         copy.temperature);
 }
 
-#ifdef ARDUINO
 void test_print_to_file_stream() {
-  if (!LittleFS.begin()) {
-    Serial.println("Failed to mount LIttleFS");
-    return;
-  }
 
-  const char *filename = "/sensor.json";
+  const char *filename = "./sensor.json";
 
   DEBUG_PRINTF("\n--- Test: serialize to file ---\n");
   Sensor s1;
@@ -871,32 +866,32 @@ void test_print_to_file_stream() {
     LittleFS.remove(filename);
   }
   // write sensor to file
-  File file = LittleFS.open(filename, "w");
-  if (!file) {
+  File file_w = LittleFS.open(filename, "w");
+  if (!file_w) {
     DEBUG_PRINTF("Failed to open file for writing\n");
     return;
   }
-
-  s1.toJSON(file, false);
-  file.close();
+  s1.toJSON(file_w, false);
+  file_w.close();
   // read file back
-  file = LittleFS.open(filename, "r");
-  if (!file) {
+  File file_r = LittleFS.open(filename, "r");
+  if (!file_r) {
     DEBUG_PRINTF("Failed to open file for reading\n");
     check(false, "Failed to open file for reading\n");
     return;
   }
 
   Sensor s2;
-  JSON::ParseResult result = s2.fromJSON(file);
-  file.close();
+  JSON::ParseResult result = s2.fromJSON(file_r);
+  file_r.close();
 
   check(result.error == 0, "parse");
-  check(s2.id == 7, "id == 7");
-  check(near(s2.temperature, 36.6f), "temperature ≈ 36.6");
+  check(s2.id == 7, "id == 7, was %d", s2.id);
+  check(near(s2.temperature, 36.6f), "temperature ≈ 36.6, was %f", s2.temperature);
   // check(std::memcmp(&s1, &s2, sizeof(Sensor)) == 0, "s1 == s2");
+
+  LittleFS.remove(filename);
 }
-#endif
 
 void test_parse_geojson_from_file() {
   DEBUG_PRINTF("\n--- Test: parse GeoJSON from file ---\n");
@@ -1060,6 +1055,9 @@ void run_parsing_tests() {
   test_parse_from_stream();
   test_partial_parse();
   test_parse_geojson_small();
+#ifndef ARDUINO
+  test_parse_geojson_big();
+#endif
   test_parse_geojson_from_file();
   test_parse_big_struct();
   test_parse_escape_sequence();
@@ -1076,6 +1074,7 @@ void run_printing_tests() {
   test_print_to_stream_string();
   test_print_hex_to_stream_string();
   test_serialize_to_stream();
+  test_print_to_file_stream();
 }
 
 void run_tests() {
@@ -1087,11 +1086,6 @@ void run_tests() {
   run_parsing_tests();
   run_printing_tests();
   test_roundtrip();
-#ifdef ARDUINO
-  test_print_to_file_stream();
-#else
-  test_parse_geojson_big();
-#endif
 
   DEBUG_PRINTF(
     "\n============================================================\n");
