@@ -74,24 +74,23 @@ constexpr int extract_index(const char (&raw_key)[N]) {
 // ---------------------------------------------------------------------------
 
 template <size_t N>
-bool is_generic_key(const char (&raw_key)[N]) {
+constexpr bool is_generic_key(const char (&raw_key)[N]) {
   for (size_t i = 0; i < N; i++) {
     if (raw_key[i] == JSON_ARRAY_START_CHARACTER) return false;
   }
   return true;
 }
 
-inline bool are_generic_keys() {
-  JSON_DEBUG_WARNING("are_generic_keys()\n");
+constexpr bool are_generic_keys() {
   return true;
 }
 
 template <typename Value>
-inline bool are_generic_keys(Value& value) { return false; }
+constexpr bool are_generic_keys(Value&) { return false; }
 
 template <typename Key, typename Value, typename... Rest>
-bool are_generic_keys(Key& key, Value& value, Rest&&... rest) {
-  return is_generic_key(key) && are_generic_keys(rest...);
+constexpr bool are_generic_keys(const Key& key, Value&, Rest&&... rest) {
+  return is_generic_key(key) && are_generic_keys(std::forward<Rest>(rest)...);
 }
 
 // ---------------------------------------------------------------------------

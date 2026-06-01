@@ -1,17 +1,144 @@
-#include "StreamString.h"
-#ifdef ARDUINO
-#include "./generate_geojson_littlefs.h"
-#endif
+#include <math.h>
+#include <stdlib.h>
+#include <chrono>
 
-#if JSON_DEBUG_LEVEL > 0
-std::string_view debug_name = "$ROOT";
-#define JSON_DEBUG_PARSER_NAME debug_name,
-#else
-#define JSON_DEBUG_PARSER_NAME
+#ifndef ARDUINO
+#include "../../include/FileStream.h"
+void randomSeed(uint32_t seed) { srand(seed); }
+// get a ramdom number between 0 and max
+int random(int max) {
+  return rand() % max;
+}
+
+unsigned long long micros() {
+  auto now = std::chrono::steady_clock::now();
+  return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+}
+
+void yield() {}
 #endif
 
 using namespace std;
 using namespace JSON;
+
+
+static void _geojson_write_polygon(File& f, double cx, double cy,
+                                   int rings, int points_per_ring) {
+    f.print("{\"type\":\"Polygon\",\"coordinates\":[");
+
+    for (int r = 0; r < rings; r++) {
+        if (r > 0) f.print(",");
+
+        double radius = 0.01 + (rand() % 100) * 0.001;
+
+        f.print("[");
+        for (int i = 0; i <= points_per_ring; i++) {
+            if (i > 0) f.print(",");
+
+            double angle = (2.0 * M_PI * i) / points_per_ring;
+            double lon   = cx + radius * cos(angle);
+            double lat   = cy + radius * sin(angle);
+
+            if (lon >  180.0) lon =  180.0;
+            if (lon < -180.0) lon = -180.0;
+            if (lat >   90.0) lat =   90.0;
+            if (lat <  -90.0) lat =  -90.0;
+
+            f.print("[");
+            f.printf("%f", lon);
+            f.print(",");
+            f.printf("%f", lat);
+            f.print("]");
+        }
+        f.print("]");
+    }
+
+    f.print("]}");
+}
+
+// ---------------------------------------------------------------------------
+//  generate_geojson
+//
+//  Génère un fichier GeoJSON d'environ target_kb kilo-octets dans LittleFS.
+//
+//  Paramètres :
+//    path            – chemin dans LittleFS, ex: "/test.geojson"
+//    target_kb       – taille cible en KB
+//    rings           – nombre de rings par polygone (défaut 1)
+//    points_per_ring – points par ring          (défaut 8)
+//
+//  Retourne la taille réelle écrite en octets, ou -1 en cas d'erreur.
+// ---------------------------------------------------------------------------
+
+long generate_geojson(const char* path, size_t target_kb,
+                      int rings = 1, int points_per_ring = 8) {
+  
+    // Supprimer le fichier existant éventuel
+    if (LittleFS.exists(path)) {
+      LittleFS.remove(path);
+    }
+
+    File f = LittleFS.open(path, "w");
+
+    if (!f) {
+        Serial.printf("[GeoJSON] Erreur: impossible d'ouvrir '%s'\n", path);
+        return -1;
+    }
+
+    randomSeed(micros());
+
+    const size_t target_bytes = target_kb * 1024UL;
+
+    f.print("{\"type\":\"FeatureCollection\",\"features\":[");
+
+    size_t written    = 0;
+    int    feat_count = 0;
+
+    while (true) {
+        // Coordonnées aléatoires
+        double cx = -180.0 + (random(36000)) * 0.01;
+        double cy =  -90.0 + (random(18000)) * 0.01;
+
+        // Estimation de la taille de la prochaine feature
+        size_t est = 120 + (size_t)(rings * (points_per_ring + 1)) * 22;
+
+        if (written + est > target_bytes * 95 / 100)
+            break;
+
+        if (feat_count > 0) f.print(",");
+
+        char name[32];
+        snprintf(name, sizeof(name), "feature_%d", feat_count);
+
+        f.print("{\"type\":\"Feature\","
+                "\"properties\":{\"name\":\"");
+        f.print(name);
+        f.print("\",\"id\":");
+        f.printf("%d", feat_count);
+        f.print("},\"geometry\":");
+
+        _geojson_write_polygon(f, cx, cy, rings, points_per_ring);
+
+        f.print("}");
+
+        written += est;
+        feat_count++;
+
+        // Laisser respirer le watchdog sur ESP8266/ESP32
+        yield();
+    }
+
+    f.print("]}");
+    f.flush();
+
+    size_t actual = f.size();
+    f.close();
+
+    Serial.printf("[GeoJSON] %d features → %zu octets (%.1f KB) dans '%s'\n",
+                  feat_count, actual, actual / 1024.0f, path);
+
+    return (long)actual;
+}
 
 // ----------------------------------------------------------------
 // Test infrastructure
@@ -121,9 +248,10 @@ struct IntegralArrayTest : JSONObject {
 
 struct Child : public JSONObject {
   std::string_view nom = "";
+  std::string_view prenom = "";
   uint8_t age = 0U;
 
-  JSON_SERIALIZE_IMPL(nom, age);
+  JSON_SERIALIZE_IMPL(nom, prenom, age);
 };
 
 struct Parent : public JSONObject {
@@ -205,7 +333,7 @@ void test_callback() {
 
   int liste_idx = 0;
   JSON::ParseResult pr =
-    JSON::parse(JSON_DEBUG_PARSER_NAME json, [&p, &liste_idx](const JSONKey &key,
+    JSON::parse(json, [&p, &liste_idx](const JSONKey &key,
                                                               const JSONValue &value, bool &stop) {
       if (key == "ville") {
         p.ville = value;
@@ -258,7 +386,7 @@ void testArrayCallback() {
   const char *json = "[{\"nom\":\"Bob\",\"age\":Infinity},{\"nom\":\"Alice\","
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
 
-  JSON::ParseResult pr = JSON::parse(JSON_DEBUG_PARSER_NAME json, [&personnes, p_length](const JSONKey &key, const JSONValue &value,
+  JSON::ParseResult pr = JSON::parse(json, [&personnes, p_length](const JSONKey &key, const JSONValue &value,
                                                                                          bool &stop) {
     int arrayIndex = key.getArrayIndex();
     if (arrayIndex >= (int)p_length || arrayIndex < 0)
@@ -293,13 +421,28 @@ void test_parse_embedded_object() {
   Child child;
   Parent parent;
   parent.child = child;
-  const char *json = "{\"nom\":\"Bob\",\"child\":{\"nom\":\"Alice\",\"age\":8},\"age\":40}";
-  JSON::ParseResult pr = parent.fromJSON(JSON_DEBUG_PARSER_NAME json);
+  const char *json = "{\"nom\":\"Bob\",\"child\":{\"prenom\":\"Alice\",\"age\":8},\"age\":40}";
+  JSON::ParseResult pr = parent.fromJSON(json);
   check(pr.error == 0, "parse");
-  check(parent.nom == std::string_view("Bob"), "parent.nom == Bob");
-  check(parent.age == 40, "parent.age == 40");
-  check(parent.child.nom == std::string_view("Alice"), "parent.child.nom == Alice");
+  check(parent.nom == std::string_view("Bob"), "parent.nom == Bob, was %.*s", (int)parent.nom.length(), parent.nom.data());
+  check(parent.age == 40, "parent.age == 40, was %d", parent.age);
+  check(parent.child.prenom == std::string_view("Alice"), "parent.child.prenom == Alice, was %.*s", (int)parent.child.prenom.length(), parent.child.prenom.data());
 }
+
+void test_parse_embedded_object_from_stream() {
+  DEBUG_PRINTF("\nTEST EMBEDDED OBJECT FROM STREAM\n");
+  Child child;
+  Parent parent;
+  parent.child = child;
+  const char *json = "{\"nom\":\"Bob\",\"child\":{\"prenom\":\"Alice\",\"age\":8},\"age\":40}";
+  StreamString stream(json);
+  JSON::ParseResult pr = parent.fromJSON(stream);
+  check(pr.error == 0, "parse");
+  check(parent.nom == std::string_view("Bob"), "parent.nom == Bob, was %.*s", (int)parent.nom.length(), parent.nom.data());
+  check(parent.age == 40, "parent.age == 40, was %d", parent.age);
+  check(parent.child.prenom == std::string_view("Alice"), "parent.child.prenom == Alice, was %.*s", (int)parent.child.prenom.length(), parent.child.prenom.data());
+}
+
 // ----------------------------------------------------------------
 // test_parsing from const char *
 // ----------------------------------------------------------------
@@ -332,7 +475,7 @@ void test_parsing() {
     "\"coordinates2\":[[1.0,2.0],[3.0,4.0],[5.0,6.0],[7.0,8.0]]"
     "}";
 
-  JSON::ParseResult result = p.fromJSON(JSON_DEBUG_PARSER_NAME json);
+  JSON::ParseResult result = p.fromJSON(json);
 
   check(result.error == 0, "parse");
   check(p.ville == std::string_view("Lyon"), "ville == Lyon");
@@ -387,7 +530,7 @@ void testArrayParsing() {
   const char *json = "[{\"nom\":\"Bob\",\"age\":40},{\"nom\":\"Alice\",\"age\":"
                      "30},{\"nom\":\"Roger\",\"age\":64}]";
   uint32_t mask = 0;
-  JSON::ParseResult r = JSON::parse(JSON_DEBUG_PARSER_NAME mask, json, personnes);
+  JSON::ParseResult r = JSON::parse(mask, json, personnes);
 
   check(r.error == 0, "parse");
   check(personnes[0].nom == std::string_view("Bob"), "personnes[0].nom == Bob");
@@ -414,7 +557,7 @@ void testIndexedParsing() {
 
   const char *json = "{ \"nom\":\"Bob\", \"age\":40, \"ville\":\"Paris\" }";
   uint32_t mask = 0;
-  JSON::ParseResult pr = JSON::parse(JSON_DEBUG_PARSER_NAME mask, json, "nom[0]", nom, "age[1]", age);
+  JSON::ParseResult pr = JSON::parse(mask, json, "nom[0]", nom, "age[1]", age);
 
   check(pr.error == 0, "parse");
   check(nom == std::string_view("Bob"), "nom == Bob");
@@ -442,32 +585,23 @@ void testGeoJSONParsingSmall() {
 
   FeatureCollection fc;
   StreamString stream(json);
-  JSON::ParseResult pr = fc.fromJSON(JSON_DEBUG_PARSER_NAME stream);
+  JSON::ParseResult pr = fc.fromJSON(stream);
 
   check(pr.error == 0, "parse");
-  check(fc.type == std::string_view("FeatureCollection"),
-        "type == FeatureCollection");
-  check(fc.features.size() == 1, "1 feature");
+  check(fc.type == "FeatureCollection", "type == FeatureCollection was %.*s", (int)fc.type.length(), fc.type.data());
+  check(fc.features.size() == 1, "1 feature, was %u", fc.features.size());
+
   if (fc.features.size() >= 1) {
-    check(fc.features[0].type == std::string_view("Feature"),
-          "feature.type == Feature");
-    check(fc.features[0].properties.name == std::string_view("Canada"),
-          "properties.name == Canada");
-    check(fc.features[0].geometry.type == std::string_view("Polygon"),
-          "geometry.type == Polygon");
-    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings");
+    check(fc.features[0].type == std::string_view("Feature"), "feature.type == Feature, was %.*s", (int)fc.features[0].type.length(), fc.features[0].type.data());
+    check(fc.features[0].properties.name == std::string_view("Canada"), "properties.name == Canada was %.*s", (int)fc.features[0].properties.name.length(), fc.features[0].properties.name.data());
+    check(fc.features[0].geometry.type == std::string_view("Polygon"), "geometry.type == Polygon was %.*s", fc.features[0].geometry.type.length(), fc.features[0].geometry.type.data());
+    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings was %u", fc.features[0].geometry.coordinates.size());
     if (fc.features[0].geometry.coordinates.size() >= 2) {
-      check(fc.features[0].geometry.coordinates[0].size() == 5,
-            "ring[0] has 5 points");
-      check(fc.features[0].geometry.coordinates[1].size() == 5,
-            "ring[1] has 5 points");
+      check(fc.features[0].geometry.coordinates[0].size() == 5, "ring[0] has 5 points was %u", fc.features[0].geometry.coordinates[0].size());
+      check(fc.features[0].geometry.coordinates[1].size() == 5, "ring[1] has 5 points was %u", fc.features[0].geometry.coordinates[1].size());
       // Spot-check first coordinate of ring[0]: [-140.99778, 41.675105]
-      check(near(fc.features[0].geometry.coordinates[0][0][0], -140.99778f,
-                 0.001f),
-            "ring[0][0].lon ≈ -140.998");
-      check(near(fc.features[0].geometry.coordinates[0][0][1], 41.675105f,
-                 0.001f),
-            "ring[0][0].lat ≈ 41.675");
+      check(near(fc.features[0].geometry.coordinates[0][0][0], -140.99778f, 0.001f), "ring[0][0].lon ≈ -140.998 was %f", fc.features[0].geometry.coordinates[0][0][0]);
+      check(near(fc.features[0].geometry.coordinates[0][0][1], 41.675105f, 0.001f), "ring[0][0].lat ≈ 41.675 was %f", fc.features[0].geometry.coordinates[0][0][1]);
     }
   }
 }
@@ -505,10 +639,8 @@ void testGeoJSONParsingBig() {
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
 
-  FILE *file = fopen("tests/canada.json", "r");
-  if (!file) {
-    file = fopen("./canada.json", "r");
-  }
+  FILE *file = fopen("./canada.json", "r");
+
   if (!file) {
     DEBUG_PRINTF("ERROR: Could not open canada.json\n");
     return;
@@ -517,7 +649,7 @@ void testGeoJSONParsingBig() {
   char *json = read_file("./canada.json");
   FeatureCollection fc;
   uint64_t start = now();
-  JSON::ParseResult pr = fc.fromJSON(JSON_DEBUG_PARSER_NAME json);
+  JSON::ParseResult pr = fc.fromJSON(json);
   [[maybe_unused]] uint64_t elapsed1 = now() - start;
   check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error, pr.length);
 
@@ -543,7 +675,7 @@ void test_parse_from_char_buffer() {
                      "\"active\":true, \"num\":[1,2,3]}";
 
   Sensor s;
-  JSON::ParseResult result = s.fromJSON(JSON_DEBUG_PARSER_NAME json);
+  JSON::ParseResult result = s.fromJSON(json);
 
   check(result.error == 0, "parse");
   check(s.id == 42, "id == 42");
@@ -567,7 +699,7 @@ void test_parse_from_stream() {
   s.id = 0;
   s.temperature = 0.0f;
   s.active = false;
-  JSON::ParseResult result = s.fromJSON(JSON_DEBUG_PARSER_NAME stream);
+  JSON::ParseResult result = s.fromJSON(stream);
 
   check(result.error == 0, "parse");
   check(s.id == 42, "id == 42");
@@ -592,31 +724,12 @@ void test_partial_parse() {
   // Only update "active"
   const char *json = "{\"temperature\":20}";
   StreamString stream(json);
-  JSON::ParseResult result = s.fromJSON(JSON_DEBUG_PARSER_NAME stream);
+  JSON::ParseResult result = s.fromJSON(stream);
 
   check(result.error == 0, "parse");
   check(s.id == 99, "id unchanged (99)");
   check(s.temperature == 20, "temperature updated to 20");
   // s.toJSON(Serial);
-}
-
-// ----------------------------------------------------------------
-// Test 3 – fromJSON with StreamString
-// ----------------------------------------------------------------
-
-void test_parse_via_stream_template() {
-  DEBUG_PRINTF("\n--- Test: fromJSON(Stream&) template helper ---\n");
-
-  const char *json = "{\"version\":3,\"interval\":0.5}";
-  StreamString stream(json);
-
-  Config c;
-  JSON::ParseResult result = c.fromJSON(JSON_DEBUG_PARSER_NAME stream);
-
-  check(result.error == 0, "parse");
-  check(c.version == 3, "version == 3");
-  check(near(c.interval, 0.5f), "interval ≈ 0.5");
-  // c.toJSON(Serial);
 }
 
 // ----------------------------------------------------------------
@@ -737,7 +850,7 @@ void test_roundtrip() {
 
   StreamString stream(buf);
   Sensor copy;
-  JSON::ParseResult result = copy.fromJSON(JSON_DEBUG_PARSER_NAME stream);
+  JSON::ParseResult result = copy.fromJSON(stream);
 
   check(result.error == 0, "parse");
   check(copy.id == 72, "id == 72");
@@ -782,7 +895,7 @@ void testSerializeToFile() {
   }
 
   Sensor s2;
-  JSON::ParseResult result = s2.fromJSON(JSON_DEBUG_PARSER_NAME file);
+  JSON::ParseResult result = s2.fromJSON(file);
   file.close();
 
   check(result.error == 0, "parse");
@@ -790,64 +903,50 @@ void testSerializeToFile() {
   check(near(s2.temperature, 36.6f), "temperature ≈ 36.6");
   // check(std::memcmp(&s1, &s2, sizeof(Sensor)) == 0, "s1 == s2");
 }
+#endif
 
-void testParseGeoJSONFromFile() {
+void test_parse_geojson_from_file() {
   DEBUG_PRINTF("\n--- Test: parse GeoJSON from file ---\n");
-  if (!LittleFS.begin()) {
-    Serial.println("Failed to mount LIttleFS");
-    return;
-  }
 
   // write geojson to file
-  const char *filename = "/data.geojson";
-
-  // delete file if it exists
-  if (LittleFS.exists(filename)) {
-    LittleFS.remove(filename);
-  }
-
+  const char *filename = "./data.geojson";
+  
   size_t size = generate_geojson(filename, 1);
 
   check(LittleFS.exists(filename), "Generated geojson file size=%zuB\n", size);
 
   // read file back
   File file = LittleFS.open(filename, "r");
+  
   if (!file) {
     DEBUG_PRINTF("Failed to open file for reading\n");
     check(false, "Failed to open file for reading\n");
     return;
   }
-
-  while (file.available()) {
-      Serial.write(file.read());
-  }
-  Serial.println();
-  file.seek(0);
-
+  //char *json = read_file("./data.geojson");
   FeatureCollection fc;
-  JSON::ParseResult result = fc.fromJSON(JSON_DEBUG_PARSER_NAME file);
+  JSON::ParseResult result = fc.fromJSON(file);
   file.close();
 
   check(result.error == 0, "parse error %u, parsed length=%zu", result.error, result.length);
-  fc.toJSON(Serial, false);
-  return;
+  //fc.toJSON(Serial, false);
+ 
   check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)fc.type.length(), fc.type.data());
 
   if (fc.features.size() >= 1) {
-    check(fc.features[0].type == "Feature", "feature.type == Feature, was %.*s", (int)fc.features[0].type.length(), fc.features[0].type.data());
-    check(fc.features[0].properties.name == "feature_0", "properties.name == feature_0, was %.*s", (int)fc.features[0].properties.name.length(), fc.features[0].properties.name.data());
-    check(fc.features[0].geometry.type == "Polygon", "geometry.type == Polygon, was %.*s", fc.features[0].geometry.type.length(), fc.features[0].geometry.type.data());
-    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings, was %u", fc.features[0].geometry.coordinates.size());
+    check(fc.features[0].type == "Feature", "feature[0].type == Feature, was %.*s", (int)fc.features[0].type.length(), fc.features[0].type.data());
+    check(fc.features[0].properties.name == "feature_0", "feature[0].properties.name == feature_0, was %.*s", (int)fc.features[0].properties.name.length(), fc.features[0].properties.name.data());
+    check(fc.features[0].geometry.type == "Polygon", "feature[0].geometry.type == Polygon, was %.*s", fc.features[0].geometry.type.length(), fc.features[0].geometry.type.data());
+    check(fc.features[0].geometry.coordinates.size() == 1, "feature[0].geometry has 1 rings, was %u", fc.features[0].geometry.coordinates.size());
 
     if (fc.features[0].geometry.coordinates.size() >= 2) {
-      check(fc.features[0].geometry.coordinates[0].size() == 5, "ring[0] has 5 points");
+      check(fc.features[0].geometry.coordinates[0].size() == 5, "ring[0] has 5 points, was %u", fc.features[0].geometry.coordinates[0].size());
     }
   }
 
   // delete file
   LittleFS.remove(filename);
 }
-#endif
 
 // ----------------------------------------------------------------
 // Test – BigStruct round-trip parse
@@ -873,6 +972,7 @@ void test_parse_big_struct() {
     "\"f13\":\"view_one\","
     "\"f14\":\"view_two\","
     "\"f15\":false,"
+    "\"f33\":\"unknown_key\","
     "\"f16\":-999,"
     "\"f17\":3.14,"
     "\"f18\":1.41421,"
@@ -896,7 +996,7 @@ void test_parse_big_struct() {
   JSON::ParseResult r;
   uint64_t start = now();
   for (size_t i = 0; i < 10000; i++) {
-    r = b.fromJSON(JSON_DEBUG_PARSER_NAME json);
+    r = b.fromJSON(json);
   }
   uint64_t elapsed = now() - start;
   check(true, "Parsing time: %lu µs\n", elapsed);
@@ -940,6 +1040,15 @@ void test_parse_big_struct() {
   check(b.f32 == 77, "f32 == 77");
 }
 
+void test_parse_escape_sequence() {
+  DEBUG_PRINTF("\n--- Test: parse escape sequence ---\n");
+  const char *json = "{\"nom\":\"Jean dit \\\"Jeannot\\\" Michel\"}";
+  Parent p;
+  JSON::ParseResult r = p.fromJSON(json);
+  check(r.error == 0, "parse");
+  check(p.nom == std::string_view("Jean dit \"Jeannot\" Michel"), "name == 'Jean dit \"Jeannot\" Michel'");
+}
+
 void run_parsing_tests() {
   // with callback
   test_callback();
@@ -949,14 +1058,14 @@ void run_parsing_tests() {
   testIndexedParsing();
   testArrayParsing();
   test_parse_embedded_object();
+  test_parse_embedded_object_from_stream();
   test_parse_from_char_buffer();
   test_parse_from_stream();
   test_partial_parse();
-  test_parse_via_stream_template();
   test_parse_big_struct();
-
-
   testGeoJSONParsingSmall();
+  test_parse_geojson_from_file();
+  test_parse_escape_sequence();
 }
 
 void run_printing_tests() {
@@ -983,7 +1092,6 @@ void run_tests() {
   test_roundtrip();
 #ifdef ARDUINO
   testSerializeToFile();
-  testParseGeoJSONFromFile();
 #else
   testGeoJSONParsingBig();
 #endif
