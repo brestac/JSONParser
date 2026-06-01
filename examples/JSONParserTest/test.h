@@ -14,7 +14,6 @@
 using namespace std;
 using namespace JSON;
 
-
 static void _geojson_write_polygon(File& f, double cx, double cy,
                                    int rings, int points_per_ring) {
     f.print("{\"type\":\"Polygon\",\"coordinates\":[");
@@ -69,12 +68,13 @@ long generate_geojson(const char* path, size_t target_kb,
     // Supprimer le fichier existant éventuel
     if (LittleFS.exists(path)) {
       LittleFS.remove(path);
+      Serial.printf("[GeoJSON] Deleted existing '%s'\n", path);
     }
 
     File f = LittleFS.open(path, "w");
 
     if (!f) {
-        Serial.printf("[GeoJSON] Erreur: impossible d'ouvrir '%s'\n", path);
+        Serial.printf("[GeoJSON] Erreur: impossible d'ouvrir '%s' en écriture\n", path);
         return -1;
     }
 
@@ -510,10 +510,10 @@ void test_parsing() {
 }
 
 // ----------------------------------------------------------------
-// testArrayParsing
+// test_parse_top_level_array
 // ----------------------------------------------------------------
 
-void testArrayParsing() {
+void test_parse_top_level_array() {
   DEBUG_PRINTF("\n\nTEST ARRAY PARSING\n");
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
@@ -537,10 +537,10 @@ void testArrayParsing() {
 }
 
 // ----------------------------------------------------------------
-// testIndexedParsing
+// test_parse_indexed_keys
 // ----------------------------------------------------------------
 
-void testIndexedParsing() {
+void test_parse_indexed_keys() {
   DEBUG_PRINTF("\n\nTEST INDEXED PARSING\n");
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
@@ -558,7 +558,7 @@ void testIndexedParsing() {
   check(mask == 3, "mask == 3 (bits 0 and 1 set), was %llu", mask);
 }
 
-void testGeoJSONParsingSmall() {
+void test_parse_geojson_small() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SMALL\n");
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
@@ -627,7 +627,7 @@ char *read_file(const char *filename) {
   return buffer;
 }
 
-void testGeoJSONParsingBig() {
+void test_parse_geojson_big() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING BIG FILE\n");
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
@@ -853,7 +853,7 @@ void test_roundtrip() {
 }
 
 #ifdef ARDUINO
-void testSerializeToFile() {
+void test_print_to_file_stream() {
   if (!LittleFS.begin()) {
     Serial.println("Failed to mount LIttleFS");
     return;
@@ -902,26 +902,27 @@ void test_parse_geojson_from_file() {
   DEBUG_PRINTF("\n--- Test: parse GeoJSON from file ---\n");
 
   // write geojson to file
-  const char *filename = "./data.geojson";
   
-  size_t size = generate_geojson(filename, 1);
+  size_t size = generate_geojson(GEOJSON_TEST_FILE_PATH, 1);
 
-  check(LittleFS.exists(filename), "Generated geojson file size=%zuB\n", size);
+  check(LittleFS.exists(GEOJSON_TEST_FILE_PATH), "Generated geojson file size=%zuB\n", size);
 
   // read file back
-  File file = LittleFS.open(filename, "r");
+  File file = LittleFS.open(GEOJSON_TEST_FILE_PATH, "r");
+  yield();
   
   if (!file) {
     DEBUG_PRINTF("Failed to open file for reading\n");
     check(false, "Failed to open file for reading\n");
     return;
   }
-  //char *json = read_file("./data.geojson");
+
   FeatureCollection fc;
   JSON::ParseResult result = fc.fromJSON(file);
   file.close();
-
-  check(result.error == 0, "parse error %u, parsed length=%zu", result.error, result.length);
+  
+  check(result.error == 0U, "parse error %u", result.error);
+  
   //fc.toJSON(Serial, false);
  
   check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)fc.type.length(), fc.type.data());
@@ -938,7 +939,7 @@ void test_parse_geojson_from_file() {
   }
 
   // delete file
-  LittleFS.remove(filename);
+  LittleFS.remove(GEOJSON_TEST_FILE_PATH);
 }
 
 // ----------------------------------------------------------------
@@ -987,12 +988,15 @@ void test_parse_big_struct() {
 
   BigStruct b;
   JSON::ParseResult r;
+
   uint64_t start = now();
-  for (size_t i = 0; i < 10000; i++) {
+  for (size_t i = 0; i < 10000UL; i++) {
     r = b.fromJSON(json);
+    yield();
   }
+
   uint64_t elapsed = now() - start;
-  check(true, "Parsing time: %lu µs\n", elapsed);
+  check(true, "Parsing time: %.1f µs\n", elapsed / 10000UL);
   check(r.error == 0, "parse");
   check(b.f01 == true, "f01 == true");
   check(b.f02 == -12, "f02 == -12");
@@ -1039,7 +1043,7 @@ void test_parse_escape_sequence() {
   Parent p;
   JSON::ParseResult r = p.fromJSON(json);
   check(r.error == 0, "parse");
-  check(p.nom == std::string_view("Jean dit \"Jeannot\" Michel"), "name == 'Jean dit \"Jeannot\" Michel'");
+  check(p.nom == std::string_view("Jean dit \"Jeannot\" Michel"), "name == 'Jean dit \"Jeannot\" Michel' , was '%.*s'", (int)p.nom.length(), p.nom.data());
 }
 
 void run_parsing_tests() {
@@ -1048,16 +1052,16 @@ void run_parsing_tests() {
   testArrayCallback();
 
   test_parsing();
-  testIndexedParsing();
-  testArrayParsing();
+  test_parse_indexed_keys();
+  test_parse_top_level_array();
   test_parse_embedded_object();
   test_parse_embedded_object_from_stream();
   test_parse_from_char_buffer();
   test_parse_from_stream();
   test_partial_parse();
-  test_parse_big_struct();
-  testGeoJSONParsingSmall();
+  test_parse_geojson_small();
   test_parse_geojson_from_file();
+  test_parse_big_struct();
   test_parse_escape_sequence();
 }
 
@@ -1084,9 +1088,9 @@ void run_tests() {
   run_printing_tests();
   test_roundtrip();
 #ifdef ARDUINO
-  testSerializeToFile();
+  test_print_to_file_stream();
 #else
-  testGeoJSONParsingBig();
+  test_parse_geojson_big();
 #endif
 
   DEBUG_PRINTF(
