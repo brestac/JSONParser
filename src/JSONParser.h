@@ -5,6 +5,7 @@
 #include "macros.h"
 #include "JSONStreamParser.h"
 #include "StreamCursor.h"
+#include "StaticString.h"
 #include "utils.h"
 
 NAMESPACE_JSON_BEGIN
@@ -38,14 +39,12 @@ ParseResult _parse_impl(std::string_view name, uint32_t& mask, Cursor& cursor, A
     uint64_t start = now();
 
     JSONParserBase<Cursor> parser(name, cursor);
-    if constexpr (std::is_same_v<Cursor, StreamCursor>) {
-        // pool_limit calculé à la compilation : n_string_views * MAX_VALUE_LENGTH
-        constexpr size_t n_sv      = count_string_view_args_v<Args...>;
-        constexpr size_t pool_size = n_sv * JSON::MAX_VALUE_LENGTH;
-        parser.set_pool_size(pool_size);
-    }
 
-    parser.reset_string_pool();
+    if constexpr (std::is_same<Cursor, StreamCursor>::value) {
+        constexpr size_t n_sv = count_string_view_args_v<Args...>;
+        constexpr size_t extra_pool_size = n_sv * JSON::MAX_VALUE_LENGTH;
+        StaticString<StreamCursor>::increase_pool_size(extra_pool_size);
+    }
     
     if constexpr (UseMask) {
         const bool automask = are_generic_keys(std::forward<Args>(args)...);

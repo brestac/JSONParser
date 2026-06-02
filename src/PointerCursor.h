@@ -56,32 +56,37 @@ public:
   void flush() {}
 
   // Avance le pointeur de n octets
-  void advance(size_t n = 1) const {
-    if (_pos + n <= _end) {
-      _pos += n;
-    } else {
-      _pos = _end;
+  bool advance(int n = 1) const {
+    if (_pos + n < _start) {
+      JSON_DEBUG_WARNING("PointerCursor::advance: underflow\n");
+      _pos = _start;
+    } else if (_pos + n > _end) {
       JSON_DEBUG_WARNING("PointerCursor::advance: overflow\n");
+      _pos = _end;
+    } else {
+      _pos += n;
+      return true;
     }
+
+    return false;
   }
 
-// Avance jusqu'au pointeur
-void advance_to(const char *ptr) const {
-  if (ptr >= _start && ptr < _end)
-    _pos = ptr;
-}
+  // Avance jusqu'au pointeur
+  bool go_to(const char *ptr) const {
+    if (ptr >= _start && ptr < _end) {
+      _pos = ptr;
+      return true;
+    }
 
-// Avance ou recule jusqu'à la position depuis le debut
-void advance_to(size_t index) const {
-  if (index < size())
-    _pos = _start + index;
-}
-
+    return false;
+  }
+  
   // Caractère courant sans avancer (-1 = fin)
-  int peek(size_t offset = 0) const {
+  int peek(int offset = 0) const {
     const char *p = _pos + offset;
-    if (p >= _end)
+    if (p < _start || p >= _end)
       return -1;
+
     return static_cast<unsigned char>(*p);
   }
 
@@ -89,6 +94,7 @@ void advance_to(size_t index) const {
   int read() const {
     if (_pos >= _end)
       return -1;
+    
     return static_cast<unsigned char>(*_pos++);
   }
 

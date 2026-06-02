@@ -9,6 +9,7 @@
 // uniquement sur le type de curseur. L'API publique est identique à
 #include <limits>
 
+#include "StaticString.h"
 #include "ParseDispatchTable.h"
 #include "demangled.h"
 #include "types.h"
@@ -63,7 +64,7 @@ public:
         _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
         _name(name) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "JSONParserBase(pointer) '%.*s' created\n",
-                     (int)_jsonParserName.length(), _jsonParserName.data());
+                     (int)name.length(), name.data());
   }
 
   // ── Constructeur StreamCursor ─────────────────────────────
@@ -76,7 +77,7 @@ public:
         _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
         _name(name) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "JSONParserBase(stream) '%.*s' created\n",
-                     (int)_jsonParserName.length(), _jsonParserName.data());
+                     (int)name.length(), name.data());
   }
 
   ~JSONParserBase() {
@@ -170,21 +171,6 @@ public:
   bool stopped() { return _state == STOPPED; }
   void setName(std::string_view name) { _name = name; }
   std::string_view name() { return _name; }
-  void reset_string_pool() { s_pool_offset = 0; }
-  // Alloue ou agrandit le pool si pool_limit > taille actuelle.
-  // Appelé depuis le constructeur avant tout parsing.
-  static void set_pool_size(size_t pool_limit) {
-    if (pool_limit == 0) return;
-    if (pool_limit <= s_pool_size) return;  // déjà suffisant
-    char* p = static_cast<char*>(realloc(s_string_pool, pool_limit));
-    if (p) {
-      s_string_pool = p;
-      s_pool_size   = pool_limit;
-      JSON_DEBUG_INFO("StreamCursor: pool agrandi à %zu octets\n", pool_limit);
-    } else {
-      JSON_DEBUG_WARNING("StreamCursor: realloc échoué pour %zu octets\n", pool_limit);
-    }
-  }
 
 private:
   Cursor &_cursor; // ← reference: shared across nested parsers
@@ -205,9 +191,6 @@ private:
   ParserError _lastError;
   ParseValueResult _lastParseValueResult;
   std::string_view _name;
-  static char*  s_string_pool;  // pointeur heap, nullptr jusqu'au premier appel
-  static size_t s_pool_size;    // taille actuellement allouée
-  static size_t s_pool_offset;  // offset courant dans le pool
   void reset();
 
   // ── Primitives de lecture via curseur ──────────────────────
@@ -278,11 +261,6 @@ private:
   const char *errorToString(ParserError error);
   const char *parsedValueTypeToString(ParseValueResult error);
 };
-
-// Définitions des membres statiques (C++17 inline)
-template <typename Cursor> inline char* JSONParserBase<Cursor>::s_string_pool = nullptr;
-template <typename Cursor> inline size_t JSONParserBase<Cursor>::s_pool_size   = 0;
-template <typename Cursor> inline size_t JSONParserBase<Cursor>::s_pool_offset = 0;
 
 // ============================================================
 //  Implémentation des méthodes
@@ -399,35 +377,53 @@ size_t JSONParserBase<Cursor>::scan_digits(size_t max_length) {
 // Get a string_view from the cursor, handling multiple escape sequences
 // We write from the cursor to the static string pool, and build a string_view from it.
 // The resulting string_view is passed as reference to the caller.
+// YOU NEED TO FIX THIS because it is giving me headhaches.
+// We have a const char* like [BEGIN]a \"b\" c \n \"d\" e[END] and we want to get a string_view containing [BEGIN]a "b" c \n "d" e[END]
+// Remember that _cursor can be a StreamCursor so we want to avoid peeking forward or backward and prefer peek();
+
 template <typename Cursor>
 bool JSONParserBase<Cursor>::scan_escaped_string(std::string_view &sv) {
+  
   bool escaped = false;
   size_t n = 0;
-  char *pool_start = s_string_pool + s_pool_offset;
+  size_t start_offset = StaticString<Cursor>::offset();
   
   while (n < JSON::MAX_VALUE_LENGTH) {
-    int c = _cursor.peek(n);
-    if (c < 0)
+    unsigned char c = _cursor.peek();
+
+    if (c < 0) {
       break;
+    }
+
     char ch = static_cast<char>(c);
-    if (ch == JSON_ESCAPE_CHARACTER) {
-      escaped = true;
-      n++;
-      continue;
+
+    if (escaped) {
+      escaped = false;
+      if (ch != JSON_QUOTE_CHARACTER) {
+        StaticString<Cursor>::write(JSON_ESCAPE_CHARACTER);
+      }
+
+      StaticString<Cursor>::write(ch);
+
+    } else {
+      if (ch == JSON_ESCAPE_CHARACTER) {
+        escaped = true;
+        continue;
+      } else if (ch == JSON_QUOTE_CHARACTER) {
+        break;
+      }
+      
+      StaticString<Cursor>::write(ch);
     }
-    if (ch == JSON_QUOTE_CHARACTER && !escaped) {
-      break;
-    }
-    pool_start[n] = ch;
+    
+    _cursor.advance();
     n++;
   }
 
-  if (n == 0)
+  if (n == 0 || n >= JSON::MAX_VALUE_LENGTH)
     return false;
 
-  sv = std::string_view(pool_start, n);
-  s_pool_offset += n;
-  _cursor.advance(n);
+  sv = StaticString<Cursor>::get_string_view(start_offset, n);
 
   return true;
 }
@@ -440,23 +436,24 @@ template <>
 template <typename V>
 ParseValueResult JSONParserBase<const PointerCursorReader>::parse_string(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_string\n");
-  const char * start = _cursor.ptr();
   
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
+
+  const char * str_start = _cursor.ptr();
 
   if (!cursor_scan_until(_cursor, JSON_QUOTE_CHARACTER, MAX_VALUE_LENGTH, true, false)) {
     return ParseValueResult::NO_RESULT;
   }
 
-  std::string_view parsed_value(start, _cursor.ptr() - start);
+  std::string_view parsed_value(str_start, _cursor.ptr() - str_start);
 
   if (_cursor.peek(-1) == JSON_ESCAPE_CHARACTER) {
-    _cursor.advance_to(start);
+    _cursor.go_to(str_start);
+    StaticString<const PointerCursorReader>::ensure_pool_size(MAX_VALUE_LENGTH);
     if (!scan_escaped_string(parsed_value)) {
       return ParseValueResult::NO_RESULT;
     }
-    _cursor.advance();
   }
 
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
@@ -474,10 +471,11 @@ ParseValueResult JSONParserBase<StreamCursor>::parse_string(V &arg_value) {
     return ParseValueResult::NO_RESULT;
 
   std::string_view parsed_value;
+
   if (!scan_escaped_string(parsed_value)) {
     return ParseValueResult::NO_RESULT;
   }
-
+std::printf("Parsed value: %.*s\n", (int)parsed_value.length(), parsed_value.data());
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
 
