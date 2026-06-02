@@ -1,6 +1,6 @@
 
 #define DEBUG_ESP_PORT Serial
-#define JSON_DEBUG_LEVEL 1
+#define JSON_DEBUG_LEVEL 0
 
 #include <array>
 #include <chrono>
@@ -26,8 +26,6 @@
 #include "../examples/JSONParserTest/test.h"
 
 int main() {
-  //run_tests();
-  test_parse_embedded_object_from_stream();
-  StaticString<StreamCursor>::print();
+  run_tests();
   return 0;
 }

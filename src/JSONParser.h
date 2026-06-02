@@ -117,13 +117,13 @@ enable_if_stream_compatible<T> parse(uint32_t &mask, T &input, Args &&...args) {
 ////////////////////////////////////////////////////////////
 
 ParseResult parse(StreamCursor &cursor, const JSONCallback &cb) {
-  JSONCallbackObject cb_obj(cb, "$ROOT");
-  return _parse("$ROOT", cursor, cb_obj);
+  JSONCallbackObject cb_obj(cb, "$CALLBACK");
+  return _parse("$CALLBACK", cursor, cb_obj);
 }
 
 ParseResult parse(const PointerCursorReader &cursor, const JSONCallback &cb) {
-  JSONCallbackObject cb_obj(cb, "$ROOT");
-  return _parse("$ROOT", cursor, cb_obj);
+  JSONCallbackObject cb_obj(cb, "$CALLBACK");
+  return _parse("$CALLBACK", cursor, cb_obj);
 }
 
 ////////////////////////////////////////////////////////////
@@ -132,7 +132,7 @@ ParseResult parse(const PointerCursorReader &cursor, const JSONCallback &cb) {
 template <typename T>
 enable_if_json_data_container_compatible<T>
 parse(uint32_t &mask, const PointerCursorReader &cursor, T &jsonObjects) {
-  return _parse("$ROOT", mask, cursor, jsonObjects);
+  return _parse("$ROOT_ARRAY", mask, cursor, jsonObjects);
 }
 
 NAMESPACE_JSON_END

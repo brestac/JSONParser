@@ -48,6 +48,12 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
 #define COLOR_BG_BLUE 44
 #define COLOR_BG_WHITE 47
 
+#ifdef ARDUINO
+#define PRINTF_COLOR(n, fmt, ...) DEBUG_PRINTF(fmt, ##__VA_ARGS__)
+#else
+#define PRINTF_COLOR(n, fmt, ...) DEBUG_PRINTF("\x1b[" TO_STRING(n) "m" fmt "\x1b[0m", ##__VA_ARGS__)
+#endif
+
 #if JSON_DEBUG_LEVEL > 0
 #ifdef ARDUINO
 #define JSON_DEBUG_COLOR(n, fmt, ...) DEBUG_PRINTF(fmt, ##__VA_ARGS__)

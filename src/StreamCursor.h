@@ -2,11 +2,14 @@
 
 #include <cstdlib>
 #include <cstring>
+
 #ifdef ARDUINO
 #include "Stream.h"
 #else
 #include "../include/Stream.h"
 #endif
+
+#include "StaticString.h"
 #include "constants.h"
 #include "demangled.h"
 #include "macros.h"
@@ -92,6 +95,10 @@ public:
   StreamCursor(Stream &stream)
       : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
     JSON_DEBUG_TYPES("StreamCursor created from %s\n", stream);
+  }
+
+  ~StreamCursor() {
+    JSON_DEBUG_WARNING("StreamCursor destroyed\n");
   }
 
   // --------------------------------------------------------

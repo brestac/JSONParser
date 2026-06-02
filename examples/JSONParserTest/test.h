@@ -143,10 +143,10 @@ static int failed = 0;
 template<typename... Args>
 static void check(bool condition, const char *format, Args &&...args) {
   if (condition) {
-    DEBUG_PRINTF("%*c[PASS] ", 2, ' ');
+    PRINTF_COLOR(COLOR_GREEN, "%*c[PASS] ", 2, ' ');
     ++passed;
   } else {
-    DEBUG_PRINTF("%*c[FAIL] ", 2, ' ');
+    PRINTF_COLOR(COLOR_RED, "%*c[FAIL] ", 2, ' ');
     ++failed;
   }
 
@@ -858,7 +858,7 @@ void test_print_to_file_stream() {
 
   DEBUG_PRINTF("\n--- Test: serialize to file ---\n");
   Sensor s1;
-  s1.id = 7;
+  s1.id = 8;
   s1.temperature = 36.6f;
 
   // delete file if it exists
@@ -880,13 +880,20 @@ void test_print_to_file_stream() {
     check(false, "Failed to open file for reading\n");
     return;
   }
-
+  
+  DEBUG_PRINTF("FILE CONTENT ----\n");
+  while(file_r.available() > 0) {
+    DEBUG_PRINTF("%c", file_r.read());
+  }
+  DEBUG_PRINTF("\n-----------------\n");
+  file_r.seek(0);
+  
   Sensor s2;
   JSON::ParseResult result = s2.fromJSON(file_r);
   file_r.close();
 
-  check(result.error == 0, "parse");
-  check(s2.id == 7, "id == 7, was %d", s2.id);
+  check(result.error == 0, "parse error %u", result.error);
+  check(s2.id == 8, "id == 8, was %d", s2.id);
   check(near(s2.temperature, 36.6f), "temperature ≈ 36.6, was %f", s2.temperature);
   // check(std::memcmp(&s1, &s2, sizeof(Sensor)) == 0, "s1 == s2");
 
@@ -1032,13 +1039,46 @@ void test_parse_big_struct() {
   check(b.f32 == 77, "f32 == 77");
 }
 
-void test_parse_escape_sequence() {
+void test_parse_escape_sequence_from_buffer() {
   DEBUG_PRINTF("\n--- Test: parse escape sequence ---\n");
-  const char *json = "{\"nom\":\"Jean dit \\\"Jeannot\\\" Michel\"}";
-  Parent p;
+  const char *json = "{\"prenom\":\"Jean dit \\\"Jeannot\\\" ou Jo\", \"nom\":\"Legendre\"}";
+  Child p;
   JSON::ParseResult r = p.fromJSON(json);
   check(r.error == 0, "parse");
-  check(p.nom == std::string_view("Jean dit \"Jeannot\" Michel"), "name == 'Jean dit \"Jeannot\" Michel' , was '%.*s'", (int)p.nom.length(), p.nom.data());
+  check(p.prenom == std::string_view("Jean dit \"Jeannot\" ou Jo"), "prenom == 'Jean dit \"Jeannot\" ou Jo' , was '%.*s'", (int)p.prenom.length(), p.prenom.data());
+  check(p.nom == std::string_view("Legendre"), "nom == 'Legendre' , was '%.*s'", (int)p.nom.length(), p.nom.data());
+}
+
+void test_parse_escape_sequence_from_stream() {
+  DEBUG_PRINTF("\n--- Test: parse escape sequence with stream ---\n");
+  const char *json = "{\"prenom\":\"Jean dit \\\"Jeannot\\\" ou Jo\", \"nom\":\"Legendre\"}";
+  StreamString stream(json);
+  Child p;
+  JSON::ParseResult r = p.fromJSON(stream);
+  check(r.error == 0, "parse");
+  check(p.prenom == std::string_view("Jean dit \"Jeannot\" ou Jo"), "prenom == 'Jean dit \"Jeannot\" ou Jo' , was '%.*s'", (int)p.prenom.length(), p.prenom.data());
+  check(p.nom == std::string_view("Legendre"), "nom == 'Legendre' , was '%.*s'", (int)p.nom.length(), p.nom.data());
+}
+
+void test_parse_strings_from_buffer() {
+  DEBUG_PRINTF("\n--- Test: parse strings ---\n");
+  Child enfant;
+  const char * json = "{\"nom\":\"Legendre\", \"prenom\":\"Jean\", \"age\":42}";
+  JSON::ParseResult r = enfant.fromJSON(json);
+  check(r.error == 0, "parse");
+  check(enfant.nom == std::string_view("Legendre"), "nom == 'Legendre' , was '%.*s'", (int)enfant.nom.length(), enfant.nom.data());
+  check(enfant.prenom == std::string_view("Jean"), "prenom == 'Jean' , was '%.*s'", (int)enfant.prenom.length(), enfant.prenom.data());
+}
+
+void test_parse_strings_from_stream() {
+  DEBUG_PRINTF("\n--- Test: parse strings ---\n");
+  Child enfant;
+  const char * json = "{\"nom\":\"Legendre\", \"prenom\":\"Jean\", \"age\":42}";
+  StreamString stream(json);
+  JSON::ParseResult r = enfant.fromJSON(stream);
+  check(r.error == 0, "parse");
+  check(enfant.nom == std::string_view("Legendre"), "nom == 'Legendre' , was '%.*s'", (int)enfant.nom.length(), enfant.nom.data());
+  check(enfant.prenom == std::string_view("Jean"), "prenom == 'Jean' , was '%.*s'", (int)enfant.prenom.length(), enfant.prenom.data());
 }
 
 void run_parsing_tests() {
@@ -1060,7 +1100,10 @@ void run_parsing_tests() {
 #endif
   test_parse_geojson_from_file();
   test_parse_big_struct();
-  test_parse_escape_sequence();
+  test_parse_escape_sequence_from_buffer();
+  test_parse_escape_sequence_from_stream();
+  test_parse_strings_from_buffer();
+  test_parse_strings_from_stream();
 }
 
 void run_printing_tests() {

@@ -386,7 +386,7 @@ bool JSONParserBase<Cursor>::scan_escaped_string(std::string_view &sv) {
   
   bool escaped = false;
   size_t n = 0;
-  size_t start_offset = StaticString<Cursor>::offset();
+  char* start = StaticString<Cursor>::current_pos();
   
   while (n < JSON::MAX_VALUE_LENGTH) {
     unsigned char c = _cursor.peek();
@@ -400,14 +400,19 @@ bool JSONParserBase<Cursor>::scan_escaped_string(std::string_view &sv) {
     if (escaped) {
       escaped = false;
       if (ch != JSON_QUOTE_CHARACTER) {
-        StaticString<Cursor>::write(JSON_ESCAPE_CHARACTER);
+        if (!StaticString<Cursor>::write(JSON_ESCAPE_CHARACTER))
+          return false;
       }
 
-      StaticString<Cursor>::write(ch);
-
+    if (!StaticString<Cursor>::write(ch)) {
+      JSON_DEBUG_WARNING("JSONParserBase::scan_escaped_string: string too long\n");
+      return false;
+    }
+    
     } else {
       if (ch == JSON_ESCAPE_CHARACTER) {
         escaped = true;
+        _cursor.advance();
         continue;
       } else if (ch == JSON_QUOTE_CHARACTER) {
         break;
@@ -420,10 +425,11 @@ bool JSONParserBase<Cursor>::scan_escaped_string(std::string_view &sv) {
     n++;
   }
 
-  if (n == 0 || n >= JSON::MAX_VALUE_LENGTH)
+  if (n >= JSON::MAX_VALUE_LENGTH)
     return false;
 
-  sv = StaticString<Cursor>::get_string_view(start_offset, n);
+  sv = std::string_view(start, n);
+  StaticString<Cursor>::increment_values_counter();
 
   return true;
 }
@@ -475,7 +481,7 @@ ParseValueResult JSONParserBase<StreamCursor>::parse_string(V &arg_value) {
   if (!scan_escaped_string(parsed_value)) {
     return ParseValueResult::NO_RESULT;
   }
-std::printf("Parsed value: %.*s\n", (int)parsed_value.length(), parsed_value.data());
+//std::printf("Parsed value: %.*s\n", (int)parsed_value.length(), parsed_value.data());
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
 
