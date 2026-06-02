@@ -5,6 +5,7 @@
 #include "macros.h"
 #include "JSONStreamParser.h"
 #include "StreamCursor.h"
+#include "StaticString.h"
 #include "utils.h"
 
 NAMESPACE_JSON_BEGIN
@@ -39,6 +40,12 @@ ParseResult _parse_impl(std::string_view name, uint32_t& mask, Cursor& cursor, A
 
     JSONParserBase<Cursor> parser(name, cursor);
 
+    if constexpr (std::is_same<Cursor, StreamCursor>::value) {
+        constexpr size_t n_sv = count_string_view_args_v<Args...>;
+        constexpr size_t extra_pool_size = n_sv * JSON::MAX_VALUE_LENGTH;
+        StaticString<StreamCursor>::increase_pool_size(extra_pool_size);
+    }
+    
     if constexpr (UseMask) {
         const bool automask = are_generic_keys(std::forward<Args>(args)...);
         parser.setAutomask(automask);
@@ -101,12 +108,7 @@ ParseResult parse(uint32_t &mask, const char (&input)[N], Args &&...args) {
 
 template <typename T, typename... Args>
 enable_if_stream_compatible<T> parse(uint32_t &mask, T &input, Args &&...args) {
-  // pool_limit calculé à la compilation : n_string_views * MAX_VALUE_LENGTH
-  constexpr size_t n_sv      = count_string_view_args_v<Args...>;
-  constexpr size_t pool_limit = (n_sv == 0)
-      ? JSON::STREAM_STRING_POOL_SIZE
-      : n_sv * JSON::MAX_VALUE_LENGTH;
-  StreamCursor stream(input, pool_limit);
+  StreamCursor stream(input);
   return _parse("$ROOT", mask, stream, std::forward<Args>(args)...);
 }
 
@@ -115,13 +117,13 @@ enable_if_stream_compatible<T> parse(uint32_t &mask, T &input, Args &&...args) {
 ////////////////////////////////////////////////////////////
 
 ParseResult parse(StreamCursor &cursor, const JSONCallback &cb) {
-  JSONCallbackObject cb_obj(cb, "$ROOT");
-  return _parse("$ROOT", cursor, cb_obj);
+  JSONCallbackObject cb_obj(cb, "$CALLBACK");
+  return _parse("$CALLBACK", cursor, cb_obj);
 }
 
 ParseResult parse(const PointerCursorReader &cursor, const JSONCallback &cb) {
-  JSONCallbackObject cb_obj(cb, "$ROOT");
-  return _parse("$ROOT", cursor, cb_obj);
+  JSONCallbackObject cb_obj(cb, "$CALLBACK");
+  return _parse("$CALLBACK", cursor, cb_obj);
 }
 
 ////////////////////////////////////////////////////////////
@@ -130,7 +132,7 @@ ParseResult parse(const PointerCursorReader &cursor, const JSONCallback &cb) {
 template <typename T>
 enable_if_json_data_container_compatible<T>
 parse(uint32_t &mask, const PointerCursorReader &cursor, T &jsonObjects) {
-  return _parse("$ROOT", mask, cursor, jsonObjects);
+  return _parse("$ROOT_ARRAY", mask, cursor, jsonObjects);
 }
 
 NAMESPACE_JSON_END

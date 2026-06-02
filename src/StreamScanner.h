@@ -9,31 +9,31 @@
 NAMESPACE_JSON_BEGIN
 
 // --- scan_char ---
-template <typename Cursor> bool cursor_scan_char(Cursor &cur, char c, bool include = true) {
+template <typename Cursor> bool cursor_scan_char(Cursor &cur, char c, bool consume = true) {
   int got = cur.peek();
   if (got < 0 || static_cast<char>(got) != c)
     return false;
-  if (include)
+  if (consume)
     cur.advance();
   return true;
 }
 
 // --- scan_keyword ---
 template <typename Cursor, size_t KwN>
-bool cursor_scan_keyword(Cursor &cur, const char (&keyword)[KwN], bool include = true) {
+bool cursor_scan_keyword(Cursor &cur, const char (&keyword)[KwN], bool consume = true) {
   for (size_t i = 0; i < KwN; i++) {
     int c = cur.peek(i);
     if (c < 0 || static_cast<char>(c) != keyword[i])
       return false;
   }
-  if (include)
+  if (consume)
     cur.advance(KwN);
   return true;
 }
 
 // --- scan_until : avance jusqu'au délimiteur (non inclus par défaut) ---
 template <typename Cursor>
-bool cursor_scan_until(Cursor &cur, char delim, size_t maxLen = 0, bool include = true, bool includeDelim = false) {
+bool cursor_scan_until(Cursor &cur, char delim, size_t maxLen = 0, bool consume = true, bool consumeDelim = false) {
   size_t i = 0;
   while (true) {
     int c = cur.peek(i);
@@ -42,16 +42,16 @@ bool cursor_scan_until(Cursor &cur, char delim, size_t maxLen = 0, bool include 
     if (static_cast<char>(c) == delim)
       break; // délimiteur trouvé
     if (maxLen > 0 && i >= maxLen) {
-      if (include)
+      if (consume)
         cur.advance(i);
       return false; // dépassement
     }
     i++;
   }
   bool result = (i > 0);
-  if (include) {
+  if (consume) {
     cur.advance(i);
-    if (includeDelim)
+    if (consumeDelim)
       cur.advance();
   }
   return result;
@@ -59,14 +59,14 @@ bool cursor_scan_until(Cursor &cur, char delim, size_t maxLen = 0, bool include 
 
 // --- scan_ranges_once : teste un seul caractère contre N plages ---
 template <typename Cursor, size_t RN>
-constexpr bool cursor_scan_ranges_once(Cursor &cur, char (&ranges)[RN][2], bool include = true) {
+constexpr bool cursor_scan_ranges_once(Cursor &cur, char (&ranges)[RN][2], bool consume = true) {
   int got = cur.peek();
   if (got < 0)
     return false;
   char c = static_cast<char>(got);
   for (size_t i = 0; i < RN; i++) {
     if (c >= ranges[i][0] && c <= ranges[i][1]) {
-      if (include)
+      if (consume)
         cur.advance();
       return true;
     }
@@ -76,7 +76,7 @@ constexpr bool cursor_scan_ranges_once(Cursor &cur, char (&ranges)[RN][2], bool 
 
 // --- scan_ranges : avance tant que les caractères sont dans les plages ---
 template <typename Cursor, size_t RN>
-constexpr bool cursor_scan_ranges(Cursor &cur, char (&ranges)[RN][2], size_t maxLen = 0, bool include = true) {
+constexpr bool cursor_scan_ranges(Cursor &cur, char (&ranges)[RN][2], size_t maxLen = 0, bool consume = true) {
   size_t n = 0;
   while (maxLen == 0 || n < maxLen) {
     int got = cur.peek(n);
@@ -95,21 +95,21 @@ constexpr bool cursor_scan_ranges(Cursor &cur, char (&ranges)[RN][2], size_t max
     n++;
   }
   bool result = (n > 0);
-  if (include)
+  if (consume)
     cur.advance(n);
   return result;
 }
 
 // --- scan_chars_once : teste un seul caractère contre un ensemble ---
 template <typename Cursor, size_t ChN>
-bool cursor_scan_chars_once(Cursor &cur, const char (&chars)[ChN], bool include = true) {
+bool cursor_scan_chars_once(Cursor &cur, const char (&chars)[ChN], bool consume = true) {
   int got = cur.peek();
   if (got < 0)
     return false;
   char c = static_cast<char>(got);
   for (size_t i = 0; i < ChN; i++) {
     if (c == chars[i]) {
-      if (include)
+      if (consume)
         cur.advance();
       return true;
     }
