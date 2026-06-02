@@ -93,7 +93,7 @@ public:
   }
 
   static void print() {
-    DEBUG_PRINTF("StaticString pool: %zu octets, offset: %zu, values:%u, content: '%.*s'\n", s_pool_size, s_pool_offset, n_values, (int)s_pool_offset, s_string_pool);
+    JSON_DEBUG_COLOR(COLOR_BLACK, "StaticString pool: %zu octets, offset: %zu, values:%u, content: '%.*s'\n", s_pool_size, s_pool_offset, n_values, (int)s_pool_offset, s_string_pool);
   }
 
 private:
