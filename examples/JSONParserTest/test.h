@@ -219,6 +219,13 @@ struct Sensor : public JSONObject {
   JSON_SERIALIZE_IMPL(id, active, name, temperature, num);
 };
 
+struct SensorMin : public JSONObject {
+  int id = 0;
+  uint8_t temp = 0;
+  bool active = false;
+  JSON_SERIALIZE_IMPL(id, active, temp);
+};
+
 struct Config : public JSONObject {
   int version = 0;
   float interval = 0.0f;
@@ -722,7 +729,22 @@ void test_partial_parse() {
   check(result.error == 0, "parse");
   check(s.id == 99, "id unchanged (99)");
   check(s.temperature == 20, "temperature updated to 20");
-  // s.toJSON(Serial);
+}
+
+void test_parse_json_subset() {
+  DEBUG_PRINTF("\n--- Test: parse JSON subset ---\n");
+  SensorMin s;
+  const char *json = "{\"temp\":20, \"unrelated_1\":1, \"active\":false, \"id\":42, \"unrelated_2\":1, \"unrelated_3\":1}";
+  JSON::ParseResult result = s.fromJSON(json);
+  check(result.error == 0, "parse");
+  check(s.id == 42, "id == 42");
+  check(s.active == false, "active == false");
+  check(near(s.temp, 20U), "temp == 20");
+  check(result.nParsed == 4, "nParsed == 4, was %zu", result.nParsed);
+  check(result.nMatched == 3, "nMatched == 3, was %zu", result.nMatched);
+  check(result.nConverted == 3, "nConverted == 3, was %zu", result.nConverted);
+  check(result.nUpdated == 2, "nUpdated == 2, was %zu", result.nUpdated);
+  check(result.length < strlen(json), "length < strlen(json), was %zu", result.length);
 }
 
 // ----------------------------------------------------------------
@@ -1104,6 +1126,7 @@ void run_parsing_tests() {
   test_parse_escape_sequence_from_stream();
   test_parse_strings_from_buffer();
   test_parse_strings_from_stream();
+  test_parse_json_subset();
 }
 
 void run_printing_tests() {

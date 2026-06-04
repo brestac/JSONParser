@@ -9,8 +9,7 @@ HEADERS       = $(SRC_HEADERS) $(TEST_HEADERS)
 
 desktop-test: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
-	$(CXX) $(CXXFLAGS) -O2 -I. tests/desktop.cpp -o build/desktop-test
-	cp -n tests/canada.json build/canada.json
+	cp -n tests/canada.json build/canada.json && $(CXX) $(CXXFLAGS) -O2 -std=gnu++17 -I. tests/desktop.cpp -o build/desktop-test
 
 desktop-test-arduino: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
@@ -19,7 +18,7 @@ desktop-test-arduino: tests/desktop.cpp $(HEADERS)
 
 desktop-test-debug: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
-	NIX_HARDENING_ENABLE= $(CXX) $(CXXFLAGS) -O0 -I. tests/desktop.cpp -o build/desktop-test-debug
+	NIX_HARDENING_ENABLE= $(CXX) $(CXXFLAGS) -O0 -std=gnu++17 -Wall -Wextra -ferror-limit=50 -I. tests/desktop.cpp -o build/desktop-test-debug
 	cp -n tests/canada.json build/canada.json
 
 xcode:

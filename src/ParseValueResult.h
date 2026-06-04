@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------------------
 //   ParseValueResult
 // ---------------------------------------------------------------------------
+
 struct ParseValueResult {
 public:
   enum Result : uint16_t {
@@ -77,3 +78,32 @@ public:
 private:
   uint8_t _result;
 };
+
+NAMESPACE_JSON_BEGIN
+
+static const char* errorToString(ParseValueResult result) {
+  uint16_t type = result.valueType();
+
+  switch (type) {
+  case ParseValueResult::UNKNOWN:
+    return "UNKNOWN";
+  case ParseValueResult::BOOLEAN:
+    return "BOOLEAN";
+  case ParseValueResult::INTEGER:
+    return "INTEGER";
+  case ParseValueResult::FLOAT:
+    return "FLOAT";
+  case ParseValueResult::STRING:
+    return "STRING";
+  case ParseValueResult::ARRAY:
+    return "ARRAY";
+  case ParseValueResult::OBJECT:
+    return "OBJECT";
+  case ParseValueResult::POINTER:
+    return "POINTER";
+  default:
+    return "UNKNOWN";
+  }
+}
+
+NAMESPACE_JSON_END
