@@ -18,7 +18,7 @@ template <typename... Args>
 void print_demangled_types(const char *format, Args &&...args);
 
 // #ifdef __GXX_RTTI
-// char *demanglerconst char name[]);
+// char *demanglerconst char* name);
 // template <typename Tuple, size_t... Is>
 // void printf_impl(const char *format, Tuple &t, std::index_sequence<Is...>);
 // #endif

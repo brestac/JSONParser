@@ -39,7 +39,7 @@ public:
   };
 
   // ── Constructeur PointerCursor ─
-  explicit JSONParserBase(const char name[], const PointerCursorReader &cursor)
+  explicit JSONParserBase(const char* name, const PointerCursorReader &cursor)
       : _cursor(cursor), _bytesConsumed(cursor.bytesConsumed()), _state(IDLE),
         _automask(false), _usemask(true), _keyMask(0), _nParsed(0), _nMatched(0),
         _nConverted(0), _nUpdated(0), _key_length(0),
@@ -52,7 +52,7 @@ public:
 
   // ── Constructeur StreamCursor ─────────────────────────────
   // Used when Cursor = StreamCursor; never called for other cursor types.
-  explicit JSONParserBase(const char name[], StreamCursor &cursor)
+  explicit JSONParserBase(const char* name, StreamCursor &cursor)
       : _cursor(cursor), _bytesConsumed(cursor.bytesConsumed()), _state(IDLE),
         _automask(false), _usemask(true), _keyMask(0), _nParsed(0), _nMatched(0),
         _nConverted(0), _nUpdated(0), _key_length(0),
@@ -150,7 +150,7 @@ public:
   void setAutomask(bool automask) { _automask = automask; }
   void setUseMask(bool useMask) { _usemask = useMask; }
   bool stopped() { return _state == STOPPED; }
-  void setName(const char name[]) { strncpy(_name, name, sizeof(_name)); }
+  void setName(const char* name) { strncpy(_name, name, sizeof(_name)); }
   std::string_view name() { return std::string_view(_name); }
 
 private:

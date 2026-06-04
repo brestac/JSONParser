@@ -34,7 +34,7 @@ using enable_if_json_data_container_compatible =
 
 // Implémentation interne unique, UseMask en template bool direct
 template <bool UseMask, typename Cursor, typename... Args>
-ParseResult _parse_impl(const char name[], uint32_t& mask, Cursor& cursor, Args&&... args) {
+ParseResult _parse_impl(const char* name, uint32_t& mask, Cursor& cursor, Args&&... args) {
     uint64_t start = now();
 
     JSONParserBase<Cursor> parser(name, cursor);
@@ -67,7 +67,7 @@ ParseResult _parse_impl(const char name[], uint32_t& mask, Cursor& cursor, Args&
 //  _parse — key-value args (mask tracked)
 ////////////////////////////////////////////////////////////
 template <typename Cursor, typename... Args>
-enable_if_args_valid<Args...> _parse(const char name[], uint32_t& mask, Cursor& cursor, Args&&... args) {
+enable_if_args_valid<Args...> _parse(const char* name, uint32_t& mask, Cursor& cursor, Args&&... args) {
     return _parse_impl<true>(name, mask, cursor, std::forward<Args>(args)...);
 }
 
@@ -75,7 +75,7 @@ enable_if_args_valid<Args...> _parse(const char name[], uint32_t& mask, Cursor& 
 //  _parse — single argument (JSONCallbackObject ou UnknownValueType, no mask)
 ////////////////////////////////////////////////////////////
 template <typename Cursor, typename... Args>
-ParseResult _parse(const char name[], Cursor& cursor, Args&&... args) {
+ParseResult _parse(const char* name, Cursor& cursor, Args&&... args) {
     uint32_t mask = 0;
     return _parse_impl<false>(name, mask, cursor, std::forward<Args>(args)...);
 }
@@ -136,20 +136,20 @@ parse(uint32_t &mask, const PointerCursorReader &cursor, T &jsonObjects) {
 
 NAMESPACE_JSON_END
 
-JSON::ParseResult UnknownValueType::fromJSON(const char name[], JSON::StreamCursor &cursor) {
+JSON::ParseResult UnknownValueType::fromJSON(const char* name, JSON::StreamCursor &cursor) {
   static UnknownValueType dummy;
   return JSON::_parse(name, cursor, dummy);
 }
 
-JSON::ParseResult UnknownValueType::fromJSON(const char name[], const JSON::PointerCursorReader &cursor) {
+JSON::ParseResult UnknownValueType::fromJSON(const char* name, const JSON::PointerCursorReader &cursor) {
   static UnknownValueType dummy;
   return JSON::_parse(name, cursor, dummy);
 }
 
-JSON::ParseResult JSONCallbackObject::fromJSON(const char name[], const JSON::PointerCursorReader &cursor) {
+JSON::ParseResult JSONCallbackObject::fromJSON(const char* name, const JSON::PointerCursorReader &cursor) {
   return JSON::_parse(name, cursor, *this);
 }
 
-JSON::ParseResult JSONCallbackObject::fromJSON(const char name[], JSON::StreamCursor &cursor) {
+JSON::ParseResult JSONCallbackObject::fromJSON(const char* name, JSON::StreamCursor &cursor) {
   return JSON::_parse(name, cursor, *this);
 }

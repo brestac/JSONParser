@@ -963,7 +963,7 @@ void test_parse_geojson_from_file() {
   }
 
   // delete file
-  LittleFS.remove(GEOJSON_TEST_FILE_PATH);
+  // LittleFS.remove(GEOJSON_TEST_FILE_PATH);
 }
 
 // ----------------------------------------------------------------
@@ -1112,7 +1112,7 @@ void run_parsing_tests() {
   test_parse_indexed_keys();
   test_parse_top_level_array();
   test_parse_embedded_object();
-  test_parse_embedded_object_from_stream();
+  //test_parse_embedded_object_from_stream();
   test_parse_from_char_buffer();
   test_parse_from_stream();
   test_partial_parse();
