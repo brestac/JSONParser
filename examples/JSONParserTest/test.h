@@ -315,6 +315,18 @@ struct FeatureCollection : public JSONObject {
   JSON_SERIALIZE_IMPL(type, features);
 };
 
+struct FeatureSansGeometry : public JSONObject {
+  std::string_view type = "";
+  Properties properties;
+  JSON_SERIALIZE_IMPL(type, properties);
+};
+
+struct FeatureCollectionSansGeometry : public JSONObject {
+  std::string_view type = "";
+  std::vector<FeatureSansGeometry> features;
+  JSON_SERIALIZE_IMPL(type, features);
+};
+
 // ----------------------------------------------------------------
 // test_callback
 // ----------------------------------------------------------------
@@ -1101,6 +1113,12 @@ void test_parse_strings_from_stream() {
   check(r.error == 0, "parse");
   check(enfant.nom == std::string_view("Legendre"), "nom == 'Legendre' , was '%.*s'", (int)enfant.nom.length(), enfant.nom.data());
   check(enfant.prenom == std::string_view("Jean"), "prenom == 'Jean' , was '%.*s'", (int)enfant.prenom.length(), enfant.prenom.data());
+}
+
+void test_parse_geojson_from_stream(Stream* stream) {
+  FeatureCollection fc;
+  JSON::ParseResult r = fc.fromJSON(stream);
+  check(r.error == 0, "parse error = %s", JSON::errorToString(r.error));
 }
 
 void run_parsing_tests() {
