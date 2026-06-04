@@ -229,7 +229,7 @@ public:
     return write((const uint8_t *)str, N);
   }
 
-  size_t write(const char *str) {
+  size_t write(const char* str) {
     return write((const uint8_t *)str, strlen(str));
   }
 
@@ -239,7 +239,7 @@ public:
   // Retourne le nombre d'octets écrits.
 
   template <typename... Args>
-  size_t printf(const char *format, Args &&...args) {
+  size_t printf(const char* format, Args &&...args) {
     char buf[STREAM_BUFFER_SIZE];
 
     // snprintf écrit au plus sizeof(buf)-1 caractères

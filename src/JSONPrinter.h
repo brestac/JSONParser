@@ -15,10 +15,10 @@ constexpr uint32_t get_last_bitwise_mask_index(uint32_t mask);
 // référence aux fonctions internes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-template <typename Cursor, typename... Args> size_t print_to(Cursor &output, const char *format, Args &&...args);
+template <typename Cursor, typename... Args> size_t print_to(Cursor &output, const char* format, Args &&...args);
 
 template <typename Cursor, typename T, typename... Rest>
-size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, Cursor &output, const char *key,
+size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, Cursor &output, const char* key,
                                       T &value, Rest &&...rest);
 
 template <typename Cursor, typename... Args> constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args);
@@ -79,7 +79,7 @@ inline size_t constexpr print_key_value_pair(uint32_t /*mask*/, size_t /*idx*/, 
 
 // ── Cas récursif ──────────────────────────────────────────────────────────────
 template <typename Cursor, typename T, typename... Rest>
-size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, Cursor &output, const char *key,
+size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, Cursor &output, const char* key,
                                       T &value, Rest &&...rest) {
   size_t len = 0;
 
@@ -161,7 +161,7 @@ template <typename Cursor> [[gnu::noinline]] size_t print_object_pointer_to(Curs
 }
 
 // ── print_to ──────────────────────────────────────────────────────────────────
-template <typename Cursor, typename... Args> size_t print_to(Cursor &output, const char *format, Args &&...args) {
+template <typename Cursor, typename... Args> size_t print_to(Cursor &output, const char* format, Args &&...args) {
   return output.printf(format, std::forward<Args>(args)...);
 }
 

@@ -17,11 +17,11 @@ void print_demangled_type(const char *format, T &value, Args &&...args);
 template <typename... Args>
 void print_demangled_types(const char *format, Args &&...args);
 
-#ifdef __GXX_RTTI
-char *demangler(const char *name);
-template <typename Tuple, size_t... Is>
-void printf_impl(const char *format, Tuple &t, std::index_sequence<Is...>);
-#endif
+// #ifdef __GXX_RTTI
+// char *demanglerconst char name[]);
+// template <typename Tuple, size_t... Is>
+// void printf_impl(const char *format, Tuple &t, std::index_sequence<Is...>);
+// #endif
 
 #ifdef __GXX_RTTI
 // Wrapper RAII minimal
@@ -29,14 +29,14 @@ struct DemangledName {
   const char *str;
   bool owned;
 
-  explicit DemangledName(const char *name) {
+  explicit DemangledName(const char* type_name) {
     int status;
-    char *d = abi::__cxa_demangle(name, nullptr, nullptr, &status);
+    char *d = abi::__cxa_demangle(type_name, nullptr, nullptr, &status);
     if (status == 0) {
       str = d;
       owned = true;
     } else {
-      str = name;
+      str = type_name;
       owned = false;
     }
   }
