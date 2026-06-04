@@ -3,13 +3,13 @@
 #include <stddef.h>
 #include "StreamCursor.h"
 #include "PointerCursor.h"
+#include "macros.h"
+#include "constants.h"
 
 NAMESPACE_JSON_BEGIN
 
 template<typename Cursor> class StaticString {
 public:
-  //StaticString(Cursor& cursor, size_t length) : _cursor(cursor), _length(length) {}
-
   static void increase_pool_size(size_t size_needed) {
     size_t saved_space = n_values * MAX_VALUE_LENGTH - s_pool_offset;
     JSON_DEBUG_COLOR(COLOR_BLUE, "Saved space: %zu octets\n", saved_space);
@@ -100,7 +100,7 @@ private:
   static char*  s_string_pool;  // pointeur heap, nullptr jusqu'au premier appel
   static size_t s_pool_size;    // taille actuellement allouée
   static size_t s_pool_offset;  // offset courant dans le pool
-  static size_t n_values;      // nombre de valeurs stockées
+  static size_t n_values;       // nombre de valeurs stockées
 };
 
 template<typename Cursor> char* StaticString<Cursor>::s_string_pool = nullptr;

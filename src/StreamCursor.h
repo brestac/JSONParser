@@ -24,10 +24,11 @@ NAMESPACE_JSON_BEGIN
 
 template <size_t N> class RingBuffer {
   static_assert(N >= 16, "RingBuffer : N doit être >= 16");
-  static_assert((N & (N - 1)) == 0, "RingBuffer : N doit être une puissance de 2");
+  static_assert((N & (N - 1)) == 0,
+                "RingBuffer : N doit être une puissance de 2");
 
 public:
-  explicit RingBuffer(Stream &stream) : _stream(stream), _head(0), _tail(0) {}
+  explicit RingBuffer(Stream *stream) : _stream(stream), _head(0), _tail(0) {}
 
   // Nombre d'octets disponibles en lecture sans refill
   size_t available() const { return _head - _tail; }
@@ -36,10 +37,10 @@ public:
   // Ne lit que les octets immédiatement disponibles.
   void refill() {
     while (available() < N) {
-      int avail = _stream.available();
+      int avail = _stream->available();
       if (avail <= 0)
         break;
-      int c = _stream.read();
+      int c = _stream->read();
       if (c < 0)
         break;
       _buf[_head++ & MASK] = static_cast<char>(c);
@@ -50,10 +51,14 @@ public:
   // Effectue un refill si nécessaire.
   // Retourne -1 si la donnée n'est pas disponible (timeout / fin de flux).
   int peek(size_t offset = 0) {
-    if (offset >= available())
+    if (offset >= available()) {
       refill();
-    if (offset >= available())
+    }
+    
+    if (offset >= available()) {
       return -1;
+    }
+    
     return static_cast<unsigned char>(_buf[(_tail + offset) & MASK]);
   }
 
@@ -62,17 +67,25 @@ public:
 
   // Lit et consomme un octet. Retourne -1 si vide.
   int read() {
-    if (available() == 0)
-      refill();
-    if (available() == 0)
+    if (!_stream) {
       return -1;
+    }
+
+    if (available() == 0) {
+      refill();
+    }
+
+    if (available() == 0) {
+      return -1;
+    }
+
     return static_cast<unsigned char>(_buf[_tail++ & MASK]);
   }
 
 private:
   static constexpr size_t MASK = N - 1;
 
-  Stream &_stream;
+  Stream *_stream;
   char _buf[N];
   size_t _head; // indice d'écriture absolu
   size_t _tail; // indice de lecture absolu
@@ -92,14 +105,16 @@ private:
 
 class StreamCursor {
 public:
-  StreamCursor(Stream &stream)
+  StreamCursor(Stream *stream)
       : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
     JSON_DEBUG_TYPES("StreamCursor created from %s\n", stream);
   }
 
-  ~StreamCursor() {
-    JSON_DEBUG_WARNING("StreamCursor destroyed\n");
+  StreamCursor(Stream &stream) : StreamCursor(&stream) {
+    JSON_DEBUG_TYPES("StreamCursor created from %s\n", stream);
   }
+
+  ~StreamCursor() { JSON_DEBUG_WARNING("StreamCursor destroyed\n"); }
 
   // --------------------------------------------------------
   // Méthodes de LECTURE (existantes, inchangées)
@@ -138,7 +153,8 @@ public:
   // délimiteur JSON. Ne consomme PAS les octets (lecture seule via peek).
   // Retourne le nombre d'octets copiés.
   size_t peekToken(char *out, size_t maxLen) {
-    static const char delimiters[] = {',', '}', ']', ' ', '\t', '\n', '\r', '\0'};
+    static const char delimiters[] = {',',  '}',  ']',  ' ',
+                                      '\t', '\n', '\r', '\0'};
     size_t n = 0;
     while (n < maxLen) {
       int c = _ring.peek(n);
@@ -174,7 +190,7 @@ public:
   virtual bool outputCanTimeout () { return true; }
   virtual int availableForWrite() { return 0; }
   */
-  int availableForWrite() { return _stream.availableForWrite(); }
+  int availableForWrite() { return _stream->availableForWrite(); }
 
   size_t write(uint8_t c) {
     // JSON_DEBUG_WARNING("\nStreamCursor::write n=1\n");
@@ -183,7 +199,7 @@ public:
       return 0;
 
     flush();
-    size_t n = _stream.write(c);
+    size_t n = _stream->write(c);
     _written += n;
 
     return n;
@@ -202,27 +218,33 @@ public:
     flush();
     // DEBUG_PRINTF("\nStreamCursor::write n=%zu\n", (size_t)len);
 
-    size_t n = _stream.write(buffer, len);
+    size_t n = _stream->write(buffer, len);
     _written += n;
 
     return n;
   }
   // Écrit une chaîne null-terminée dans le stream.
   // Retourne le nombre d'octets écrits.
-  template <size_t N> size_t write(const char (&str)[N]) { return write((const uint8_t *)str, N); }
+  template <size_t N> size_t write(const char (&str)[N]) {
+    return write((const uint8_t *)str, N);
+  }
 
-  size_t write(const char *str) { return write((const uint8_t *)str, strlen(str)); }
+  size_t write(const char *str) {
+    return write((const uint8_t *)str, strlen(str));
+  }
 
   // Écrit une chaîne formatée (printf-style) dans le stream.
   // Utilise un buffer de pile de 64 octets ; alloue dynamiquement
   // si la chaîne formatée est plus longue.
   // Retourne le nombre d'octets écrits.
 
-  template <typename... Args> size_t printf(const char *format, Args &&...args) {
+  template <typename... Args>
+  size_t printf(const char *format, Args &&...args) {
     char buf[STREAM_BUFFER_SIZE];
 
     // snprintf écrit au plus sizeof(buf)-1 caractères
-    int needed = snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+    int needed =
+        snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
     if (needed < 0)
       return 0;
 
@@ -257,16 +279,16 @@ public:
     return n;
   }
 
-  void flush() { _stream.flush(); }
+  void flush() { _stream->flush(); }
 
-  bool outputCanTimeout() { return _stream.outputCanTimeout(); }
+  bool outputCanTimeout() { return _stream->outputCanTimeout(); }
 
   // Nombre total d'octets écrits depuis la création du curseur
   size_t bytesWritten() const { return _written; }
 
 private:
   RingBuffer<JSON::RING_BUFFER_SIZE> _ring;
-  Stream &_stream; // référence directe pour l'écriture
+  Stream *_stream; // référence directe pour l'écriture
   size_t _consumed;
   size_t _written;
   bool _eof;

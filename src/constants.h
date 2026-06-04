@@ -10,15 +10,15 @@
 
 NAMESPACE_JSON_BEGIN
 
-constexpr size_t STREAM_BUFFER_SIZE = 128;
-constexpr size_t RING_BUFFER_SIZE = 256;
-constexpr size_t MAX_STRING_POOL_SIZE = 1 << 12; // 4096 octets
-constexpr size_t MAX_JSON_LENGTH = 1 << 24;  // 16777216 bytes = 16MB
-constexpr size_t MAX_KEY_LENGTH = 1 << 8;    // 255
-constexpr size_t MAX_VALUE_LENGTH = 1 << 8;  // 255
-constexpr size_t MAX_ARRAY_LENGTH = 1 << 16; // 65536
+constexpr size_t STREAM_BUFFER_SIZE = 1 << 7;     // 128 octets
+constexpr size_t RING_BUFFER_SIZE = 1 << 8;       // 256 octets
+constexpr size_t MAX_STRING_POOL_SIZE = 1 << 12;  // 4096 octets
+constexpr size_t MAX_JSON_LENGTH = 1 << 24;       // 16777216 octets = 16MB
+constexpr size_t MAX_KEY_LENGTH = 1 << 8;         // 255 octets
+constexpr size_t MAX_VALUE_LENGTH = 1 << 8;       // 255 octets
+constexpr size_t MAX_ARRAY_LENGTH = 1 << 16;      // 65536 octets = 64KB
+constexpr size_t MAX_KEY_VALUE_COUNT = 32;        // Maximum autorisé par la macro
 constexpr size_t DEBUG_COLUMN_WIDTH = 80;
-constexpr size_t MAX_KEY_VALUE_COUNT = 32;                                   // Maximum autorisé par la macro
 
 inline uint8_t PARSER_ID = 0;
 inline uint8_t VERSION = 1;
