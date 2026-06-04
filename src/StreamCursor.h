@@ -105,14 +105,16 @@ private:
 
 class StreamCursor {
 public:
-  StreamCursor(Stream *stream)
-      : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
+
+  StreamCursor(Stream* stream) : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
     JSON_DEBUG_TYPES("StreamCursor created from %s\n", stream);
   }
 
-  StreamCursor(Stream &stream) : StreamCursor(&stream) {
+  StreamCursor(Stream*& stream) : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
     JSON_DEBUG_TYPES("StreamCursor created from %s\n", stream);
   }
+
+  StreamCursor(Stream& stream) : StreamCursor(&stream) { }
 
   ~StreamCursor() { JSON_DEBUG_WARNING("StreamCursor destroyed\n"); }
 

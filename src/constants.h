@@ -63,6 +63,7 @@ struct InfinityType {};
 struct NaNType {};
 struct UnknownValueType;
 struct JSONCallbackObject;
+class Stream;
 
 using parsed_types = type_list<bool, int, float, double, std::string_view, NullType>;
 

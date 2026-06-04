@@ -11,6 +11,7 @@ class File : public Stream {
 public:
   explicit File(FILE *file, const char *mode = "r") : _file(file), _size(0) {
     if (_file == nullptr) return;
+  
     if (strcmp(mode, "r") == 0) {
       fseek(_file, 0, SEEK_END);
       _size = ftell(_file);
@@ -83,6 +84,9 @@ public:
   }
 
   bool operator!() const { return _file == nullptr; }
+  operator bool() const { return _file != nullptr; }
+
+  operator File*() { return this; }
 
 private:
   FILE *_file;
@@ -93,6 +97,11 @@ class FileSystemImpl {
 public:
   File open(const char *filename, const char *mode) {
     FILE *f = fopen(filename, mode);
+
+    if (f == nullptr) {
+      return File(nullptr);
+    }
+
     return File(f, mode);
   }
 

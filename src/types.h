@@ -11,6 +11,8 @@
 #include <type_traits>
 #include <variant>
 
+template <typename T> inline constexpr bool is_stream_v = std::is_base_of<Stream, remove_cvref_t<std::remove_pointer_t<T>>>::value;
+
 #include "JSONCallbackObject.h"
 #include "JSONKey.h"
 #include "JSONObject.h"

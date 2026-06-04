@@ -4,6 +4,7 @@
 #include "PointerCursor.h"
 #include "StreamCursor.h"
 #include "str_length.h"
+#include "types.h"
 
 using namespace JSON;
 
@@ -39,14 +40,14 @@ public:
   }
 
   template <typename T>
-  std::enable_if_t<std::is_base_of_v<Stream, std::remove_reference_t<T>>, ParseResult>
-  fromJSON(const char name[], T& input) {
+  std::enable_if_t<is_stream_v<T>, ParseResult>
+  fromJSON(const char name[], T input) {
     StreamCursor cursor(input);
     return fromJSON(name, cursor);
   }
 
   template <typename T>
-  ParseResult fromJSON(T& input) {
+  ParseResult fromJSON(T input) {
     return fromJSON("$ROOT", input);
   }
 
@@ -60,7 +61,7 @@ public:
   virtual size_t toJSON(StreamCursor &cursor, bool updates = true) { return 0; }
 
   template <typename T>
-  std::enable_if_t<std::is_base_of_v<Stream, std::remove_reference_t<T>>, size_t>
+  std::enable_if_t<is_stream_v<T>, size_t>
   toJSON(T& output, bool updates = true) {
     StreamCursor cursor(output);
     return toJSON(cursor, updates);

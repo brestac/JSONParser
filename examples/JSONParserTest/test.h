@@ -934,7 +934,7 @@ void test_parse_geojson_from_file() {
   // read file back
   File file = LittleFS.open(GEOJSON_TEST_FILE_PATH, "r");
   yield();
-  
+
   if (!file) {
     DEBUG_PRINTF("Failed to open file for reading\n");
     check(false, "Failed to open file for reading\n");
@@ -942,7 +942,7 @@ void test_parse_geojson_from_file() {
   }
 
   FeatureCollection fc;
-  JSON::ParseResult result = fc.fromJSON(file);
+  JSON::ParseResult result = fc.fromJSON(&file);
   file.close();
   
   check(result.error == 0U, "parse error %u", result.error);

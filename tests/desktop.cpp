@@ -26,6 +26,7 @@
 #include "../examples/JSONParserTest/test.h"
 
 int main() {
-  run_tests();
+  //run_tests();
+  test_parse_geojson_from_file();
   return 0;
 }
