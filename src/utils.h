@@ -15,7 +15,7 @@
 #endif
 */
 // include for ntohs
-#ifdef ARDUINO_ARCH_ESP8266
+#ifdef ARDUINO_ARCH_ESP8266 // TODO: check for other platforms
 #include <ESP8266WiFi.h>
 #else
 #include <arpa/inet.h>
@@ -29,10 +29,10 @@
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T (&dst)[N], uint8_t *src, size_t src_size);
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T dst, uint8_t (&src)[N]);
 
-template <typename T, size_t N> constexpr bool copy_hex_be_to_h(T (&dst)[N], const char *src, size_t src_size);
+template <typename T, size_t N> constexpr bool copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size);
 
-bool get_byte_fromHexString(uint8_t &value, const char *src, size_t src_size);
-template <typename T> bool get_unsigned_integral_fromHexString(T &value, const char *src, size_t src_size);
+bool get_byte_fromHexString(uint8_t &value, const char* src, size_t src_size);
+template <typename T> bool get_unsigned_integral_fromHexString(T &value, const char* src, size_t src_size);
 
 template <typename T> constexpr T be_to_h(T value);
 
@@ -85,7 +85,7 @@ template <typename T, size_t N, size_t M> constexpr bool copy_array(T (&dst)[N][
   return modified;
 }
 
-bool get_byte_fromHexString(uint8_t &value, const char *src, size_t src_size) {
+bool get_byte_fromHexString(uint8_t &value, const char* src, size_t src_size) {
   JSON::PointerCursor cursor(src, src_size);
 
   if (cursor_scan_ranges_once(cursor, JSON_HEX_CHARACTERS, false)) {
@@ -102,7 +102,7 @@ bool get_byte_fromHexString(uint8_t &value, const char *src, size_t src_size) {
   return false;
 }
 
-template <typename T> bool get_unsigned_integral_fromHexString(T &value, const char *src, size_t src_size) {
+template <typename T> bool get_unsigned_integral_fromHexString(T &value, const char* src, size_t src_size) {
   constexpr size_t target_length = sizeof(T);
 
   if (src_size < target_length * 2) {
@@ -121,7 +121,7 @@ template <typename T> bool get_unsigned_integral_fromHexString(T &value, const c
   return true;
 }
 
-template <typename T, size_t N> constexpr bool copy_hex_be_to_h(T (&dst)[N], const char *src, size_t src_size) {
+template <typename T, size_t N> constexpr bool copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size) {
 
   size_t dst_element_size = sizeof(T);
   size_t dst_elements_count = N;
@@ -190,7 +190,7 @@ template <size_t N, size_t M> void replace_str(char (&input)[N], char (&oldChars
   }
 }
 
-std::string_view copy_to_sv(const char *str, size_t len) {
+std::string_view copy_to_sv(const char* str, size_t len) {
   static char buffer[JSON::MAX_KEY_LENGTH];
   strncpy(buffer, str, len);
   buffer[len] = '\0';

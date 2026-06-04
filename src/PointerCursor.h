@@ -34,7 +34,7 @@ public:
         sv.data(), sv.length());
   }
 
-  constexpr PointerCursor(const char *buffer)
+  constexpr PointerCursor(const char* buffer)
       : _pos(buffer), _start(buffer), _end(buffer + str_length(buffer, MAX_POINTER_CURSOR_SIZE)) {
       JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader created with const char* buffer %p deducted size %zu\n", buffer, str_length(buffer, MAX_POINTER_CURSOR_SIZE));
   }
@@ -72,7 +72,7 @@ public:
   }
 
   // Avance jusqu'au pointeur
-  bool go_to(const char *ptr) const {
+  bool go_to(const char* ptr) const {
     if (ptr >= _start && ptr < _end) {
       _pos = ptr;
       return true;
@@ -83,7 +83,7 @@ public:
   
   // Caractère courant sans avancer (-1 = fin)
   int peek(int offset = 0) const {
-    const char *p = _pos + offset;
+    const char* p = _pos + offset;
     if (p < _start || p >= _end)
       return -1;
 
@@ -107,7 +107,7 @@ public:
     return 1;
   }
 
-  size_t write(const char *buf, size_t size) const {
+  size_t write(const char* buf, size_t size) const {
     if (_pos >= _end)
       return 0;
 
@@ -122,7 +122,7 @@ public:
     return i;
   }
 
-  size_t write(const char *buf) const { return write(buf, str_length(buf, MAX_POINTER_CURSOR_SIZE)); }
+  size_t write(const char* buf) const { return write(buf, str_length(buf, MAX_POINTER_CURSOR_SIZE)); }
 
   template <size_t N> size_t write(const char (&buf)[N]) const {
     return write(buf, N - 1);
@@ -133,7 +133,7 @@ public:
   }
 
   template <typename... Args>
-  std::enable_if_t<(sizeof...(Args) > 0), size_t> printf(const char *format,
+  std::enable_if_t<(sizeof...(Args) > 0), size_t> printf(const char* format,
                                                          Args &&...args) const {
     size_t len =
         snprintf(_pos, available(), format, std::forward<Args>(args)...);

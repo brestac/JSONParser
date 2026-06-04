@@ -39,7 +39,7 @@ public:
   };
 
   // ── Constructeur PointerCursor ─
-  explicit JSONParserBase(const char *name, const PointerCursorReader &cursor)
+  explicit JSONParserBase(const char name[], const PointerCursorReader &cursor)
       : _cursor(cursor), _bytesConsumed(cursor.bytesConsumed()), _state(IDLE),
         _automask(false), _usemask(true), _keyMask(0), _nParsed(0), _nMatched(0),
         _nConverted(0), _nUpdated(0), _key_length(0),
@@ -52,7 +52,7 @@ public:
 
   // ── Constructeur StreamCursor ─────────────────────────────
   // Used when Cursor = StreamCursor; never called for other cursor types.
-  explicit JSONParserBase(const char *name, StreamCursor &cursor)
+  explicit JSONParserBase(const char name[], StreamCursor &cursor)
       : _cursor(cursor), _bytesConsumed(cursor.bytesConsumed()), _state(IDLE),
         _automask(false), _usemask(true), _keyMask(0), _nParsed(0), _nMatched(0),
         _nConverted(0), _nUpdated(0), _key_length(0),
@@ -150,7 +150,7 @@ public:
   void setAutomask(bool automask) { _automask = automask; }
   void setUseMask(bool useMask) { _usemask = useMask; }
   bool stopped() { return _state == STOPPED; }
-  void setName(const char *name) { strncpy(_name, name, sizeof(_name)); }
+  void setName(const char name[]) { strncpy(_name, name, sizeof(_name)); }
   std::string_view name() { return std::string_view(_name); }
 
 private:
@@ -419,7 +419,7 @@ JSONParserBase<const PointerCursorReader>::parse_string(V &arg_value) {
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
 
-  const char *str_start = _cursor.ptr();
+  const char* str_start = _cursor.ptr();
 
   if (!cursor_scan_until(_cursor, JSON_QUOTE_CHARACTER, MAX_VALUE_LENGTH, true,
                          false)) {
@@ -1263,7 +1263,7 @@ ParseValueResult JSONParserBase<Cursor>::parse_object(V &arg_value) {
     return ParseValueResult::NO_RESULT;
   }
   bool key_not_set = _key_buf[0] == '\0' || _key_length == 0;
-  const char *name = key_not_set ? "$UNAMED" : _key_buf;
+  const char* name = key_not_set ? "$UNAMED" : _key_buf;
   JSON_DEBUG_INFO("Will parse object '%s'\n", name);
   JSON_DEBUG_INFO("Cursor position is now at %zu\n", bytesConsumed());
   JSON::ParseResult r = arg_value.fromJSON(name, _cursor);
@@ -1328,13 +1328,13 @@ void JSONParserBase<Cursor>::print_state(size_t iteration) {
 
     [[maybe_unused]] size_t col_number = bytesConsumed() / length;
     [[maybe_unused]] size_t col_pos = bytesConsumed() % length;
-    [[maybe_unused]] const char *dots = (_cursor.size()) > length ? "..." : "";
+    [[maybe_unused]] const char* dots = (_cursor.size()) > length ? "..." : "";
 
-    [[maybe_unused]] const char *color =
+    [[maybe_unused]] const char* color =
         (_state == ERROR) ? "\x1b[31m" : "\x1b[32m";
-    [[maybe_unused]] const char *error =
+    [[maybe_unused]] const char* error =
         (_state == ERROR) ? errorToString(_lastError) : "";
-    [[maybe_unused]] const char *errorValueType =
+    [[maybe_unused]] const char* errorValueType =
         (_state == ERROR) ? errorToString(_lastParseValueResult) : "";
 
     char *output = static_cast<char *>(malloc(length));

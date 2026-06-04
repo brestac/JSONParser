@@ -16,7 +16,7 @@ enum ParserError : uint8_t {
   INVALID_OBJECT = 6
 };
 
-static const char *errorToString(ParserError error) {
+static const char* errorToString(ParserError error) {
   switch (error) {
   case ParserError::NO_ERROR:
     return "NO ERROR";

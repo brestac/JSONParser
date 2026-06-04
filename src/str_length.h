@@ -1,7 +1,7 @@
 #pragma once
 #include <stddef.h>
 
-constexpr size_t str_length(const char *str, size_t max_len) {
+constexpr size_t str_length(const char* str, size_t max_len) {
   size_t len = 0;
   while (len < max_len && str[len] != '\0') {
     ++len;
