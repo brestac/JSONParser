@@ -11,9 +11,14 @@
 
 #include "ParseDispatchTable.h"
 #include "StaticString.h"
-#include "demangled.h"
 #include "types.h"
 #include "utils.h"
+#ifdef __GXX_RTTI
+#include "demangled.h"
+#endif
+#ifndef ARDUINO
+#include "../include/ArduinoCompat.h"
+#endif
 
 using namespace std;
 using namespace JSON;
@@ -828,6 +833,8 @@ void JSONParserBase<Cursor>::parse(Args &&...args) {
 
   while (!_cursor.eof() && iteration <= JSON::MAX_ITERATIONS) {
     iteration++;
+    if (iteration % 64 == 0) yield();
+    
 #if JSON_DEBUG_LEVEL > 0
     print_state(iteration);
 #endif
