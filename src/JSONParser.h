@@ -26,8 +26,7 @@ using enable_if_pointer_reader_compatible =
 
 template <typename T>
 using enable_if_stream_compatible =
-    std::enable_if_t<std::is_base_of<Stream, remove_cvref_t<T>>::value,
-                     ParseResult>;
+    std::enable_if_t<is_stream_v<T>, ParseResult>;
 
 template <typename T>
 using enable_if_json_data_container_compatible =

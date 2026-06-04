@@ -46,7 +46,7 @@ _print(uint32_t mask, Cursor &output, Args &&...args) {
 
 // ── Surcharge pour dérivées de Stream ──────────────────────────────────────────
 template <typename T, typename... Args>
-std::enable_if_t<std::is_base_of<Stream, std::remove_reference_t<T>>::value, size_t> print(uint32_t mask, T &stream,
+std::enable_if_t<is_stream_v<T>, size_t> print(uint32_t mask, T &stream,
                                                                                            Args &&...args) {
   StreamCursor c(stream);
   return _print(mask, c, std::forward<Args>(args)...);
