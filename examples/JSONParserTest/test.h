@@ -1116,9 +1116,15 @@ void test_parse_strings_from_stream() {
 }
 
 void test_parse_geojson_from_stream(Stream* stream) {
-  FeatureCollection fc;
+  FeatureCollectionSansGeometry fc;
   JSON::ParseResult r = fc.fromJSON(stream);
   check(r.error == 0, "parse error = %s", JSON::errorToString(r.error));
+}
+
+void test_parse_json_from_stream(Stream* stream) {
+  Sensor s;
+  JSON::ParseResult r = s.fromJSON(stream);
+  check(r.error == 0, "parse error = %hhu length=%zu", r.error, r.length);
 }
 
 void run_parsing_tests() {
@@ -1130,7 +1136,7 @@ void run_parsing_tests() {
   test_parse_indexed_keys();
   test_parse_top_level_array();
   test_parse_embedded_object();
-  //test_parse_embedded_object_from_stream();
+  test_parse_embedded_object_from_stream();
   test_parse_from_char_buffer();
   test_parse_from_stream();
   test_partial_parse();
