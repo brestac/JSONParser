@@ -2,6 +2,7 @@
 
 #include "demangled.h"
 #include "types.h"
+#include "../include/ArduinoCompat.h"
 
 constexpr uint32_t get_last_bitwise_mask_index(uint32_t mask);
 
@@ -95,6 +96,7 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, 
       if (mask == 0 || idx < last_idx) {
         len += output.write(",");
       }
+      yield();
     }
   }
 
@@ -183,6 +185,7 @@ template <typename Cursor, typename T> size_t constexpr print_array_to(Cursor &o
     if (i < N - 1) {
       len += output.write(",");
     }
+    yield();
   }
 
   len += output.write("]");
