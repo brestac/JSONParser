@@ -2,8 +2,9 @@
 
 #include "demangled.h"
 #include "types.h"
+#ifndef ARDUINO
 #include "../include/ArduinoCompat.h"
-
+#endif
 constexpr uint32_t get_last_bitwise_mask_index(uint32_t mask);
 
 // ── Toutes les fonctions internes prennent Cursor par référence ──────────────
@@ -11,44 +12,54 @@ constexpr uint32_t get_last_bitwise_mask_index(uint32_t mask);
 // niveau de récursion template, ce qui provoquait un stack overflow sur ESP8266
 // (pile disponible ~3 Ko seulement).
 //
-// Seules les deux surcharges publiques JSON::print() reçoivent Cursor par valeur
-// (interface inchangée pour l'appelant) et transmettent immédiatement une
-// référence aux fonctions internes.
+// Seules les deux surcharges publiques JSON::print() reçoivent Cursor par
+// valeur (interface inchangée pour l'appelant) et transmettent immédiatement
+// une référence aux fonctions internes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-template <typename Cursor, typename... Args> size_t print_to(Cursor &output, const char* format, Args &&...args);
+template <typename Cursor, typename... Args>
+size_t print_to(Cursor &output, const char *format, Args &&...args);
 
 template <typename Cursor, typename T, typename... Rest>
-size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, Cursor &output, const char* key,
-                                      T &value, Rest &&...rest);
+size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
+                                      Cursor &output, const char *key, T &value,
+                                      Rest &&...rest);
 
-template <typename Cursor, typename... Args> constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args);
+template <typename Cursor, typename... Args>
+constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args);
 
-template <typename Cursor, typename T> size_t constexpr print_array_to(Cursor &output, T &array);
+template <typename Cursor, typename T>
+size_t constexpr print_array_to(Cursor &output, T &array);
 
-template <typename Cursor, typename T, size_t N> size_t constexpr print_hex_to(Cursor &output, T (&value)[N]);
+template <typename Cursor, typename T, size_t N>
+size_t constexpr print_hex_to(Cursor &output, T (&value)[N]);
 
-template <typename Cursor, typename T, size_t N> size_t constexpr print_char_array_to(Cursor &output, T (&value)[N]);
+template <typename Cursor, typename T, size_t N>
+size_t constexpr print_char_array_to(Cursor &output, T (&value)[N]);
 
-template <typename Cursor, typename T> size_t constexpr print_value_to(Cursor &output, T &value);
+template <typename Cursor, typename T>
+size_t constexpr print_value_to(Cursor &output, T &value);
 
-template <typename Cursor> size_t print_object_pointer_to(Cursor &output, void *value);
+template <typename Cursor>
+size_t print_object_pointer_to(Cursor &output, void *value);
 
 namespace JSON {
 
 // ── Surcharge pour StreamCursor / PointerCursorWriter ────────────────────────
 template <typename Cursor, typename... Args>
 enable_if_t<is_cursor_writer_v<Cursor> &&
-                key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>,
+                key_value_checker_v<parsed_types, arguments_types,
+                                    arguments_array_types, Args...>,
             size_t>
 _print(uint32_t mask, Cursor &output, Args &&...args) {
   return print_json(mask, output, std::forward<Args>(args)...);
 }
 
-// ── Surcharge pour dérivées de Stream ──────────────────────────────────────────
+// ── Surcharge pour dérivées de Stream
+// ──────────────────────────────────────────
 template <typename T, typename... Args>
 std::enable_if_t<is_stream_v<T>, size_t> print(uint32_t mask, T &stream,
-                                                                                           Args &&...args) {
+                                               Args &&...args) {
   StreamCursor c(stream);
   return _print(mask, c, std::forward<Args>(args)...);
 }
@@ -71,17 +82,21 @@ print(uint32_t mask, Buffer &&buffer, Args &&...args) {
 
 } // namespace JSON
 
-// ── Cas de base de la récursion (aucune paire restante) ───────────────────────
+// ── Cas de base de la récursion (aucune paire restante)
+// ───────────────────────
 template <typename Cursor>
-inline size_t constexpr print_key_value_pair(uint32_t /*mask*/, size_t /*idx*/, int & /*last_idx*/,
+inline size_t constexpr print_key_value_pair(uint32_t /*mask*/, size_t /*idx*/,
+                                             int & /*last_idx*/,
                                              Cursor & /*output*/) {
   return 0;
 }
 
-// ── Cas récursif ──────────────────────────────────────────────────────────────
+// ── Cas récursif
+// ──────────────────────────────────────────────────────────────
 template <typename Cursor, typename T, typename... Rest>
-size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, Cursor &output, const char* key,
-                                      T &value, Rest &&...rest) {
+size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
+                                      Cursor &output, const char *key, T &value,
+                                      Rest &&...rest) {
   size_t len = 0;
 
   if (mask == 0 || mask & (1 << idx)) {
@@ -100,12 +115,15 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx, 
     }
   }
 
-  len += print_key_value_pair(mask, ++idx, last_idx, output, std::forward<Rest>(rest)...);
+  len += print_key_value_pair(mask, ++idx, last_idx, output,
+                              std::forward<Rest>(rest)...);
   return len;
 }
 
-// ── print_value_to ────────────────────────────────────────────────────────────
-template <typename Cursor, typename T> size_t constexpr print_value_to(Cursor &output, T &value) {
+// ── print_value_to
+// ────────────────────────────────────────────────────────────
+template <typename Cursor, typename T>
+size_t constexpr print_value_to(Cursor &output, T &value) {
 
   if constexpr (std::is_same_v<remove_cvref_t<T>, bool>) {
     return print_to(output, "%s", value ? "true" : "false");
@@ -133,7 +151,8 @@ template <typename Cursor, typename T> size_t constexpr print_value_to(Cursor &o
     if (value == nullptr) {
       return output.write("null");
     } else {
-      if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<std::remove_pointer_t<T>>>) {
+      if constexpr (std::is_base_of_v<
+                        JSONObject, remove_cvref_t<std::remove_pointer_t<T>>>) {
         return print_object_pointer_to(output, value);
       } else {
         return print_to(output, "%p", value);
@@ -148,8 +167,10 @@ template <typename Cursor, typename T> size_t constexpr print_value_to(Cursor &o
   }
 }
 
-// ── print_object_pointer_to ───────────────────────────────────────────────────
-template <typename Cursor> [[gnu::noinline]] size_t print_object_pointer_to(Cursor &output, void *value) {
+// ── print_object_pointer_to
+// ───────────────────────────────────────────────────
+template <typename Cursor>
+[[gnu::noinline]] size_t print_object_pointer_to(Cursor &output, void *value) {
 #ifdef __EXCEPTIONS
   try {
 #endif
@@ -162,18 +183,27 @@ template <typename Cursor> [[gnu::noinline]] size_t print_object_pointer_to(Curs
 #endif
 }
 
-// ── print_to ──────────────────────────────────────────────────────────────────
-template <typename Cursor, typename... Args> size_t print_to(Cursor &output, const char* format, Args &&...args) {
+// ── print_to
+// ──────────────────────────────────────────────────────────────────
+template <typename Cursor, typename... Args>
+size_t print_to(Cursor &output, const char *format, Args &&...args) {
   return output.printf(format, std::forward<Args>(args)...);
 }
 
-// ── Helpers array_size ────────────────────────────────────────────────────────
+// ── Helpers array_size
+// ────────────────────────────────────────────────────────
 template <typename T, size_t N> size_t array_size(T (&array)[N]) { return N; }
-template <typename T> size_t array_size(std::vector<T> &array) { return array.size(); }
-template <typename T, size_t N> size_t array_size(std::array<T, N> &) { return N; }
+template <typename T> size_t array_size(std::vector<T> &array) {
+  return array.size();
+}
+template <typename T, size_t N> size_t array_size(std::array<T, N> &) {
+  return N;
+}
 
-// ── print_array_to ────────────────────────────────────────────────────────────
-template <typename Cursor, typename T> size_t constexpr print_array_to(Cursor &output, T &array) {
+// ── print_array_to
+// ────────────────────────────────────────────────────────────
+template <typename Cursor, typename T>
+size_t constexpr print_array_to(Cursor &output, T &array) {
   size_t N = array_size(array);
   size_t len = 0;
 
@@ -192,13 +222,17 @@ template <typename Cursor, typename T> size_t constexpr print_array_to(Cursor &o
   return len;
 }
 
-// ── print_char_array_to ───────────────────────────────────────────────────────
-template <typename Cursor, typename T, size_t N> size_t constexpr print_char_array_to(Cursor &output, T (&value)[N]) {
+// ── print_char_array_to
+// ───────────────────────────────────────────────────────
+template <typename Cursor, typename T, size_t N>
+size_t constexpr print_char_array_to(Cursor &output, T (&value)[N]) {
   return print_to(output, "\"%.*s\"", (int)(N - 1), value);
 }
 
-// ── print_hex_to ──────────────────────────────────────────────────────────────
-template <typename Cursor, typename T, size_t N> size_t constexpr print_hex_to(Cursor &output, T (&value)[N]) {
+// ── print_hex_to
+// ──────────────────────────────────────────────────────────────
+template <typename Cursor, typename T, size_t N>
+size_t constexpr print_hex_to(Cursor &output, T (&value)[N]) {
   size_t hex_size = sizeof(T) * 2;
   size_t len = 0;
 
@@ -211,24 +245,28 @@ template <typename Cursor, typename T, size_t N> size_t constexpr print_hex_to(C
   return len;
 }
 
-// ── print_json ────────────────────────────────────────────────────────────────
+// ── print_json
+// ────────────────────────────────────────────────────────────────
 template <typename Cursor, typename... Args>
 constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args) {
-  static_assert(sizeof...(Args) % 2 == 0, "Le nombre d'arguments doit être pair");
+  static_assert(sizeof...(Args) % 2 == 0,
+                "Le nombre d'arguments doit être pair");
 
   size_t len = 0;
   int last_index = get_last_bitwise_mask_index(mask);
 
   len += output.write("{");
 
-  size_t inner = print_key_value_pair(mask, 0, last_index, output, std::forward<Args>(args)...);
+  size_t inner = print_key_value_pair(mask, 0, last_index, output,
+                                      std::forward<Args>(args)...);
   len += inner;
 
   len += output.write("}");
   return len;
 }
 
-// ── get_last_bitwise_mask_index ───────────────────────────────────────────────
+// ── get_last_bitwise_mask_index
+// ───────────────────────────────────────────────
 constexpr uint32_t get_last_bitwise_mask_index(uint32_t mask) {
   if (mask == 0)
     return -1;
