@@ -31,7 +31,8 @@ void setup() {
   //   Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
   //run_tests();
 
-  test_parse_from_tcp_stream("http://192.168.1.2:9000/sensor.json");
+  test_parse_from_tcp_stream<Sensor>("http://192.168.1.2:9000/sensor.json");
+  test_parse_from_tcp_stream<FeatureCollection>("http://192.168.1.2:9000/data.geojson");
 }
 
 void loop() {
@@ -68,6 +69,7 @@ bool connectWifi() {
   return true;
 }
 
+template<typename T>
 void test_parse_from_tcp_stream(const char* url) {
   bool connected = connectWifi();
   if (!connected) return;
@@ -107,8 +109,30 @@ void test_parse_from_tcp_stream(const char* url) {
     delay(10);
   }
 
-  Sensor s;
+  T s;
   JSON::ParseResult r = s.fromJSON(stream);
+
+  if constexpr (std::is_same_v<T, FeatureCollection>) {
+    check(s.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)s.type.length(), s.type.data());
+
+    if (s.features.size() >= 1) {
+      check(s.features[0].type == "Feature", "feature[0].type == Feature, was %.*s", (int)s.features[0].type.length(), s.features[0].type.data());
+      check(s.features[0].properties.name == "feature_0", "feature[0].properties.name == feature_0, was %.*s", (int)s.features[0].properties.name.length(), s.features[0].properties.name.data());
+      check(s.features[0].geometry.type == "Polygon", "feature[0].geometry.type == Polygon, was %.*s", s.features[0].geometry.type.length(), s.features[0].geometry.type.data());
+      check(s.features[0].geometry.coordinates.size() == 1, "feature[0].geometry has 1 rings, was %u", s.features[0].geometry.coordinates.size());
+
+      if (s.features[0].geometry.coordinates.size() >= 2) {
+        check(s.features[0].geometry.coordinates[0].size() == 5, "ring[0] has 5 points, was %u", s.features[0].geometry.coordinates[0].size());
+      }
+    }
+  }
+
+  if constexpr (std::is_same_v<T, Sensor>) {
+    check(s.id == 11, "s.id == 11");
+    check(near(s.temperature, 20), "s.temperature == 20");
+    check(s.active == true, "s.active == true");
+  }
+
   http.end();
   check(r.error == 0, "parse error = %hhu length=%zu", r.error, r.length);
   s.toJSON(Serial);
