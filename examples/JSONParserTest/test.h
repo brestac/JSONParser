@@ -346,7 +346,7 @@ void test_callback() {
   int liste_idx = 0;
   JSON::ParseResult pr =
     JSON::parse(json, [&p, &liste_idx](const JSONKey &key,
-                                                              const JSONValue &value, bool &stop) {
+                                                              const JSONValue &value, bool & /*stop*/) {
       if (key == "ville") {
         p.ville = value;
       } else if (key == "age") {

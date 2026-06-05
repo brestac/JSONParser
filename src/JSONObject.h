@@ -18,11 +18,11 @@ public:
   //  fromJSON
   ////////////////////////////////////////////////////////////////////////////////
 
-  virtual JSON::ParseResult fromJSON(const char* name, const PointerCursorReader &cursor) {
+  virtual JSON::ParseResult fromJSON(const char* /*name*/, const PointerCursorReader & /*cursor*/) {
     return ParseResult();
   }
 
-  virtual JSON::ParseResult fromJSON(const char* name, StreamCursor &cursor) {
+  virtual JSON::ParseResult fromJSON(const char* /*name*/, StreamCursor & /*cursor*/) {
     return ParseResult();
   }
 
@@ -60,11 +60,11 @@ public:
   ////////////////////////////////////////////////////////////////////////////////
   //  toJSON
   ////////////////////////////////////////////////////////////////////////////////
-  virtual size_t toJSON(PointerCursorWriter &cursor, bool updates = true) {
+  virtual size_t toJSON(PointerCursorWriter & /*cursor*/, bool /*updates*/ = true) {
     return 0;
   }
 
-  virtual size_t toJSON(StreamCursor &cursor, bool updates = true) { return 0; }
+  virtual size_t toJSON(StreamCursor & /*cursor*/, bool /*updates*/ = true) { return 0; }
 
   template <typename T>
   std::enable_if_t<is_stream_v<T>, size_t>

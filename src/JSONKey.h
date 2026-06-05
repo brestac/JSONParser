@@ -1,26 +1,14 @@
 #pragma once
-#include "StreamScanner.h"
-#include "str_length.h"
 
 #include <string_view>
 
+#include "StreamScanner.h"
+#include "str_length.h"
+#include "utils.h"
 
 // ---------------------------------------------------------------------------
 //   hash32 — FNV-1a 32 bits, constexpr
 // ---------------------------------------------------------------------------
-
-constexpr uint32_t hash32(const char* str, size_t len) {
-  uint32_t hash = 2166136261u;
-  for (size_t i = 0; i < len; ++i) {
-    hash ^= static_cast<uint32_t>(str[i]);
-    hash *= 16777619u;
-  }
-  return hash;
-}
-
-constexpr uint32_t hash32(std::string_view key) {
-  return hash32(key.data(), key.length());
-}
 
 constexpr uint32_t operator""_hash(const char* str, size_t len) {
   return hash32(str, len);

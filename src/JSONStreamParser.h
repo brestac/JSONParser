@@ -706,7 +706,7 @@ JSONParserBase<Cursor>::parse_value(UnknownValueType &unknown) {
 template <typename Cursor>
 template <typename TupleT, typename TableT>
 std::enable_if_t<(std::tuple_size<TupleT>::value == 1), ParseValueResult>
-JSONParserBase<Cursor>::parse_value(TableT &table, TupleT &args) {
+JSONParserBase<Cursor>::parse_value(TableT & /*table*/, TupleT &args) {
   return parse_value(std::get<0>(args));
 }
 
@@ -1043,8 +1043,8 @@ JSONParserBase<Cursor>::assign_callback_object(const PV &pv,
 
 template <typename Cursor>
 template <typename PV, typename V>
-ParseValueResult JSONParserBase<Cursor>::assign_not_handled(PV &pv, V &v) {
-  JSON_DEBUG_TYPES("Could not assign value from %s to %s\n", pv, v);
+ParseValueResult JSONParserBase<Cursor>::assign_not_handled(PV & /*pv*/, V & /*v*/) {
+  JSON_DEBUG_TYPES("Could not assign value from %s to %s\n", "?", "?");
   return ParseValueResult::NO_RESULT;
 }
 
