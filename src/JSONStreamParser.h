@@ -22,13 +22,13 @@
 
 using namespace std;
 using namespace JSON;
-
+struct Parser {};
 // ============================================================
 //  JSONParserBase<Cursor>
 //  Toute la logique du parser, paramétrée uniquement par le
-//  type de curseur (PointerCursor ou StreamCursor<N>).
+//  type de curseur (PointerCursor ou StreamCursor).
 //  Ne pas utiliser directement — utiliser JSONParser ou
-//  JSONStreamParser<N>.
+//  JSONStreamParser.
 // ============================================================
 template <typename Cursor> class JSONParserBase {
 public:
@@ -239,7 +239,8 @@ private:
 //  Implémentation des méthodes
 // ============================================================
 
-template <typename Cursor> void JSONParserBase<Cursor>::reset() {
+template <typename Cursor>
+void JSONParserBase<Cursor>::reset() {
   // _cursor is passed from parser to parser and should not be reset
   //  _bytesConsumed = 0;
   _automask = false;
@@ -353,7 +354,7 @@ bool JSONParserBase<Cursor>::scan_escaped_string(std::string_view &sv) {
 
   bool escaped = false;
   size_t n = 0;
-  char *start = StaticString<Cursor>::current_pos();
+  char buffer[JSON::MAX_VALUE_LENGTH];
 
   while (n < JSON::MAX_VALUE_LENGTH) {
     unsigned char c = _cursor.peek();
@@ -367,8 +368,7 @@ bool JSONParserBase<Cursor>::scan_escaped_string(std::string_view &sv) {
     if (escaped) {
       escaped = false;
       if (ch != JSON_QUOTE_CHARACTER) {
-        if (!StaticString<Cursor>::write(JSON_ESCAPE_CHARACTER))
-          return false;
+        strncpy(buffer + n, &ch, 1);
       }
     } else {
       if (ch == JSON_ESCAPE_CHARACTER) {
@@ -380,11 +380,7 @@ bool JSONParserBase<Cursor>::scan_escaped_string(std::string_view &sv) {
       }
     }
 
-    if (!StaticString<Cursor>::write(ch)) {
-      JSON_DEBUG_WARNING("JSONParserBase::scan_escaped_string: string pool "
-                         "full or cannot resize\n");
-      return false;
-    }
+    strncpy(buffer + n, &ch, 1);
 
     _cursor.advance();
     n++;
@@ -393,8 +389,7 @@ bool JSONParserBase<Cursor>::scan_escaped_string(std::string_view &sv) {
   if (n >= JSON::MAX_VALUE_LENGTH)
     return false;
 
-  sv = std::string_view(start, n);
-  StaticString<Cursor>::increment_values_counter();
+  sv = StaticString<Cursor>::string_view(buffer, n);
 
   return true;
 }
@@ -1043,7 +1038,8 @@ JSONParserBase<Cursor>::assign_callback_object(const PV &pv,
 
 template <typename Cursor>
 template <typename PV, typename V>
-ParseValueResult JSONParserBase<Cursor>::assign_not_handled(PV & /*pv*/, V & /*v*/) {
+ParseValueResult JSONParserBase<Cursor>::assign_not_handled(PV & /*pv*/,
+                                                            V & /*v*/) {
   JSON_DEBUG_TYPES("Could not assign value from %s to %s\n", "?", "?");
   return ParseValueResult::NO_RESULT;
 }
