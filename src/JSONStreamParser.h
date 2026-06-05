@@ -72,7 +72,7 @@ public:
 
   size_t parsed_length() { return _cursor.bytesConsumed() - _bytesConsumed; }
   ParserState state() { return _state; }
-  uint8_t error() { return _lastError; }
+  ParserError error() { return _lastError; }
 
   // ── Méthodes d'assignation (identiques à JSONParser) ──────
   // (reprises telles quelles — logique pure, pas d'accès au curseur)
@@ -1332,7 +1332,7 @@ void JSONParserBase<Cursor>::print_state(size_t iteration) {
     [[maybe_unused]] const char *error =
         (_state == ERROR) ? errorToString(_lastError) : "";
     [[maybe_unused]] const char *errorValueType =
-        (_state == ERROR) ? errorToString(_lastParseValueResult) : "";
+        (_state == ERROR) ? valueTypeToString(_lastParseValueResult) : "";
 
     char *output = static_cast<char *>(malloc(length));
     strncpy(output, _cursor.start() + col_number * length, length);

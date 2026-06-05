@@ -43,11 +43,11 @@ struct ParseResult {
   size_t nMatched;
   size_t nConverted;
   size_t nUpdated;
-  uint8_t error;
+  ParserError error;
   uint64_t elapsed;
   bool stopped;
 
-  ParseResult() : length(0), nParsed(0), nMatched(0), nConverted(0), nUpdated(0), error(0), elapsed(0), stopped(false) {}
+  ParseResult() : length(0), nParsed(0), nMatched(0), nConverted(0), nUpdated(0), error(ParserError::NO_ERROR), elapsed(0), stopped(false) {}
 
   template <typename T> ParseResult(T *parser, uint64_t duration) {
     length = parser->parsed_length();
@@ -60,7 +60,7 @@ struct ParseResult {
     stopped = parser->stopped();
   }
 
-  ParseResult(size_t length, size_t nKeys, size_t nParsed, size_t nMatched, size_t nConverted, size_t nUpdated, uint8_t error,
+  ParseResult(size_t length, size_t nKeys, size_t nParsed, size_t nMatched, size_t nConverted, size_t nUpdated, ParserError error,
               uint64_t elapsed, bool stopped = false)
       : length(length), nParsed(nParsed), nMatched(nMatched), nConverted(nConverted), nUpdated(nUpdated), error(error),
         elapsed(elapsed), stopped(stopped) {}
@@ -71,7 +71,7 @@ struct ParseResult {
 };
 
 void ParseResult::print() {
-  DEBUG_PRINTF("{\"length\":%zu,\"nParsed\":%zu,\"nMatched\":%zu,\"nMatched\":%zu,"
+  DEBUG_PRINTF("{\"length\":%zu,\"nParsed\":%zu,\"nMatched\":%zu,\"nConverted\":%zu,"
                "\"nUpdated\":%zu,\"error\":%hhu,\"elapsed\":%lu,\"stopped\":%d}\n",
                length, nParsed, nMatched, nConverted, nUpdated, error, elapsed, stopped);
 }
