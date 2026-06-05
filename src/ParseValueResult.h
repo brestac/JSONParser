@@ -81,7 +81,7 @@ private:
 
 NAMESPACE_JSON_BEGIN
 
-static const char* errorToString(ParseValueResult result) {
+static const char* valueTypeToString(ParseValueResult result) {
   uint16_t type = result.valueType();
 
   switch (type) {
