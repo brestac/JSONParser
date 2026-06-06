@@ -7,26 +7,29 @@
 #include "ParseResult.h"
 #include "StreamCursor.h"
 
-using JSONCallback = std::function<void(const JSONKey &, const JSONValue &, bool &)>;
+using JSONCallback =
+    std::function<void(const JSONKey &, const JSONValue &, bool &)>;
 
 struct JSONCallbackObject {
   JSONCallback callback;
   JSONKey key;
   bool stop;
 
-  JSON::ParseResult fromJSON(const char* name, JSON::StreamCursor &cursor);
-  JSON::ParseResult fromJSON(const char* name, const JSON::PointerCursorReader &cursor);
+  JSON::ParseResult fromJSON(const char *name, JSON::StreamCursor &cursor);
+  JSON::ParseResult fromJSON(const char *name, const JSON::PointerCursorReader &cursor);
 
-  size_t toJSON(JSON::PointerCursorWriter &cursor, bool /*updates*/ = true) { return cursor.write("null"); }
+  size_t toJSON(JSON::PointerCursorWriter &cursor, bool updates = true) {
+    return cursor.write("null");
+  }
 
-  JSONCallbackObject(JSONCallback callback, JSONKey key) : callback(callback), key(key), stop(false) {
+  JSONCallbackObject(JSONCallback callback, JSONKey key)
+      : callback(callback), key(key), stop(false) {
     JSON_DEBUG_INFO("JSONCallbackObject created\n");
   }
 
   void run(const JSONValue &value) {
     if (callback) {
-      JSON_DEBUG_INFO("JSONCallbackObject running callback with key %.*s _array_index=%d\n", (int)key.length(),
-                      key.data(), key.getArrayIndex());
+      JSON_DEBUG_INFO("JSONCallbackObject running callback with key %.*s _array_index=%d\n", (int)key.length(), key.data(), key.getArrayIndex());
       callback(key, value, stop);
       if (stop) {
         JSON_DEBUG_INFO("JSONCallbackObject stopped\n");
@@ -39,9 +42,13 @@ struct JSONCallbackObject {
     this->key.setArrayIndex(anIndex);
   }
 
-  void setKey(const char* str, size_t len) {
+  void setKey(const char *str, size_t len) {
     JSON_DEBUG_INFO("JSONCallbackObject setKey %.*s\n", (int)len, str);
-    std::string_view key = JSON::StaticString<JSONCallbackObject>::string_view(str, len);
-    this->key.setKey(key);
+     static char static_key[JSON::MAX_KEY_LENGTH];
+     strncpy(static_key, str, len);
+     std::string_view key(static_key, len); // This will be overriden by the
+     this->key.setKey(key);
   }
+
+
 };
