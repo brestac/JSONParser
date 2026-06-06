@@ -9,19 +9,20 @@
 #include "utils.h"
 
 NAMESPACE_JSON_BEGIN
-static size_t POOL_N = 0;
+// static size_t POOL_N = 0;
 
 template <typename T> class StaticString {
-  struct Entries {
-    uint32_t hash;
-    size_t offset;
-    size_t length;
+  // struct Entries {
+  //   uint32_t hash;
+  //   size_t offset;
+  //   size_t length;
 
-    void print() {
-      PRINTF_COLOR(COLOR_RED, "  hash %u offset %zu value:%.*s\n", hash, offset,
-                   (int)length, s_string_pool + offset);
-    }
-  };
+  //   void print() {
+  //     PRINTF_COLOR(COLOR_RED, "  hash %u offset %zu value:%.*s\n", hash,
+  //     offset,
+  //                  (int)length, s_string_pool + offset);
+  //   }
+  // };
 
 public:
   StaticString() = delete;
@@ -71,25 +72,25 @@ public:
     }
   }
 
-  static void fit() {
-    _set_pool_size(s_pool_offset + 1, true);
-    JSON_DEBUG_COLOR(COLOR_BLUE, "Pool réduit à %zu octets\n", s_pool_size);
-  }
+  // static void fit() {
+  //   _set_pool_size(s_pool_offset + 1, true);
+  //   JSON_DEBUG_COLOR(COLOR_BLUE, "Pool réduit à %zu octets\n", s_pool_size);
+  // }
 
-  static void reset_offset() {
-    s_pool_offset = 0;
-    JSON_DEBUG_COLOR(COLOR_BLUE, "Pool offset réinitialisé\n");
-  }
+  // static void reset_offset() {
+  //   s_pool_offset = 0;
+  //   JSON_DEBUG_COLOR(COLOR_BLUE, "Pool offset réinitialisé\n");
+  // }
 
-  static void clear() {
-    if (s_string_pool) {
-      free(s_string_pool);
-      s_string_pool = nullptr;
-      s_pool_size = 0;
-      s_pool_offset = 0;
-    }
-    JSON_DEBUG_COLOR(COLOR_BLUE, "Pool détruit\n");
-  }
+  // static void clear() {
+  //   if (s_string_pool) {
+  //     free(s_string_pool);
+  //     s_string_pool = nullptr;
+  //     s_pool_size = 0;
+  //     s_pool_offset = 0;
+  //   }
+  //   JSON_DEBUG_COLOR(COLOR_BLUE, "Pool détruit\n");
+  // }
 
   // static bool write(unsigned char c) {
   //   if (s_pool_offset >= s_pool_size) {
@@ -115,48 +116,36 @@ public:
   // }
 
   static std::string_view string_view(const char *str, size_t len) {
-
-    PRINTF_COLOR(COLOR_RED, "Searching StaticString<%s> for string: %.*s\n", typeid(T).name(), (int)len, str);
-    uint32_t hash = hash32(str, len);
-    int offset = find(hash);
-    
-    if (offset >= 0) {
-      return std::string_view(s_string_pool + offset, len);
-    } else {
-      if (s_pool_offset + len >= s_pool_size) {
-        PRINTF_COLOR(
-            COLOR_CYAN,
-            "StaticString<%s>::string_view pool plein (taille %zu octets)\n",
-            typeid(T).name(), s_pool_size);
-        return std::string_view(str, len);
-      }
-
-      strncpy(s_string_pool + s_pool_offset, str, len);
-      std::string_view sv(s_string_pool + s_pool_offset, len);
-
-      s_entries[n_values++] = {hash, s_pool_offset, len};
-      s_pool_offset += len;
-
-      return sv;
+    if (s_pool_offset + len > s_pool_size) {
+      increase_pool_size(len);
     }
-
-    return std::string_view();
+    if (s_pool_offset + len > s_pool_size) {
+      // pool plein : fallback sur le pointeur source (PointerCursor seulement)
+      return std::string_view(str, len);
+    }
+    char *dest = s_string_pool + s_pool_offset;
+    strncpy(dest, str, len);
+    s_pool_offset += len;
+    n_values++;
+    return std::string_view(dest, len);
   }
 
-  static int find(uint32_t hash) {
-    for (size_t i = 0; i < n_values; i++) {
-      if (s_entries[i].hash == hash) {
-        PRINTF_COLOR(COLOR_GREEN,
-                     "StaticString<%s> found match for hash %u at offset %d : '%.*s'\n",
-                      typeid(T).name(), hash, s_entries[i].offset,
-                     (int)s_entries[i].length,
-                     s_string_pool + s_entries[i].offset);
-        return static_cast<int>(s_entries[i].offset);
+  /*
+    static int find(uint32_t hash) {
+      for (size_t i = 0; i < n_values; i++) {
+        if (s_entries[i].hash == hash) {
+          PRINTF_COLOR(COLOR_GREEN,
+                       "StaticString<%s> found match for hash %u at offset %d :
+    '%.*s'\n", typeid(T).name(), hash, s_entries[i].offset,
+                       (int)s_entries[i].length,
+                       s_string_pool + s_entries[i].offset);
+          return static_cast<int>(s_entries[i].offset);
+        }
       }
-    }
 
-    return -1;
-  }
+      return -1;
+    }
+  */
 
   static char *current_pos() { return s_string_pool + s_pool_offset; }
 
@@ -167,17 +156,18 @@ public:
   static void increment_values_counter() { n_values++; }
 
   static void print() {
-    // PRINTF_COLOR(COLOR_BLACK,
-    //                  "StaticString pool: %zu octets, offset: %zu, values:%u,
-    //                  " "content: '%.*s'\n", s_pool_size, s_pool_offset,
-    //                  n_values, (int)s_pool_offset, s_string_pool);
     PRINTF_COLOR(COLOR_BLACK,
-                 "StaticString<%s> %zu: %zu octets, offset: %zu, values:%u\n",
-                 typeid(T).name(), s_index, s_pool_size, s_pool_offset,
-                 n_values);
-    for (size_t i = 0; i < n_values; i++) {
-      s_entries[i].print();
-    }
+                 "StaticString<%s> pool: %zu octets, offset: %zu, values:%u, "
+                 "content: '%.*s'\n",
+                 typeid(T).name(), s_pool_size, s_pool_offset, n_values,
+                 (int)s_pool_offset, s_string_pool);
+    // PRINTF_COLOR(COLOR_BLACK,
+    //              "StaticString<%s> %zu: %zu octets, offset: %zu,
+    //              values:%u\n", typeid(T).name(), s_index, s_pool_size,
+    //              s_pool_offset, n_values);
+    // for (size_t i = 0; i < n_values; i++) {
+    //   s_entries[i].print();
+    // }
   }
 
 private:
@@ -185,16 +175,16 @@ private:
   static size_t s_pool_size;   // taille actuellement allouée
   static size_t s_pool_offset; // offset courant dans le pool
   static size_t n_values;      // nombre de valeurs stockées
-  static Entries s_entries[];
-  static size_t s_index;
+  // static Entries s_entries[];
+  // static size_t s_index;
 };
 
 template <typename T> char *StaticString<T>::s_string_pool = nullptr;
 template <typename T> size_t StaticString<T>::s_pool_offset = 0;
 template <typename T> size_t StaticString<T>::s_pool_size = 0;
 template <typename T> size_t StaticString<T>::n_values = 0;
-template <typename T>
-typename StaticString<T>::Entries
-    StaticString<T>::s_entries[MAX_KEY_VALUE_COUNT];
-template <typename T> size_t StaticString<T>::s_index = POOL_N++;
+// template <typename T>
+// typename StaticString<T>::Entries
+//     StaticString<T>::s_entries[MAX_KEY_VALUE_COUNT];
+// template <typename T> size_t StaticString<T>::s_index = POOL_N++;
 NAMESPACE_JSON_END

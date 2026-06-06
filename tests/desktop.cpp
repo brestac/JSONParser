@@ -39,7 +39,8 @@ void test_string_pool_reuse() {
 
 int main() {
   // run_tests();
-  test_string_pool_reuse();
   test_parse_geojson_from_file();
+  StaticString<Feature>::print();
+  StaticString<Geometry>::print();
   return 0;
 }
