@@ -352,7 +352,7 @@ size_t JSONParserBase<Cursor, TargetT>::scan_digits(size_t max_length) {
 
 template <typename Cursor, typename TargetT>
 static bool needs_pool(bool unescaped) {
-  PRINTF_COLOR(COLOR_MAGENTA, "needs_pool<%s, %s>(%d)\n", typeid(Cursor).name(), typeid(TargetT).name(), unescaped);
+  //PRINTF_COLOR(COLOR_MAGENTA, "needs_pool<%s, %s>(%d)\n", typeid(Cursor).name(), typeid(TargetT).name(), unescaped);
   
   if constexpr (std::is_same_v<remove_cvref_t<TargetT>, JSONCallbackObject>) {
     return unescaped;

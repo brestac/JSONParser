@@ -18,7 +18,7 @@ template <typename T> class StaticString {
   //   size_t length;
 
   //   void print() {
-  //     PRINTF_COLOR(COLOR_RED, "  hash %u offset %zu value:%.*s\n", hash,
+  //     // PRINTF_COLOR(COLOR_RED, "  hash %u offset %zu value:%.*s\n", hash,
   //     offset,
   //                  (int)length, s_string_pool + offset);
   //   }
@@ -30,13 +30,9 @@ public:
   StaticString &operator=(const StaticString &) = delete;
 
   static void increase_pool_size(size_t size_needed) {
-    size_t saved_space = n_values * MAX_VALUE_LENGTH - s_pool_offset;
-    JSON_DEBUG_COLOR(COLOR_BLUE, "Saved space: %zu octets\n", saved_space);
-    size_t new_size = std::max(int(s_pool_size + size_needed - saved_space), 0);
-    JSON_DEBUG_COLOR(COLOR_BLUE,
-                     "Request to increase pool size to %zu octets\n", new_size);
-    if (new_size > 0)
-      _set_pool_size(new_size);
+    //size_t saved_space = n_values * MAX_VALUE_LENGTH - s_pool_offset;
+    size_t new_size = s_pool_size + size_needed;
+    _set_pool_size(new_size);
   }
 
   // static void ensure_pool_size(size_t input_size) {
@@ -53,18 +49,14 @@ public:
       return; // déjà suffisant
 
     if (new_size > MAX_STRING_POOL_SIZE) {
-      JSON_DEBUG_COLOR(
-          COLOR_RED, "Pool trop grand: %zu octets demandés, max: %zu octets\n",
-          new_size, MAX_STRING_POOL_SIZE);
+      //JSON_DEBUG_COLOR( COLOR_RED, "Pool trop grand: %zu octets demandés, max: %zu octets\n", new_size, MAX_STRING_POOL_SIZE);
       new_size = MAX_STRING_POOL_SIZE;
     }
 
     char *p = static_cast<char *>(realloc(s_string_pool, new_size));
 
     if (p) {
-      PRINTF_COLOR(COLOR_BLUE, "StaticString<%s> %s à %zu octets\n",
-                   typeid(T).name(),
-                   (new_size > s_pool_size) ? "agrandi" : "réduit", new_size);
+      // PRINTF_COLOR(COLOR_BLUE, "StaticString<%s> %s à %zu octets\n", typeid(T).name(), (new_size > s_pool_size) ? "agrandi" : "réduit", new_size);
       s_string_pool = p;
       s_pool_size = new_size;
     } else {
@@ -115,20 +107,20 @@ public:
   //   s_pool_offset += len;
   // }
 
-  static std::string_view string_view(const char *str, size_t len) {
+static std::string_view string_view(const char *str, size_t len) {
     if (s_pool_offset + len > s_pool_size) {
-      increase_pool_size(len);
+        increase_pool_size(len);
     }
+    // si toujours insuffisant après realloc : erreur réelle, on tronque
     if (s_pool_offset + len > s_pool_size) {
-      // pool plein : fallback sur le pointeur source (PointerCursor seulement)
-      return std::string_view(str, len);
+        return std::string_view();  // vide, pas de pointeur dangling
     }
     char *dest = s_string_pool + s_pool_offset;
-    strncpy(dest, str, len);
+    std::memcpy(dest, str, len);
     s_pool_offset += len;
     n_values++;
     return std::string_view(dest, len);
-  }
+}
 
   /*
     static int find(uint32_t hash) {
@@ -156,11 +148,7 @@ public:
   static void increment_values_counter() { n_values++; }
 
   static void print() {
-    PRINTF_COLOR(COLOR_BLACK,
-                 "StaticString<%s> pool: %zu octets, offset: %zu, values:%u, "
-                 "content: '%.*s'\n",
-                 typeid(T).name(), s_pool_size, s_pool_offset, n_values,
-                 (int)s_pool_offset, s_string_pool);
+    // PRINTF_COLOR(COLOR_BLACK, "StaticString<%s> pool: %zu octets, offset: %zu, values:%u, " "content: '%.*s'\n", typeid(T).name(), s_pool_size, s_pool_offset, n_values, (int)s_pool_offset, s_string_pool);
     // PRINTF_COLOR(COLOR_BLACK,
     //              "StaticString<%s> %zu: %zu octets, offset: %zu,
     //              values:%u\n", typeid(T).name(), s_index, s_pool_size,
