@@ -10,6 +10,7 @@
 
 NAMESPACE_JSON_BEGIN
 // static size_t POOL_N = 0;
+static const char *EMPTY_STRING = "";
 
 template <typename T> class StaticString {
   // struct Entries {
@@ -107,19 +108,20 @@ public:
   //   s_pool_offset += len;
   // }
 
-static std::string_view string_view(const char *str, size_t len) {
+static void get_static_buffer(const char *str, size_t len, const char *&output) {
     if (s_pool_offset + len > s_pool_size) {
         increase_pool_size(len);
     }
     // si toujours insuffisant après realloc : erreur réelle, on tronque
     if (s_pool_offset + len > s_pool_size) {
-        return std::string_view();  // vide, pas de pointeur dangling
+        output = EMPTY_STRING;
+    } else {
+      char *dest = s_string_pool + s_pool_offset;
+      strncpy(dest, str, len);
+      s_pool_offset += len;
+      n_values++;
+      output = dest;
     }
-    char *dest = s_string_pool + s_pool_offset;
-    std::memcpy(dest, str, len);
-    s_pool_offset += len;
-    n_values++;
-    return std::string_view(dest, len);
 }
 
   /*

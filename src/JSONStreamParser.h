@@ -410,7 +410,9 @@ bool JSONParserBase<Cursor, TargetT>::scan_escaped_string(std::string_view &sv) 
   // dans JSONParser _parse_impl<true, StreamCursor, UserStruct>
   if (needs_pool<Cursor, TargetT>(unescaped)) {
     StaticString<TargetT>::increase_pool_size(n);
-    sv = StaticString<TargetT>::string_view(buffer, n);
+    const char *output;
+    StaticString<TargetT>::get_static_buffer(buffer, n, output);
+    sv = std::string_view(output, n);
   } else {
     sv = std::string_view(buffer, n);
   }
