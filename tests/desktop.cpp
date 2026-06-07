@@ -27,9 +27,6 @@
 
 
 int main() {
-  // run_tests();
-  test_parse_geojson_from_file();
-  StaticString<Feature>::print();
-  StaticString<Geometry>::print();
+  run_tests();
   return 0;
 }
