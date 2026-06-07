@@ -24,18 +24,25 @@ void setup() {
     delay(1000);
   }
 
-  LittleFS.begin();
-
   Serial.println("");
-  //   Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
-  //   Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
+  Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
+  Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
+
+  LittleFS.begin();
   //run_tests();
 
   test_parse_from_tcp_stream<Sensor>("http://192.168.1.2:9000/sensor.json");
-  test_parse_from_tcp_stream<FeatureCollection>("http://192.168.1.2:9000/data.geojson");
+  //test_parse_from_tcp_stream<FeatureCollection>("http://192.168.1.2:9000/data.geojson");
 }
 
 void loop() {
+  static unsigned long timer = millis();
+  if (millis() - timer > 5000) {
+    Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
+    Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
+    timer = millis();
+  }
+
   delay(10);
 }
 
@@ -116,9 +123,9 @@ void test_parse_from_tcp_stream(const char* url) {
     check(s.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)s.type.length(), s.type.data());
 
     if (s.features.size() >= 1) {
-      check(s.features[0].type == "Feature", "feature[0].type == Feature, was %.*s", (int)s.features[0].type.length(), s.features[0].type.data());
-      check(s.features[0].properties.name == "feature_0", "feature[0].properties.name == feature_0, was %.*s", (int)s.features[0].properties.name.length(), s.features[0].properties.name.data());
-      check(s.features[0].geometry.type == "Polygon", "feature[0].geometry.type == Polygon, was %.*s", s.features[0].geometry.type.length(), s.features[0].geometry.type.data());
+      check(strcmp(s.features[0].type, "Feature") == 0, "feature[0].type == Feature, was %.*s", (int)s.features[0].type.length(), s.features[0].type.data());
+      check(strcmp(s.features[0].properties.name, "feature_0") == 0, "feature[0].properties.name == feature_0, was %.*s", (int)s.features[0].properties.name.length(), s.features[0].properties.name.data());
+      check(strcmp(s.features[0].geometry.type, "Polygon") == 0, "feature[0].geometry.type == Polygon, was %.*s", s.features[0].geometry.type.length(), s.features[0].geometry.type.data());
       check(s.features[0].geometry.coordinates.size() == 1, "feature[0].geometry has 1 rings, was %u", s.features[0].geometry.coordinates.size());
 
       if (s.features[0].geometry.coordinates.size() >= 2) {
