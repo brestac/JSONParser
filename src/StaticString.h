@@ -10,8 +10,6 @@
 
 NAMESPACE_JSON_BEGIN
 
-static size_t GLOBAL_STRING_POOL_SIZE = 0;
-static const char *EMPTY_STRING = "";
 //static std::string_view EMPTY_SV(EMPTY_STRING);
 
 template <typename T, size_t N = 0> class StaticString {

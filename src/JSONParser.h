@@ -40,8 +40,12 @@ ParseResult _parse_impl(const char* name, uint32_t& mask, Cursor& cursor, Args&&
 
     JSONParserBase<Cursor, TargetT> parser(name, cursor);
 
-    JSON_DEBUG_COLOR(COLOR_RED, "Cursor=%s TargetT=%s\n", typeid(Cursor).name(), typeid(TargetT).name());
-
+    JSON_DEBUG_COLOR(COLOR_RED, "Parser Cursor=%s TargetT=%s size=%zu\n", typeid(Cursor).name(), typeid(TargetT).name(), sizeof(parser));
+    GLOBAL_PARSER_SIZE += sizeof(parser);
+    if (GLOBAL_PARSER_SIZE > MAX_GLOBAL_PARSER_SIZE) {
+        MAX_GLOBAL_PARSER_SIZE = GLOBAL_PARSER_SIZE;
+    }
+    
     if constexpr (std::is_same<remove_cvref_t<Cursor>, StreamCursor>::value && (sizeof... (Args) > 1)) {
         constexpr size_t n_sv = count_string_view_args_v<Args...>;
         StaticString<TargetT>::ensure_pool_size(n_sv);

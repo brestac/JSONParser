@@ -76,7 +76,7 @@ public:
   }
 
 private:
-  uint8_t _result;
+  uint16_t _result;
 };
 
 NAMESPACE_JSON_BEGIN
