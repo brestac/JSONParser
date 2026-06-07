@@ -415,7 +415,11 @@ bool JSONParserBase<Cursor, TargetT>::scan_escaped_string(std::string_view &sv) 
     //StaticString<TargetT>::increase_pool_size(1);
     //std::string_view* sv_ptr = &sv;
     const char* output;
-    StaticString<TargetT, true>::get_static_buffer(buffer, n, output);
+#ifdef ARDUINO
+    StaticString<TargetT, 0>::get_static_buffer(buffer, n, output);
+#else
+    StaticString<TargetT, MAX_KEY_VALUE_COUNT>::get_static_buffer(buffer, n, output);
+#endif
     sv = std::string_view(output, n);
   } else {
     sv = std::string_view(buffer, n);
