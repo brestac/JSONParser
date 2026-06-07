@@ -10,6 +10,7 @@
 
 NAMESPACE_JSON_BEGIN
 
+static size_t GLOBAL_STRING_POOL_SIZE = 0;
 static const char *EMPTY_STRING = "";
 //static std::string_view EMPTY_SV(EMPTY_STRING);
 
@@ -44,6 +45,7 @@ public:
     if (p) {
       // JSON_DEBUG_COLOR(COLOR_BLUE, "StaticString<%s> %s à %zu octets\n", typeid(T).name(), (new_size > s_pool_size) ? "agrandi" : "réduit", new_size);
       s_string_pool = p;
+      GLOBAL_STRING_POOL_SIZE += new_size - s_pool_size;
       s_pool_size = new_size;
     } else {
       JSON_DEBUG_COLOR(COLOR_RED, "Realloc échoué pour %zu octets\n", new_size);
