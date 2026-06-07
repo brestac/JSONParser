@@ -12,6 +12,9 @@
 void test_parse_from_tcp_stream(const char* url);
 bool connectWifi();
 
+static uint32_t free_heap = 0U;
+static uint32_t free_stack = 0U;
+
 void setup() {
   Serial.begin(115200);
   Serial.println();
@@ -24,22 +27,25 @@ void setup() {
     delay(1000);
   }
 
-  Serial.println("");
-  Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
-  Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
-
   LittleFS.begin();
-  //run_tests();
+
+  free_heap = ESP.getFreeHeap();
+  free_stack = ESP.getFreeContStack();
+
+  Serial.println("");
+  run_tests();
 
   //test_parse_from_tcp_stream<Sensor>("http://192.168.1.2:9000/sensor.json");
-  test_parse_from_tcp_stream<FeatureCollection>("http://192.168.1.2:9000/data500.geojson");
+  //test_parse_from_tcp_stream<FeatureCollection>("http://192.168.1.2:9000/data.geojson");
+  test_parse_from_tcp_stream<FeatureCollectionSansGeometry>("http://192.168.1.2:9000/canada.json");
 }
 
 void loop() {
   static unsigned long timer = millis();
   if (millis() - timer > 5000) {
-    Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
-    Serial.printf("Free stack: %u\n", ESP.getFreeContStack());
+    Serial.printf("Free heap: %u => %u\n", free_heap, ESP.getFreeHeap());
+    Serial.printf("Free stack: %u => %u\n", free_stack, ESP.getFreeContStack());
+    Serial.printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
     timer = millis();
   }
 
@@ -118,17 +124,18 @@ void test_parse_from_tcp_stream(const char* url) {
 
   T s;
   JSON::ParseResult r = s.fromJSON(stream);
+  check(r.error == 0, "parse error=%hhu length=%zu", r.error, r.length);
 
-  // if constexpr (std::is_same_v<T, FeatureCollection>) {
-  //   check(s.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)s.type.length(), s.type.data());
+  if constexpr (std::is_same_v<T, FeatureCollection>) {
+    check(s.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)s.type.length(), s.type.data());
 
-  //   if (s.features.size() >= 1) {
-  //     check(strcmp(s.features[0].type, "Feature") == 0, "feature[0].type == Feature, was %s", s.features[0].type);
-  //     check(strcmp(s.features[0].properties.name, "feature_0") == 0, "feature[0].properties.name == feature_0, was %s", s.features[0].properties.name);
-  //     check(strcmp(s.features[0].geometry.type, "Polygon") == 0, "feature[0].geometry.type == Polygon, was %s", s.features[0].geometry.type);
-  //     check(s.features[0].geometry.coordinates.size() == 1, "feature[0].geometry has 1 rings, was %u", s.features[0].geometry.coordinates.size());
-  //   }
-  // }
+    if (s.features.size() >= 1) {
+      check(strcmp(s.features[0].type, "Feature") == 0, "feature[0].type == Feature, was %s", s.features[0].type);
+      check(strcmp(s.features[0].properties.name, "feature_0") == 0, "feature[0].properties.name == feature_0, was %s", s.features[0].properties.name);
+      check(strcmp(s.features[0].geometry.type, "Polygon") == 0, "feature[0].geometry.type == Polygon, was %s", s.features[0].geometry.type);
+      check(s.features[0].geometry.coordinates.size() == 1, "feature[0].geometry has 1 rings, was %u", s.features[0].geometry.coordinates.size());
+    }
+  }
 
   if constexpr (std::is_same_v<T, Sensor>) {
     check(s.id == 11, "s.id == 11");
@@ -137,5 +144,4 @@ void test_parse_from_tcp_stream(const char* url) {
   }
 
   http.end();
-  check(r.error == 0, "parse");
 }

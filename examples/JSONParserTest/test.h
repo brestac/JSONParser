@@ -68,13 +68,13 @@ long generate_geojson(const char* path, size_t target_bytes,
     // Supprimer le fichier existant éventuel
     if (LittleFS.exists(path)) {
       LittleFS.remove(path);
-      Serial.printf("[GeoJSON] Deleted existing '%s'\n", path);
+      DEBUG_PRINTF("[GeoJSON] Deleted existing '%s'\n", path);
     }
 
     File f = LittleFS.open(path, "w");
 
     if (!f) {
-        Serial.printf("[GeoJSON] Erreur: impossible d'ouvrir '%s' en écriture\n", path);
+        DEBUG_PRINTF("[GeoJSON] Erreur: impossible d'ouvrir '%s' en écriture\n", path);
         return -1;
     }
 
@@ -125,7 +125,7 @@ long generate_geojson(const char* path, size_t target_bytes,
     size_t actual = f.size();
     f.close();
 
-    Serial.printf("[GeoJSON] %d features → %zu octets (%.1f KB) dans '%s'\n",
+    DEBUG_PRINTF("[GeoJSON] %d features → %zu octets (%.1f KB) dans '%s'\n",
                   feat_count, actual, actual / 1024.0f, path);
 
     return (long)actual;
@@ -870,7 +870,7 @@ void test_roundtrip() {
   // Serialize original to a char buffer via PointerCursorWriter
   char buf[256] = { 0 };
   size_t len = original.toJSON(buf);
-  Serial.printf("toJSON '%.*s'\n", (int)len, buf);
+  DEBUG_PRINTF("toJSON '%.*s'\n", (int)len, buf);
 
   StreamString stream(buf);
   Sensor copy;
@@ -1023,13 +1023,13 @@ void test_parse_big_struct() {
   JSON::ParseResult r;
 
   uint64_t start = now();
-  for (size_t i = 0; i < 10000UL; i++) {
+  for (size_t i = 0; i < 100UL; i++) {
     r = b.fromJSON(json);
     yield();
   }
 
   uint64_t elapsed = now() - start;
-  check(true, "Parsing time: %.1f µs\n", elapsed / 10000UL);
+  check(true, "Parsing time: %.1f µs\n", elapsed / 100UL);
   check(r.error == 0, "parse");
   check(b.f01 == true, "f01 == true");
   check(b.f02 == -12, "f02 == -12");
