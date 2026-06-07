@@ -42,13 +42,10 @@ struct JSONCallbackObject {
     this->key.setArrayIndex(anIndex);
   }
 
-  void setKey(const char *str, size_t len) {
+  void setKey(char* str, size_t len) {
     JSON_DEBUG_INFO("JSONCallbackObject setKey %.*s\n", (int)len, str);
-     static char static_key[JSON::MAX_KEY_LENGTH];
-     strncpy(static_key, str, len);
-     std::string_view key(static_key, len); // This will be overriden by the
+     std::string_view key(str, len);
      this->key.setKey(key);
   }
-
 
 };

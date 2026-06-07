@@ -39,10 +39,10 @@ static const char* errorToString(ParserError error) {
 
 struct ParseResult {
   size_t length;
-  size_t nParsed;
-  size_t nMatched;
-  size_t nConverted;
-  size_t nUpdated;
+  uint8_t nParsed;
+  uint8_t nMatched;
+  uint8_t nConverted;
+  uint8_t nUpdated;
   ParserError error;
   uint64_t elapsed;
   bool stopped;
@@ -60,7 +60,7 @@ struct ParseResult {
     stopped = parser->stopped();
   }
 
-  ParseResult(size_t length, size_t /*nKeys*/, size_t nParsed, size_t nMatched, size_t nConverted, size_t nUpdated, ParserError error,
+  ParseResult(size_t length, size_t /*nKeys*/, uint8_t nParsed, uint8_t nMatched, uint8_t nConverted, uint8_t nUpdated, ParserError error,
               uint64_t elapsed, bool stopped = false)
       : length(length), nParsed(nParsed), nMatched(nMatched), nConverted(nConverted), nUpdated(nUpdated), error(error),
         elapsed(elapsed), stopped(stopped) {}

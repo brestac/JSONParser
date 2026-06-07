@@ -62,7 +62,7 @@ static void _geojson_write_polygon(File& f, double cx, double cy,
 //  Retourne la taille réelle écrite en octets, ou -1 en cas d'erreur.
 // ---------------------------------------------------------------------------
 
-long generate_geojson(const char* path, size_t target_kb,
+long generate_geojson(const char* path, size_t target_bytes,
                       int rings = 1, int points_per_ring = 8) {
   
     // Supprimer le fichier existant éventuel
@@ -79,8 +79,6 @@ long generate_geojson(const char* path, size_t target_kb,
     }
 
     randomSeed(micros());
-
-    const size_t target_bytes = target_kb * 1024UL;
 
     f.print("{\"type\":\"FeatureCollection\",\"features\":[");
 
@@ -938,7 +936,7 @@ void test_parse_geojson_from_file() {
 
   // write geojson to file
   
-  size_t size = generate_geojson(GEOJSON_TEST_FILE_PATH, 1);
+  size_t size = generate_geojson(GEOJSON_TEST_FILE_PATH, 500);
 
   check(LittleFS.exists(GEOJSON_TEST_FILE_PATH), "Generated geojson file size=%zuB\n", size);
 
