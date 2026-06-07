@@ -28,5 +28,6 @@
 
 int main() {
   run_tests();
+  std::printf("GLOBAL_STRING_POOL_SIZE=%zu", JSON::GLOBAL_STRING_POOL_SIZE);
   return 0;
 }
