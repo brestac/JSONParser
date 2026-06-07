@@ -13,7 +13,7 @@ NAMESPACE_JSON_BEGIN
 static const char *EMPTY_STRING = "";
 //static std::string_view EMPTY_SV(EMPTY_STRING);
 
-template <typename T, bool Reuse = false> class StaticString {
+template <typename T, size_t N = 0> class StaticString {
   struct Entries {
     uint32_t hash;
     size_t offset;
@@ -96,7 +96,7 @@ public:
   static void get_static_buffer(const char *str, size_t len, const char *&output) {
     uint32_t hash = hash32(str, len);
 
-    if constexpr (Reuse) {
+    if constexpr (N > 0) {
       if (n_values >= MAX_KEY_VALUE_COUNT) {
         JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> pool full\n", typeid(T).name());
         output = EMPTY_STRING;
@@ -119,7 +119,7 @@ public:
       return;
     }
 
-    if constexpr (Reuse) {
+    if constexpr (N > 0) {
       s_entries[n_values] = {hash, s_pool_offset};
     }
     
@@ -212,10 +212,10 @@ private:
   static Entries s_entries[];
 };
 
-template <typename T, bool Reuse> char *StaticString<T, Reuse>::s_string_pool = nullptr;
-template <typename T, bool Reuse> size_t StaticString<T, Reuse>::s_pool_offset = 0;
-template <typename T, bool Reuse> size_t StaticString<T, Reuse>::s_pool_size = 0;
-template <typename T, bool Reuse> size_t StaticString<T, Reuse>::n_values = 0;
-template <typename T, bool Reuse> typename StaticString<T, Reuse>::Entries StaticString<T, Reuse>::s_entries[MAX_KEY_VALUE_COUNT];
+template <typename T, size_t N> char *StaticString<T, N>::s_string_pool = nullptr;
+template <typename T, size_t N> size_t StaticString<T, N>::s_pool_offset = 0;
+template <typename T, size_t N> size_t StaticString<T, N>::s_pool_size = 0;
+template <typename T, size_t N> size_t StaticString<T, N>::n_values = 0;
+template <typename T, size_t N> typename StaticString<T, N>::Entries StaticString<T, N>::s_entries[N];
 
 NAMESPACE_JSON_END
