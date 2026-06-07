@@ -77,8 +77,7 @@ void print_demangled_type(const char *format, T &value, Args &&...args) {
 #ifdef __GXX_RTTI
   DemangledName demangled(typeid(value).name());
   DEBUG_PRINTF("\x1b[31m");
-  printf(format, static_cast<const char *>(demangled),
-         std::forward<Args>(args)...);
+  printf_impl(format, static_cast<const char *>(demangled), std::forward<Args>(args)...);
   DEBUG_PRINTF("\x1b[0m");
 #endif
 }
@@ -86,19 +85,6 @@ void print_demangled_type(const char *format, T &value, Args &&...args) {
 template <typename T> void print_demangled_type(T &value) {
   print_demangled_type("%s\n", value);
 }
-
-// #ifndef JSON_DEBUG_COLOR
-// #define COLOR_0 "\x1b[30m"
-// #define COLOR_1 "\x1b[32m"
-// #define COLOR_2 "\x1b[33m"
-// #define COLOR_3 "\x1b[31m"
-// #define COLOR_END "\x1b[0m"
-//
-// #define CONCAT(a, b) CONCAT_HELPER(a, b)
-// #define CONCAT_HELPER(a, b) a##b
-//
-// #define JSON_DEBUG_COLOR CONCAT(COLOR_, DEBUG_LEVEL)
-// #endif
 
 #if JSON_DEBUG_LEVEL > 0
 #ifdef ARDUINO

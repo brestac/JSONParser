@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string_view>
+#include <vector>
 
 #include "macros.h"
 #include "JSONStreamParser.h"
@@ -33,16 +34,17 @@ using enable_if_json_data_container_compatible =
     std::enable_if_t<is_derived_json_data_container_v<T>, ParseResult>;
 
 // Implémentation interne unique, UseMask en template bool direct
-template <bool UseMask, typename Cursor, typename... Args>
+template <bool UseMask, typename Cursor, typename TargetT = Cursor, typename... Args>
 ParseResult _parse_impl(const char* name, uint32_t& mask, Cursor& cursor, Args&&... args) {
     uint64_t start = now();
 
-    JSONParserBase<Cursor> parser(name, cursor);
+    JSONParserBase<Cursor, TargetT> parser(name, cursor);
 
-    if constexpr (std::is_same<Cursor, StreamCursor>::value) {
+    JSON_DEBUG_COLOR(COLOR_RED, "Cursor=%s TargetT=%s\n", typeid(Cursor).name(), typeid(TargetT).name());
+
+    if constexpr (std::is_same<remove_cvref_t<Cursor>, StreamCursor>::value && (sizeof... (Args) > 1)) {
         constexpr size_t n_sv = count_string_view_args_v<Args...>;
-        constexpr size_t extra_pool_size = n_sv * JSON::MAX_VALUE_LENGTH;
-        StaticString<StreamCursor>::increase_pool_size(extra_pool_size);
+        StaticString<TargetT>::ensure_pool_size(n_sv);
     }
     
     if constexpr (UseMask) {
@@ -74,10 +76,16 @@ enable_if_args_valid<Args...> _parse(const char* name, uint32_t& mask, Cursor& c
 ////////////////////////////////////////////////////////////
 //  _parse — single argument (JSONCallbackObject ou UnknownValueType, no mask)
 ////////////////////////////////////////////////////////////
-template <typename Cursor, typename... Args>
-ParseResult _parse(const char* name, Cursor& cursor, Args&&... args) {
+template <typename Cursor>
+ParseResult _parse(const char* name, Cursor& cursor, JSONCallbackObject&cb ) {
     uint32_t mask = 0;
-    return _parse_impl<false>(name, mask, cursor, std::forward<Args>(args)...);
+    return _parse_impl<false>(name, mask, cursor, cb);
+}
+
+template <typename Cursor>
+ParseResult _parse(const char* name, Cursor& cursor, UnknownValueType& unknown ) {
+    uint32_t mask = 0;
+    return _parse_impl<false>(name, mask, cursor, unknown);
 }
 
 ////////////////////////////////////////////////////////////

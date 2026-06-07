@@ -17,10 +17,10 @@ struct UnknownValueType : JSONObject {
 
   // ─── toJSON
   // ───────────────────────────────────────────────────────────────────────
-  size_t toJSON(JSON::StreamCursor &writer, bool updates) { return writer.write("null"); }
+  size_t toJSON(JSON::StreamCursor &writer, bool /*updates*/) { return writer.write("null"); }
 
-  size_t toJSON(JSON::PointerCursorWriter &writer, bool updates) { return writer.write("null"); }
+  size_t toJSON(JSON::PointerCursorWriter &writer, bool /*updates*/) { return writer.write("null"); }
 
-  constexpr bool operator==(const UnknownValueType &other) const { return true; }
-  constexpr bool operator!=(const UnknownValueType &other) const { return false; }
+  constexpr bool operator==(const UnknownValueType & /*other*/) const { return true; }
+  constexpr bool operator!=(const UnknownValueType & /*other*/) const { return false; }
 };

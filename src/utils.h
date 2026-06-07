@@ -7,13 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <tuple>
-/*
-#ifdef __GXX_RTTI
-#include <typeinfo>
-#include <memory>
-#include <cxxabi.h>
-#endif
-*/
+
 // include for ntohs
 #ifdef ARDUINO_ARCH_ESP8266 // TODO: check for other platforms
 #include <ESP8266WiFi.h>
@@ -21,8 +15,6 @@
 #include <arpa/inet.h>
 #endif
 
-#include "PointerCursor.h"
-#include "StreamScanner.h"
 #include "constants.h"
 #include "macros.h"
 
@@ -85,16 +77,18 @@ template <typename T, size_t N, size_t M> constexpr bool copy_array(T (&dst)[N][
   return modified;
 }
 
-bool get_byte_fromHexString(uint8_t &value, const char* src, size_t src_size) {
-  JSON::PointerCursor cursor(src, src_size);
+constexpr bool _is_hex_char(char c) {
+  return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+}
 
-  if (cursor_scan_ranges_once(cursor, JSON_HEX_CHARACTERS, false)) {
+bool get_byte_fromHexString(uint8_t &value, const char* src, size_t src_size) {
+  if (src_size < 2) return false;
+
+  if (_is_hex_char(src[0])) {
     uint8_t high_mid_byte = _hex_to_dec(src[0]);
-    src++;
-    if (cursor_scan_ranges_once(cursor, JSON_HEX_CHARACTERS, false)) {
-      uint8_t low_mid_byte = _hex_to_dec(src[0]);
+    if (_is_hex_char(src[1])) {
+      uint8_t low_mid_byte = _hex_to_dec(src[1]);
       value = (high_mid_byte << 4) | low_mid_byte;
-      src++;
       return true;
     }
   }
@@ -160,7 +154,7 @@ void print_bitwise_mask(size_t mask, size_t count) {
 
   DEBUG_PRINTF("mask: ");
 
-  for (int i = 0; i < count; i++) {
+  for (size_t i = 0; i < count; i++) {
     DEBUG_PRINTF("%d ", (mask & (1 << i)) != 0);
   }
 
@@ -190,9 +184,22 @@ template <size_t N, size_t M> void replace_str(char (&input)[N], char (&oldChars
   }
 }
 
-std::string_view copy_to_sv(const char* str, size_t len) {
-  static char buffer[JSON::MAX_KEY_LENGTH];
-  strncpy(buffer, str, len);
-  buffer[len] = '\0';
-  return std::string_view(buffer, len);
+// std::string_view copy_to_sv(const char* str, size_t len) {
+//   static char buffer[JSON::MAX_KEY_LENGTH];
+//   strncpy(buffer, str, len);
+//   buffer[len] = '\0';
+//   return std::string_view(buffer, len);
+// }
+
+constexpr uint32_t hash32(const char* str, size_t len) {
+  uint32_t hash = 2166136261u;
+  for (size_t i = 0; i < len; ++i) {
+    hash ^= static_cast<uint32_t>(str[i]);
+    hash *= 16777619u;
+  }
+  return hash;
+}
+
+constexpr uint32_t hash32(std::string_view key) {
+  return hash32(key.data(), key.length());
 }

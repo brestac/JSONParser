@@ -221,23 +221,25 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
             MACRO_2, MACRO_1)                                                  \
   (__VA_ARGS__)
 
+// APRÈS
 #define FROM_JSON_OVERRIDE(...)                                                \
   template <typename T>                                                        \
-  JSON::ParseResult fromJSON(const char* _json_name_, T &input) {          \
+  JSON::ParseResult fromJSON(const char* _json_name_, T &input) {             \
     return JSON::_parse(_json_name_, this->updated, input,                     \
                        MACRO(__VA_ARGS__));                                    \
   }                                                                            \
   JSON::ParseResult fromJSON(                                                  \
-const char* _json_name_, const PointerCursorReader &cursor) override {\
-    return JSON::_parse(_json_name_, this->updated, cursor,                    \
-                       MACRO(__VA_ARGS__));                                    \
+const char* _json_name_, const PointerCursorReader &cursor) override {        \
+    using _SelfT = remove_cvref_t<decltype(*this)>;                       \
+    return JSON::_parse_impl<true, const PointerCursorReader, _SelfT>(         \
+        _json_name_, this->updated, cursor, MACRO(__VA_ARGS__));               \
   }                                                                            \
-  JSON::ParseResult fromJSON(const char* _json_name_, StreamCursor &cursor)\
+  JSON::ParseResult fromJSON(const char* _json_name_, StreamCursor &cursor)   \
       override {                                                               \
-    return JSON::_parse(_json_name_, this->updated, cursor,                    \
-                       MACRO(__VA_ARGS__));                                    \
+    using _SelfT = remove_cvref_t<decltype(*this)>;                       \
+    return JSON::_parse_impl<true, StreamCursor, _SelfT>(                      \
+        _json_name_, this->updated, cursor, MACRO(__VA_ARGS__));               \
   }
-
 #define TO_JSON_OVERRIDE(...)                                                  \
   template <typename T> size_t toJSON(T &output, bool updates = true) {        \
     uint32_t mask = updates ? this->updated : 0;                               \
