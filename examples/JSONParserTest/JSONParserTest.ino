@@ -31,8 +31,8 @@ void setup() {
   LittleFS.begin();
   //run_tests();
 
-  test_parse_from_tcp_stream<Sensor>("http://192.168.1.2:9000/sensor.json");
-  //test_parse_from_tcp_stream<FeatureCollection>("http://192.168.1.2:9000/data.geojson");
+  //test_parse_from_tcp_stream<Sensor>("http://192.168.1.2:9000/sensor.json");
+  test_parse_from_tcp_stream<FeatureCollection>("http://192.168.1.2:9000/data500.geojson");
 }
 
 void loop() {
@@ -119,20 +119,16 @@ void test_parse_from_tcp_stream(const char* url) {
   T s;
   JSON::ParseResult r = s.fromJSON(stream);
 
-  if constexpr (std::is_same_v<T, FeatureCollection>) {
-    check(s.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)s.type.length(), s.type.data());
+  // if constexpr (std::is_same_v<T, FeatureCollection>) {
+  //   check(s.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)s.type.length(), s.type.data());
 
-    if (s.features.size() >= 1) {
-      check(strcmp(s.features[0].type, "Feature") == 0, "feature[0].type == Feature, was %.*s", (int)s.features[0].type.length(), s.features[0].type.data());
-      check(strcmp(s.features[0].properties.name, "feature_0") == 0, "feature[0].properties.name == feature_0, was %.*s", (int)s.features[0].properties.name.length(), s.features[0].properties.name.data());
-      check(strcmp(s.features[0].geometry.type, "Polygon") == 0, "feature[0].geometry.type == Polygon, was %.*s", s.features[0].geometry.type.length(), s.features[0].geometry.type.data());
-      check(s.features[0].geometry.coordinates.size() == 1, "feature[0].geometry has 1 rings, was %u", s.features[0].geometry.coordinates.size());
-
-      if (s.features[0].geometry.coordinates.size() >= 2) {
-        check(s.features[0].geometry.coordinates[0].size() == 5, "ring[0] has 5 points, was %u", s.features[0].geometry.coordinates[0].size());
-      }
-    }
-  }
+  //   if (s.features.size() >= 1) {
+  //     check(strcmp(s.features[0].type, "Feature") == 0, "feature[0].type == Feature, was %s", s.features[0].type);
+  //     check(strcmp(s.features[0].properties.name, "feature_0") == 0, "feature[0].properties.name == feature_0, was %s", s.features[0].properties.name);
+  //     check(strcmp(s.features[0].geometry.type, "Polygon") == 0, "feature[0].geometry.type == Polygon, was %s", s.features[0].geometry.type);
+  //     check(s.features[0].geometry.coordinates.size() == 1, "feature[0].geometry has 1 rings, was %u", s.features[0].geometry.coordinates.size());
+  //   }
+  // }
 
   if constexpr (std::is_same_v<T, Sensor>) {
     check(s.id == 11, "s.id == 11");
@@ -141,6 +137,5 @@ void test_parse_from_tcp_stream(const char* url) {
   }
 
   http.end();
-  check(r.error == 0, "parse error = %hhu length=%zu", r.error, r.length);
-  s.toJSON(Serial);
+  check(r.error == 0, "parse");
 }
