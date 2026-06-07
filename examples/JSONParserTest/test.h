@@ -291,19 +291,20 @@ public:
 };
 
 struct Properties : public JSONObject {
-  std::string_view name = "";
+  char name[32] = { 0 };
   JSON_SERIALIZE_IMPL(name);
 };
 
 struct Geometry : public JSONObject {
   using shape = std::vector<std::array<float, 2>>;
-  std::string_view type = "";
+  char type[32] = { 0 };
   std::vector<shape> coordinates;
   JSON_SERIALIZE_IMPL(type, coordinates);
 };
 
 struct Feature : public JSONObject {
-  std::string_view type = "";
+  //std::string_view type = "";
+  char type[32] = { 0 };
   Properties properties;
   Geometry geometry;
   JSON_SERIALIZE_IMPL(type, properties, geometry);
@@ -602,9 +603,9 @@ void test_parse_geojson_small() {
   check(fc.features.size() == 1, "1 feature, was %u", fc.features.size());
 
   if (fc.features.size() >= 1) {
-    check(fc.features[0].type == std::string_view("Feature"), "feature.type == Feature, was %.*s", (int)fc.features[0].type.length(), fc.features[0].type.data());
-    check(fc.features[0].properties.name == std::string_view("Canada"), "properties.name == Canada was %.*s", (int)fc.features[0].properties.name.length(), fc.features[0].properties.name.data());
-    check(fc.features[0].geometry.type == std::string_view("Polygon"), "geometry.type == Polygon was %.*s", fc.features[0].geometry.type.length(), fc.features[0].geometry.type.data());
+    check(strcmp(fc.features[0].type, "Feature") == 0, "feature.type == Feature, was %s", fc.features[0].type);
+    check(strcmp(fc.features[0].properties.name , "Canada") == 0 , "properties.name == Canada was %s", fc.features[0].properties.name);
+    check(strcmp(fc.features[0].geometry.type , "Polygon") == 0, "geometry.type == Polygon was %s", fc.features[0].geometry.type);
     check(fc.features[0].geometry.coordinates.size() == 3, "3 rings was %u", fc.features[0].geometry.coordinates.size());
     if (fc.features[0].geometry.coordinates.size() >= 2) {
       check(fc.features[0].geometry.coordinates[0].size() == 5, "ring[0] has 5 points was %u", fc.features[0].geometry.coordinates[0].size());
@@ -962,9 +963,9 @@ void test_parse_geojson_from_file() {
   check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)fc.type.length(), fc.type.data());
 
   if (fc.features.size() >= 1) {
-    check(fc.features[0].type == "Feature", "feature[0].type == Feature, was %.*s", (int)fc.features[0].type.length(), fc.features[0].type.data());
-    check(fc.features[0].properties.name == "feature_0", "feature[0].properties.name == feature_0, was %.*s", (int)fc.features[0].properties.name.length(), fc.features[0].properties.name.data());
-    check(fc.features[0].geometry.type == "Polygon", "feature[0].geometry.type == Polygon, was %.*s", fc.features[0].geometry.type.length(), fc.features[0].geometry.type.data());
+    check(strcmp(fc.features[0].type, "Feature") == 0, "feature[0].type == Feature, was %s", fc.features[0].type);
+    check(strcmp(fc.features[0].properties.name, "feature_0") == 0, "feature[0].properties.name == feature_0, was %s", fc.features[0].properties.name);
+    check(strcmp(fc.features[0].geometry.type, "Polygon") == 0, "feature[0].geometry.type == Polygon, was %s", fc.features[0].geometry.type);
     check(fc.features[0].geometry.coordinates.size() == 1, "feature[0].geometry has 1 rings, was %u", fc.features[0].geometry.coordinates.size());
 
     if (fc.features[0].geometry.coordinates.size() >= 2) {

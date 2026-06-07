@@ -99,6 +99,12 @@ template <typename T> struct container_info<std::vector<T>> {
   static constexpr bool is_container = true;
 };
 
+template <typename T>
+constexpr bool is_vector_v = container_info<remove_cvref_t<T>>::kind == ContainerKind::STD_VECTOR;
+
+template <typename T>
+constexpr bool is_array_v = container_info<T>::kind == ContainerKind::STD_ARRAY;
+
 // ==========================================
 // Container from list checker
 // ==========================================
