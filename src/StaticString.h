@@ -13,7 +13,7 @@ NAMESPACE_JSON_BEGIN
 static const char *EMPTY_STRING = "";
 //static std::string_view EMPTY_SV(EMPTY_STRING);
 
-template <typename T> class StaticString {
+template <typename T, bool Reuse = false> class StaticString {
   struct Entries {
     uint32_t hash;
     size_t offset;
@@ -95,11 +95,19 @@ public:
 
   static void get_static_buffer(const char *str, size_t len, const char *&output) {
     uint32_t hash = hash32(str, len);
-    int offset = find(hash);
-        
-    if (offset >= 0) {
-      output = s_string_pool + offset;
-      return;
+
+    if constexpr (Reuse) {
+      if (n_values >= MAX_KEY_VALUE_COUNT) {
+        JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> pool full\n", typeid(T).name());
+        output = EMPTY_STRING;
+      }
+
+      int offset = find(hash);
+
+      if (offset >= 0) {
+        output = s_string_pool + offset;
+        return;
+      }
     }
     
     if (s_pool_offset + len > s_pool_size) {
@@ -110,8 +118,11 @@ public:
       output = EMPTY_STRING;
       return;
     }
-          
-    s_entries[n_values] = {hash, s_pool_offset};
+
+    if constexpr (Reuse) {
+      s_entries[n_values] = {hash, s_pool_offset};
+    }
+    
     JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> new entry for hash %u at offset %zu : '%.*s'\n", typeid(T).name(), hash, s_pool_offset, (int)len, str );
     char *dest = s_string_pool + s_pool_offset;
     strncpy(dest, str, len);
@@ -201,10 +212,10 @@ private:
   static Entries s_entries[];
 };
 
-template <typename T> char *StaticString<T>::s_string_pool = nullptr;
-template <typename T> size_t StaticString<T>::s_pool_offset = 0;
-template <typename T> size_t StaticString<T>::s_pool_size = 0;
-template <typename T> size_t StaticString<T>::n_values = 0;
-template <typename T> typename StaticString<T>::Entries StaticString<T>::s_entries[MAX_KEY_VALUE_COUNT];
+template <typename T, bool Reuse> char *StaticString<T, Reuse>::s_string_pool = nullptr;
+template <typename T, bool Reuse> size_t StaticString<T, Reuse>::s_pool_offset = 0;
+template <typename T, bool Reuse> size_t StaticString<T, Reuse>::s_pool_size = 0;
+template <typename T, bool Reuse> size_t StaticString<T, Reuse>::n_values = 0;
+template <typename T, bool Reuse> typename StaticString<T, Reuse>::Entries StaticString<T, Reuse>::s_entries[MAX_KEY_VALUE_COUNT];
 
 NAMESPACE_JSON_END
