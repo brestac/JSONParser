@@ -202,7 +202,7 @@ private:
   parse_value(TableT &table, TupleT &args);
 
   void _reset_key();
-  bool scan_escaped_string(std::string_view &sv);
+  template <typename V> bool scan_escaped_string(std::string_view &sv);
   template <typename V> ParseValueResult parse_string(V &v);
   template <typename V, typename Type> ParseValueResult parse_numeric(V &v);
   template <typename V> ParseValueResult parse_floating_point(V &v);
@@ -350,20 +350,23 @@ size_t JSONParserBase<Cursor, TargetT>::scan_digits(size_t max_length) {
   return n;
 }
 
-template <typename Cursor, typename TargetT>
+template <typename Cursor, typename TargetT, typename TargetV>
 static bool needs_pool(bool unescaped) {
   //PRINTF_COLOR(COLOR_MAGENTA, "needs_pool<%s, %s>(%d)\n", typeid(Cursor).name(), typeid(TargetT).name(), unescaped);
   
   if constexpr (std::is_same_v<remove_cvref_t<TargetT>, JSONCallbackObject>) {
     return unescaped;
-  } else if constexpr (std::is_same_v<remove_cvref_t<Cursor>, StreamCursor>) {
+  } else if constexpr (std::is_same_v<remove_cvref_t<Cursor>, StreamCursor> && std::is_same_v<remove_cvref_t<TargetV>, std::string_view>) {
     return true;
   } else if constexpr (std::is_same_v<remove_cvref_t<Cursor>, PointerCursorReader>) {
     return unescaped;
+  } else {
+    return false;
   }
 }
 
 template <typename Cursor, typename TargetT>
+template <typename V>
 bool JSONParserBase<Cursor, TargetT>::scan_escaped_string(std::string_view &sv) {
   
   bool inEscape = false;
@@ -408,11 +411,11 @@ bool JSONParserBase<Cursor, TargetT>::scan_escaped_string(std::string_view &sv) 
 
   // Le pool est alloué à l'avance uniquement pour les StreamCursor avec des valeurs std::string_view
   // dans JSONParser _parse_impl<true, StreamCursor, UserStruct>
-  if (needs_pool<Cursor, TargetT>(unescaped)) {
+  if (needs_pool<Cursor, TargetT, V>(unescaped)) {
     //StaticString<TargetT>::increase_pool_size(1);
     //std::string_view* sv_ptr = &sv;
     const char* output;
-    StaticString<TargetT>::get_static_buffer(buffer, n, output);
+    StaticString<TargetT, true>::get_static_buffer(buffer, n, output);
     sv = std::string_view(output, n);
   } else {
     sv = std::string_view(buffer, n);
@@ -451,12 +454,12 @@ ParseValueResult JSONParserBase<Cursor, TargetT>::parse_string(V &arg_value) {
 
         if (_cursor.peek(-1) == JSON_ESCAPE_CHARACTER) {
             _cursor.go_to(str_start);
-            if (!scan_escaped_string(parsed_value))
+            if (!scan_escaped_string<V>(parsed_value))
                 return ParseValueResult::NO_RESULT;
         }
     } else {
         // StreamCursor : pool obligatoire
-        if (!scan_escaped_string(parsed_value))
+        if (!scan_escaped_string<V>(parsed_value))
             return ParseValueResult::NO_RESULT;
     }
 
