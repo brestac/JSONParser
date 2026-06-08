@@ -40,8 +40,8 @@ size_t constexpr print_char_array_to(Cursor &output, T (&value)[N]);
 template <typename Cursor, typename T>
 size_t constexpr print_value_to(Cursor &output, T &value);
 
-template <typename Cursor>
-size_t print_object_pointer_to(Cursor &output, void *value);
+template <typename Cursor, typename T>
+size_t print_object_pointer_to(Cursor &output, T *value);
 
 namespace JSON {
 
@@ -52,14 +52,13 @@ enable_if_t<is_cursor_writer_v<Cursor> &&
                                     arguments_array_types, Args...>,
             size_t>
 _print(uint32_t mask, Cursor &output, Args &&...args) {
-  return print_json(mask, output, std::forward<Args>(args)...);
+    return print_json(mask, output, std::forward<Args>(args)...);
 }
 
 // ── Surcharge pour dérivées de Stream
 // ──────────────────────────────────────────
 template <typename T, typename... Args>
-std::enable_if_t<is_stream_v<T>, size_t> print(uint32_t mask, T &stream,
-                                               Args &&...args) {
+std::enable_if_t<is_stream_v<T>, size_t> print(uint32_t mask, T &stream, Args &&...args) {
   StreamCursor c(stream);
   return _print(mask, c, std::forward<Args>(args)...);
 }
@@ -98,7 +97,6 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
                                       Cursor &output, const char *key, T &value,
                                       Rest &&...rest) {
   size_t len = 0;
-
   if (mask == 0 || mask & (1 << idx)) {
     len += output.write("\"");
     len += output.write(key);
@@ -148,13 +146,12 @@ size_t constexpr print_value_to(Cursor &output, T &value) {
   } else if constexpr (std::is_same_v<remove_cvref_t<T>, std::string_view>) {
     return print_to(output, "\"%.*s\"", (int)value.length(), value.data());
   } else if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<T>>) {
-    return print_object_pointer_to(output, (void *)&value);
+    return print_object_pointer_to(output, &value);
   } else if constexpr (std::is_pointer_v<T>) {
     if (value == nullptr) {
       return output.write("null");
     } else {
-      if constexpr (std::is_base_of_v<
-                        JSONObject, remove_cvref_t<std::remove_pointer_t<T>>>) {
+      if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<std::remove_pointer_t<T>>>) {
         return print_object_pointer_to(output, value);
       } else {
         return print_to(output, "%p", value);
@@ -171,13 +168,13 @@ size_t constexpr print_value_to(Cursor &output, T &value) {
 
 // ── print_object_pointer_to
 // ───────────────────────────────────────────────────
-template <typename Cursor>
-[[gnu::noinline]] size_t print_object_pointer_to(Cursor &output, void *value) {
+template <typename Cursor, typename T>
+size_t print_object_pointer_to(Cursor &output, T *value) {
+  
 #ifdef __EXCEPTIONS
   try {
 #endif
-    JSONObject *jsonObject = static_cast<JSONObject *>(value);
-    return jsonObject->toJSON(output);
+    return value->toJSON(output);
 #ifdef __EXCEPTIONS
   } catch (const std::exception &e) {
     return output.write("null");
@@ -255,16 +252,13 @@ size_t constexpr print_hex_to(Cursor &output, T (&value)[N]) {
 // ────────────────────────────────────────────────────────────────
 template <typename Cursor, typename... Args>
 constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args) {
-  static_assert(sizeof...(Args) % 2 == 0,
-                "Le nombre d'arguments doit être pair");
-
+  static_assert(sizeof...(Args) % 2 == 0, "Le nombre d'arguments doit être pair");
   size_t len = 0;
   int last_index = get_last_bitwise_mask_index(mask);
 
   len += output.write("{");
 
-  size_t inner = print_key_value_pair(mask, 0, last_index, output,
-                                      std::forward<Args>(args)...);
+  size_t inner = print_key_value_pair(mask, 0, last_index, output, std::forward<Args>(args)...);
   len += inner;
 
   len += output.write("}");
