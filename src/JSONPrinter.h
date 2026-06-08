@@ -111,7 +111,9 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
       if (mask == 0 || idx < (size_t)last_idx) {
         len += output.write(",");
       }
-      yield();
+      if (idx % 16 == 0) {
+        yield();
+      }
     }
   }
 
@@ -192,7 +194,9 @@ size_t print_to(Cursor &output, const char *format, Args &&...args) {
 
 // ── Helpers array_size
 // ────────────────────────────────────────────────────────
-template <typename T, size_t N> size_t array_size(T (& /*array*/)[N]) { return N; }
+template <typename T, size_t N> size_t array_size(T (&/*array*/)[N]) {
+  return N;
+}
 template <typename T> size_t array_size(std::vector<T> &array) {
   return array.size();
 }
@@ -215,7 +219,9 @@ size_t constexpr print_array_to(Cursor &output, T &array) {
     if (i < N - 1) {
       len += output.write(",");
     }
-    yield();
+    if (i % 16 == 0) {
+      yield();
+    }
   }
 
   len += output.write("]");
