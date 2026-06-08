@@ -12,6 +12,8 @@ struct JSONObject {
 public:
   uint32_t updated = 0;
 
+  JSONObject() = default;
+
   virtual ~JSONObject() = default;
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -27,7 +29,7 @@ public:
   }
 
   template <size_t N>
-  ParseResult fromJSON(const char* name, const char (&input)[N]) {
+  JSON::ParseResult fromJSON(const char* name, const char (&input)[N]) {
     JSON_DEBUG_WARNING("JSONObject::fromJSON(const char (&input)[N])\n");
     const PointerCursorReader cursor(input, N - 1);
     return fromJSON(name, cursor);
@@ -60,15 +62,15 @@ public:
   ////////////////////////////////////////////////////////////////////////////////
   //  toJSON
   ////////////////////////////////////////////////////////////////////////////////
-  virtual size_t toJSON(PointerCursorWriter & /*cursor*/, bool /*updates*/ = true) {
-    return 0;
+  virtual size_t toJSON(PointerCursorWriter & cursor, bool /*updates*/ = true) {
+    return cursor.write("{}");
   }
 
-  virtual size_t toJSON(StreamCursor & /*cursor*/, bool /*updates*/ = true) { return 0; }
+  virtual size_t toJSON(StreamCursor & cursor, bool /*updates*/ = true) {
+    return cursor.write("{}");
+  }
 
-  template <typename T>
-  std::enable_if_t<is_stream_v<T>, size_t>
-  toJSON(T& output, bool updates = true) {
+  template <typename T> std::enable_if_t<is_stream_v<T>, size_t> toJSON(T& output, bool updates = true) {
     StreamCursor cursor(output);
     return toJSON(cursor, updates);
   }

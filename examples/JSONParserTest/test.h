@@ -139,24 +139,34 @@ static int passed = 0;
 static int failed = 0;
 
 template<typename... Args>
-static void check(bool condition, const char *format, Args &&...args) {
+static void check(bool condition, std::string_view format, Args &&...args) {
   if (condition) {
     PRINTF_COLOR(COLOR_GREEN, "%*c[PASS] ", 2, ' ');
     ++passed;
+    size_t pos = format.find("%");
+
+    if (pos != std::string_view::npos) {
+      std::string_view sub = format.substr(0, pos);
+      DEBUG_PRINTF("%.*s\n", (int)sub.length(), sub.data());
+    }      
+    else
+      DEBUG_PRINTF("%.*s\n", (int)format.length(), format.data());
   } else {
     PRINTF_COLOR(COLOR_RED, "%*c[FAIL] ", 2, ' ');
     ++failed;
   }
 
+  if (condition) return;
+
   if constexpr (sizeof...(Args) > 0) {
     char _buf[512];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-security"
-    snprintf(_buf, sizeof(_buf), format, std::forward<Args>(args)...);
+    snprintf(_buf, sizeof(_buf), format.data(), std::forward<Args>(args)...);
 #pragma clang diagnostic pop
     DEBUG_PRINTF("%s\n", _buf);
   } else {
-    DEBUG_PRINTF("%s\n", format);
+    DEBUG_PRINTF("%.*s\n", (int)format.length(), format.data());
   }
 }
 
@@ -294,14 +304,14 @@ struct Properties : public JSONObject {
 };
 
 struct Geometry : public JSONObject {
-  using shape = std::vector<std::array<float, 2>>;
+  using Coordinate = std::array<float, 2>;
+  using Ring = std::vector<Coordinate>;
   char type[32] = { 0 };
-  std::vector<shape> coordinates;
+  std::vector<Ring> coordinates;
   JSON_SERIALIZE_IMPL(type, coordinates);
 };
 
 struct Feature : public JSONObject {
-  //std::string_view type = "";
   char type[32] = { 0 };
   Properties properties;
   Geometry geometry;
@@ -315,7 +325,7 @@ struct FeatureCollection : public JSONObject {
 };
 
 struct FeatureSansGeometry : public JSONObject {
-  std::string_view type = "";
+  char type[32] = { 0 };
   Properties properties;
   JSON_SERIALIZE_IMPL(type, properties);
 };
@@ -324,6 +334,17 @@ struct FeatureCollectionSansGeometry : public JSONObject {
   std::string_view type = "";
   std::vector<FeatureSansGeometry> features;
   JSON_SERIALIZE_IMPL(type, features);
+};
+
+struct VectorInt : JSONObject {
+  std::vector<int> numbers;
+  JSON_SERIALIZE_IMPL(numbers);
+};
+
+struct Ring : public JSONObject {
+  using Coordinate = std::array<float, 2>;
+  std::vector<Coordinate> coordinates;
+  JSON_SERIALIZE_IMPL(coordinates);
 };
 
 // ----------------------------------------------------------------
@@ -661,6 +682,20 @@ void test_parse_geojson_big() {
   JSON::ParseResult pr = fc.fromJSON(json);
   [[maybe_unused]] uint64_t elapsed1 = now() - start;
   check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error, pr.length);
+  check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)fc.type.length(), fc.type.data());
+  check(fc.features.size() == 1, "1 feature, was %u", fc.features.size());
+  if (fc.features.size() >= 1) {
+    check(strcmp(fc.features[0].type, "Feature") == 0, "feature.type == Feature, was %s", fc.features[0].type);
+    check(strcmp(fc.features[0].properties.name , "Canada") == 0 , "properties.name == Canada was %s", fc.features[0].properties.name);
+    check(strcmp(fc.features[0].geometry.type , "Polygon") == 0, "geometry.type == Polygon was %s", fc.features[0].geometry.type);
+    check(fc.features[0].geometry.coordinates.size() == 480, "480 rings was %u", fc.features[0].geometry.coordinates.size());
+    if (fc.features[0].geometry.coordinates.size() >= 2) {
+      check(fc.features[0].geometry.coordinates[0].size() == 14, "ring[0] has 5 points was %u", fc.features[0].geometry.coordinates[0].size());
+      check(fc.features[0].geometry.coordinates[1].size() == 33, "ring[1] has 5 points was %u", fc.features[0].geometry.coordinates[1].size());
+      // Spot-check first coordinate of ring[0]: [-140.99778, 41.675105]
+      check(near(fc.features[0].geometry.coordinates[0][0][0], -65.614f, 0.001f), "ring[0][0].lon ≈ -65.614 was %.3f", fc.features[0].geometry.coordinates[0][0][0]);
+    }
+  }
 
   // RAPIDJSON
   rapidjson::Document d;
@@ -798,16 +833,6 @@ void test_serialize_to_stream() {
         stream.c_str());
 }
 
-void test_print_to_stdout() {
-  DEBUG_PRINTF("\n--- Test: toJSON print ---\n");
-  char *ptr = (char *)"ptr";
-  Personne p("Bob", 40, 1.80f, "Paris", ptr, false, nullptr);
-  p.toJSON(Serial, false);
-  DEBUG_PRINTF("\n");
-
-  check(true, "You should see on the previous line the JSON representation of "
-              "the Personne object");
-}
 
 // ----------------------------------------------------------------
 // Test 6 – toJSON Serial
@@ -821,7 +846,91 @@ void test_print_to_serial() {
   s.active = true;
 
   s.toJSON(Serial);
+  DEBUG_PRINTF("\n");
   check(true, "Wrote to Serial");
+}
+/*
+void test_print_vector_to_serial() {
+  DEBUG_PRINTF("\n--- Test: print vector property to stdout ---\n");
+
+  VectorInt t;
+  t.numbers.push_back(1);
+  t.numbers.push_back(2);
+  t.numbers.push_back(3);
+
+  t.toJSON(Serial);
+  DEBUG_PRINTF("\n");  
+}
+
+void test_print_vector_of_arrays_to_serial() {
+  DEBUG_PRINTF("\n--- Test: print std::array property to stdout ---\n");
+  Ring r;
+  r.coordinates.push_back({1, 2});
+  r.coordinates.push_back({3, 4});
+  r.coordinates.push_back({5, 6});
+
+  r.toJSON(Serial);
+  DEBUG_PRINTF("\n");
+}
+
+void test_print_vector_of_vectors_to_serial() {
+  DEBUG_PRINTF("\n--- Test: print std::vector property to stdout ---\n");
+  Geometry g;
+  g.coordinates.push_back({{1, 2}, {3, 4}, {5, 6}, {7, 8}});
+  g.coordinates.push_back({{9, 10}, {11, 12}, {13, 14}, {15, 16}});
+  g.toJSON(Serial);
+  DEBUG_PRINTF("\n");
+}
+
+void test_print_geojson_feature_to_serial() {
+  DEBUG_PRINTF("\n--- Test: print geojson feature to stdout ---\n");
+  Feature f;
+  strncpy(f.type, "Feature", sizeof(f.type));
+  strncpy(f.properties.name, "feature_0", sizeof(f.properties.name));
+  strncpy(f.geometry.type, "Polygon", sizeof(f.geometry.type));
+  f.geometry.coordinates.push_back({{1, 2}, {3, 4}, {5, 6}, {7, 8}});
+  f.toJSON(Serial);
+  DEBUG_PRINTF("\n");
+}
+
+void test_print_geojson_feature_sans_geometry_to_serial() {
+  DEBUG_PRINTF("\n--- Test: print geojson feature to stdout ---\n");
+  FeatureSansGeometry f;
+  strncpy(f.type, "Feature", sizeof(f.type));
+  strncpy(f.properties.name, "feature_0", sizeof(f.properties.name));
+  f.toJSON(Serial);
+  DEBUG_PRINTF("\n");
+}
+
+void test_print_geojson_to_serial() {
+  DEBUG_PRINTF("\n--- Test: print geojson to stdout ---\n");
+  FeatureCollection fc;
+  fc.type = "FeatureCollection";
+  Feature f;
+  strncpy(f.type, "Feature", sizeof(f.type));
+  strncpy(f.properties.name, "feature_0", sizeof(f.properties.name));
+  strncpy(f.geometry.type, "Polygon", sizeof(f.geometry.type));
+  f.geometry.coordinates.push_back({{1, 2}, {3, 4}, {5, 6}, {7, 8}});
+  fc.features.push_back(f);
+  fc.toJSON(Serial);
+  DEBUG_PRINTF("\n");
+}
+*/
+void test_print_geojson_to_buffer() {
+  DEBUG_PRINTF("\n--- Test: print geojson to stdout ---\n");
+  FeatureCollection fc;
+  fc.type = "FeatureCollection";
+  Feature f;
+  strncpy(f.type, "Feature", sizeof(f.type));
+  strncpy(f.properties.name, "feature_0", sizeof(f.properties.name));
+  strncpy(f.geometry.type, "Polygon", sizeof(f.geometry.type));
+  f.geometry.coordinates.push_back({{1, 2}, {3, 4}, {5, 6}, {7, 8}});
+  fc.features.push_back(f);
+
+  char buf[1024] = { 0 };
+  fc.toJSON(buf);
+  const char* expected = "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"feature_0\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[1,2],[3,4],[5,6],[7,8]]]}}]}";
+  check(strcmp(buf, expected) == 0, "toJSON output should be \n%s\n, got \n%s", expected, buf);
 }
 
 void test_print_to_stream_string() {
@@ -972,7 +1081,7 @@ void test_parse_geojson_from_file() {
   }
 
   // delete file
-  // LittleFS.remove(GEOJSON_TEST_FILE_PATH);
+  LittleFS.remove(GEOJSON_TEST_FILE_PATH);
 }
 
 // ----------------------------------------------------------------
@@ -1147,10 +1256,9 @@ void run_parsing_tests() {
 void run_printing_tests() {
   // to char buffer
   test_serialize_to_buffer();
+  test_print_geojson_to_buffer();
   // to serial
   test_print_to_serial();
-  test_print_to_stdout();
-
   // to stream
   test_print_to_stream_string();
   test_print_hex_to_stream_string();

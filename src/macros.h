@@ -244,6 +244,14 @@ const char* _json_name_, const PointerCursorReader &cursor) override {        \
   template <typename T> size_t toJSON(T &output, bool updates = true) {        \
     uint32_t mask = updates ? this->updated : 0;                               \
     return JSON::print(mask, output, MACRO(__VA_ARGS__));                      \
+  }\
+  size_t toJSON(PointerCursorWriter &output, bool updates = true) override {        \
+    uint32_t mask = updates ? this->updated : 0;                               \
+    return JSON::_print(mask, output, MACRO(__VA_ARGS__));                      \
+  }\
+  size_t toJSON(StreamCursor &output, bool updates = true) override {        \
+    uint32_t mask = updates ? this->updated : 0;                               \
+    return JSON::_print(mask, output, MACRO(__VA_ARGS__));                      \
   }
 
 #define JSON_DECODER_IMPL(...)                                                 \
