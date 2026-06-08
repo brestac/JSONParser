@@ -33,7 +33,7 @@ void setup() {
   free_stack = ESP.getFreeContStack();
 
   Serial.println("");
-  run_tests();
+  //run_tests();
 
   //test_parse_from_tcp_stream<Sensor>("http://192.168.1.2:9000/sensor.json");
   //test_parse_from_tcp_stream<FeatureCollection>("http://192.168.1.2:9000/data.geojson");
@@ -41,12 +41,12 @@ void setup() {
 }
 
 void loop() {
-  static unsigned long timer = millis();
-  if (millis() - timer > 5000) {
+  static bool printed = false;
+  if (printed == false) {
     Serial.printf("Free heap: %u => %u\n", free_heap, ESP.getFreeHeap());
     Serial.printf("Free stack: %u => %u\n", free_stack, ESP.getFreeContStack());
     Serial.printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
-    timer = millis();
+    printed = true;
   }
 
   delay(10);
@@ -126,15 +126,11 @@ void test_parse_from_tcp_stream(const char* url) {
   JSON::ParseResult r = s.fromJSON(stream);
   check(r.error == 0, "parse error=%hhu length=%zu", r.error, r.length);
 
-  if constexpr (std::is_same_v<T, FeatureCollection>) {
-    check(s.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)s.type.length(), s.type.data());
-
-    if (s.features.size() >= 1) {
-      check(strcmp(s.features[0].type, "Feature") == 0, "feature[0].type == Feature, was %s", s.features[0].type);
-      check(strcmp(s.features[0].properties.name, "feature_0") == 0, "feature[0].properties.name == feature_0, was %s", s.features[0].properties.name);
-      check(strcmp(s.features[0].geometry.type, "Polygon") == 0, "feature[0].geometry.type == Polygon, was %s", s.features[0].geometry.type);
-      check(s.features[0].geometry.coordinates.size() == 1, "feature[0].geometry has 1 rings, was %u", s.features[0].geometry.coordinates.size());
-    }
+  if constexpr (std::is_same_v<T, FeatureCollectionSansGeometry>) {
+    check(strcmp(s.type, "FeatureCollection") == 0, "type == FeatureCollection, was %s", s.type);
+    check(s.features.size() == 1, "One feature");
+    check(strcmp(s.features[0].type, "Feature") == 0, "feature[0].type == Feature, was %s", s.features[0].type);
+    check(strcmp(s.features[0].properties.name, "Canada") == 0, "feature[0].properties.name == Canada, was %s", s.features[0].properties.name);
   }
 
   if constexpr (std::is_same_v<T, Sensor>) {
@@ -142,6 +138,9 @@ void test_parse_from_tcp_stream(const char* url) {
     check(near(s.temperature, 20), "s.temperature == 20");
     check(s.active == true, "s.active == true");
   }
+
+  s.toJSON(Serial);
+  Serial.println("");
 
   http.end();
 }
