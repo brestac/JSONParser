@@ -45,12 +45,12 @@ ParseResult _parse_impl(const char* name, uint32_t& mask, Cursor& cursor, Args&&
     if (GLOBAL_PARSER_SIZE > MAX_GLOBAL_PARSER_SIZE) {
         MAX_GLOBAL_PARSER_SIZE = GLOBAL_PARSER_SIZE;
     }
-    
+
     if constexpr (std::is_same<remove_cvref_t<Cursor>, StreamCursor>::value && (sizeof... (Args) > 1)) {
         constexpr size_t n_sv = count_string_view_args_v<Args...>;
-        StaticString<TargetT, MAX_KEY_VALUE_COUNT>::ensure_pool_size(n_sv);
+        StaticString<TargetT, MAX_STRING_POOL_REUSE_COUNT>::ensure_pool_size(n_sv);
     }
-    
+
     if constexpr (UseMask) {
         const bool automask = are_generic_keys(std::forward<Args>(args)...);
         parser.setAutomask(automask);
