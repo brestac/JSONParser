@@ -284,6 +284,7 @@ public:
   // Nombre total d'octets écrits depuis la création du curseur
   size_t bytesWritten() const { return _written; }
 
+  int8_t depth = -1;
 private:
   RingBuffer<JSON::RING_BUFFER_SIZE> _ring;
   Stream *_stream; // référence directe pour l'écriture

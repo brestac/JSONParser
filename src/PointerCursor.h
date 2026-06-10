@@ -153,6 +153,7 @@ public:
     return std::string_view(src, len);
   }
 
+  mutable int8_t depth = -1;
 private:
   mutable T *_pos;
   T *_start;
