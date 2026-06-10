@@ -1,6 +1,6 @@
 #pragma once
 
-// JSONStreamParser.h
+// JSONParserBase.h
 //
 // Fournit JSONStreamParser<N> : version de JSONParser qui lit depuis
 // un Stream Arduino via un ring buffer de taille N (puissance de 2).
