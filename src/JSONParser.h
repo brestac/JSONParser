@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "macros.h"
-#include "JSONStreamParser.h"
+#include "JSONParserBase.h"
 #include "StreamCursor.h"
 #include "StaticString.h"
 #include "utils.h"
