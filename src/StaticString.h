@@ -12,12 +12,8 @@
 
 NAMESPACE_JSON_BEGIN
 
-//static std::string_view EMPTY_SV(EMPTY_STRING);
-//static void* s_pool_deleters[10] = {nullptr};
 static std::array<void (*)(), 10> s_pool_deleters = {nullptr};
 static size_t s_pool_count = 0;
-//template<typename T, size_t N>
-// static size_t init();
 
 static void clear_all() {
   JSON_DEBUG_COLOR(COLOR_RED, "clear_all %zu pools\n", s_pool_count);
@@ -104,16 +100,9 @@ public:
       s_pool_offset = 0;
       n_values = 0;
       // id = 0;
-      JSON_DEBUG_COLOR(COLOR_RED, "Pool détruit\n");
+      JSON_DEBUG_COLOR(COLOR_RED, "Pool<%s> détruit\n", typeid(T).name());
     } else {
       JSON_DEBUG_COLOR(COLOR_RED, "Pool déjà détruit\n");
-      // Question: pourquoi on arrive ici ?
-      // Réponse: parce que le destructeur de StaticString est appelé deux fois
-      // (une fois par le destructeur de la classe qui l'utilise, et une fois par le destructeur de la classe elle-même)
-      // Question: Où est le destructeur de StaticString ?
-      // Réponse: Il n'y en a pas, car c'est une classe template.
-      // Question: Comment faire pour qu'il n'y ait qu'un seul appel au destructeur ?
-       // Réponse: Il faut utiliser un pointeur unique sur une instance de StaticString.
     }
   }
 
@@ -174,6 +163,7 @@ public:
     JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s,%zu> new entry for hash %u at offset %zu : '%.*s'\n", typeid(T).name(), N, hash, s_pool_offset, (int)len, str );
     char *dest = s_string_pool + s_pool_offset;
     strncpy(dest, str, len);
+    dest[len] = '\0';
     s_pool_offset += len;
     n_values++;
     output = dest;
