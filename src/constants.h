@@ -20,11 +20,13 @@ constexpr size_t RING_BUFFER_SIZE = 1 << 8;       // 256 octets
 constexpr size_t MAX_STRING_POOL_SIZE = 1 << 12;  // 4096 octets
 constexpr size_t MAX_JSON_LENGTH = 1 << 24;       // 16777216 octets = 16MB
 #ifdef ARDUINO
-constexpr size_t MAX_KEY_LENGTH   = 1 << 5;  // 32 octets (suffisant pour vos clés)
+constexpr size_t MAX_STRING_POOL_REUSE_COUNT = 0;
+constexpr size_t MAX_KEY_LENGTH   = 1 << 5;  // 32 octets
 constexpr size_t MAX_VALUE_LENGTH = 1 << 6;  // 64 octets
 #else
-constexpr size_t MAX_KEY_LENGTH   = 1 << 8;  // 256
-constexpr size_t MAX_VALUE_LENGTH = 1 << 8;  // 256
+constexpr size_t MAX_STRING_POOL_REUSE_COUNT = 1 << 5; // 32 octets
+constexpr size_t MAX_KEY_LENGTH   = 1 << 8;  // 256 octets
+constexpr size_t MAX_VALUE_LENGTH = 1 << 8;  // 256 octets
 #endif
 constexpr size_t MAX_ARRAY_LENGTH = 1 << 16;      // 65536 octets = 64KB
 constexpr size_t MAX_KEY_VALUE_COUNT = 32;        // Maximum autorisé par la macro
