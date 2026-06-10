@@ -143,7 +143,7 @@ static void check(bool condition, std::string_view format, Args &&...args) {
   if (condition) {
     PRINTF_COLOR(COLOR_GREEN, "%*c[PASS] ", 2, ' ');
     ++passed;
-    size_t pos = format.find("%");
+    size_t pos = format.find(",");
 
     if (pos != std::string_view::npos) {
       std::string_view sub = format.substr(0, pos);
@@ -1236,7 +1236,7 @@ void run_parsing_tests() {
   test_parse_indexed_keys();
   test_parse_top_level_array();
   test_parse_embedded_object();
-  //test_parse_embedded_object_from_stream();
+  test_parse_embedded_object_from_stream();
   test_parse_from_char_buffer();
   test_parse_from_stream();
   test_partial_parse();
