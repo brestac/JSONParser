@@ -3,18 +3,41 @@
 #include "ParseResult.h"
 #include "PointerCursor.h"
 #include "StreamCursor.h"
+#include "StaticString.h"
 #include "str_length.h"
 #include "types.h"
 
 using namespace JSON;
+static size_t instances_counter = 0;
 
 struct JSONObject {
+
 public:
   uint32_t updated = 0;
 
-  JSONObject() = default;
+  JSONObject() {
+    ++instances_counter;
+    JSON_DEBUG_COLOR(COLOR_BLUE, "New JSONObject subclass instance #%zu\n", instances_counter);
+  }
 
-  virtual ~JSONObject() = default;
+  virtual ~JSONObject() {
+    --instances_counter;
+    if (instances_counter == 0) {
+      //JSON_DEBUG_COLOR(COLOR_RED, "No more JSONObject, clear all StaticString<T>\n");
+      clear_all();
+    }
+  }
+  
+  // Constructeur de copie : le membre copié est aussi une instance vivante
+  JSONObject(const JSONObject& other) : updated(other.updated) {
+    JSON_DEBUG_COLOR(COLOR_BLUE, "Copy JSONObject instance #%zu\n", instances_counter);
+    ++instances_counter;
+  }
+  
+  JSONObject& operator=(const JSONObject& other) {
+    updated = other.updated;
+    return *this;
+  }
 
   ////////////////////////////////////////////////////////////////////////////////
   //  fromJSON

@@ -228,10 +228,9 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
     return JSON::_parse(_json_name_, this->updated, input,                     \
                        MACRO(__VA_ARGS__));                                    \
   }                                                                            \
-  JSON::ParseResult fromJSON(                                                  \
-const char* _json_name_, const PointerCursorReader &cursor) override {        \
-    using _SelfT = remove_cvref_t<decltype(*this)>;                       \
-    return JSON::_parse_impl<true, const PointerCursorReader, _SelfT>(         \
+  JSON::ParseResult fromJSON(const char* _json_name_, const PointerCursorReader &cursor) override {        \
+  using _SelfT = remove_cvref_t<decltype(*this)>;                       \
+  return JSON::_parse_impl<true, const PointerCursorReader, _SelfT>(         \
         _json_name_, this->updated, cursor, MACRO(__VA_ARGS__));               \
   }                                                                            \
   JSON::ParseResult fromJSON(const char* _json_name_, StreamCursor &cursor)   \
@@ -267,3 +266,4 @@ const char* _json_name_, const PointerCursorReader &cursor) override {        \
   using JSONObject::toJSON;                                                    \
   FROM_JSON_OVERRIDE(__VA_ARGS__)                                              \
   TO_JSON_OVERRIDE(__VA_ARGS__)
+

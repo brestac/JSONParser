@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stddef.h>
+#include <tuple>
+#include <array>
 
 #include "PointerCursor.h"
 #include "StreamCursor.h"
@@ -11,8 +13,21 @@
 NAMESPACE_JSON_BEGIN
 
 //static std::string_view EMPTY_SV(EMPTY_STRING);
+//static void* s_pool_deleters[10] = {nullptr};
+static std::array<void (*)(), 10> s_pool_deleters = {nullptr};
+static size_t s_pool_count = 0;
+//template<typename T, size_t N>
+// static size_t init();
 
-template <typename T, size_t N = 0> class StaticString {
+static void clear_all() {
+  JSON_DEBUG_COLOR(COLOR_RED, "clear_all %zu pools\n", s_pool_count);
+    for(size_t i = 0; i < s_pool_count; i++) {
+        auto fn = s_pool_deleters[i];
+        if (fn) fn();
+    }
+}
+
+template <typename T, size_t N> class StaticString {
   struct Entries {
     uint32_t hash;
     size_t offset;
@@ -23,25 +38,45 @@ public:
   StaticString() = delete;
   StaticString(const StaticString &) = delete;
   StaticString &operator=(const StaticString &) = delete;
+  StaticString(StaticString &&) = delete;
+  StaticString &operator=(StaticString &&) = delete;
+  ~StaticString() = delete;
 
   static void ensure_pool_size(size_t n) {
+    JSON_DEBUG_COLOR(COLOR_CYAN, "StaticString<%s> ensure_pool_size %zu\n", typeid(T).name(), n);
     size_t new_size = s_pool_offset + n * MAX_VALUE_LENGTH;
     _set_pool_size(new_size);
   }
 
+  static size_t register_if_needed() {
+    static bool registered = false;
+    
+    if (registered) return s_pool_count;
+  
+    JSON_DEBUG_COLOR(COLOR_BLUE, "Registering StaticString<%s> #%zu\n", typeid(T).name(), s_pool_count);
+
+    if (s_pool_count >= s_pool_deleters.size()) return false;
+    s_pool_deleters[s_pool_count] = clear;
+    registered = true;
+
+    return s_pool_count++;
+  }
+
   static void _set_pool_size(size_t new_size, bool allow_reduction = false) {
+    
     if (allow_reduction == false && new_size <= s_pool_size)
       return; // déjà suffisant
 
     if (new_size > MAX_STRING_POOL_SIZE) {
-      //JSON_DEBUG_COLOR( COLOR_RED, "Pool trop grand: %zu octets demandés, max: %zu octets\n", new_size, MAX_STRING_POOL_SIZE);
+      JSON_DEBUG_COLOR( COLOR_RED, "Pool trop grand: %zu octets demandés, max: %zu octets\n", new_size, MAX_STRING_POOL_SIZE);
       new_size = MAX_STRING_POOL_SIZE;
     }
 
     char *p = static_cast<char *>(realloc(s_string_pool, new_size));
 
     if (p) {
-      // JSON_DEBUG_COLOR(COLOR_BLUE, "StaticString<%s> %s à %zu octets\n", typeid(T).name(), (new_size > s_pool_size) ? "agrandi" : "réduit", new_size);
+      JSON_DEBUG_COLOR(COLOR_BLUE, "StaticString<%s,%zu> %s à %zu octets\n", typeid(T).name(), N, (new_size > s_pool_size) ? "agrandi" : "réduit", new_size);
+      register_if_needed();
       s_string_pool = p;
       GLOBAL_STRING_POOL_SIZE += new_size - s_pool_size;
       s_pool_size = new_size;
@@ -61,13 +96,25 @@ public:
   }
 
   static void clear() {
-    if (s_string_pool) {
+    if (s_string_pool != nullptr) {
       free(s_string_pool);
+      GLOBAL_STRING_POOL_SIZE -= s_pool_size;
       s_string_pool = nullptr;
       s_pool_size = 0;
       s_pool_offset = 0;
+      n_values = 0;
+      // id = 0;
+      JSON_DEBUG_COLOR(COLOR_RED, "Pool détruit\n");
+    } else {
+      JSON_DEBUG_COLOR(COLOR_RED, "Pool déjà détruit\n");
+      // Question: pourquoi on arrive ici ?
+      // Réponse: parce que le destructeur de StaticString est appelé deux fois
+      // (une fois par le destructeur de la classe qui l'utilise, et une fois par le destructeur de la classe elle-même)
+      // Question: Où est le destructeur de StaticString ?
+      // Réponse: Il n'y en a pas, car c'est une classe template.
+      // Question: Comment faire pour qu'il n'y ait qu'un seul appel au destructeur ?
+       // Réponse: Il faut utiliser un pointeur unique sur une instance de StaticString.
     }
-    JSON_DEBUG_COLOR(COLOR_BLUE, "Pool détruit\n");
   }
 
   // static bool write(unsigned char c) {
@@ -94,9 +141,10 @@ public:
   // }
 
   static void get_static_buffer(const char *str, size_t len, const char *&output) {
-    uint32_t hash = hash32(str, len);
+    uint32_t hash = 0;
 
     if constexpr (N > 0) {
+      hash = hash32(str, len);
       if (n_values >= MAX_KEY_VALUE_COUNT) {
         JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> pool full\n", typeid(T).name());
         output = EMPTY_STRING;
@@ -123,7 +171,7 @@ public:
       s_entries[n_values] = {hash, s_pool_offset};
     }
     
-    JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> new entry for hash %u at offset %zu : '%.*s'\n", typeid(T).name(), hash, s_pool_offset, (int)len, str );
+    JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s,%zu> new entry for hash %u at offset %zu : '%.*s'\n", typeid(T).name(), N, hash, s_pool_offset, (int)len, str );
     char *dest = s_string_pool + s_pool_offset;
     strncpy(dest, str, len);
     s_pool_offset += len;

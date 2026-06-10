@@ -358,7 +358,7 @@ size_t JSONParserBase<Cursor, TargetT>::scan_digits(size_t max_length) {
 
 template <typename Cursor, typename TargetT, typename TargetV>
 static bool needs_pool(bool unescaped) {
-  // PRINTF_COLOR(COLOR_MAGENTA, "needs_pool<%s, %s>(%d)\n",
+  // JSON_DEBUG_COLOR(COLOR_MAGENTA, "needs_pool<%s, %s>(%d)\n",
   // typeid(Cursor).name(), typeid(TargetT).name(), unescaped);
 
   if constexpr (std::is_same_v<remove_cvref_t<TargetT>, JSONCallbackObject>) {
@@ -430,8 +430,7 @@ bool JSONParserBase<Cursor, TargetT>::scan_escaped_string(
 #ifdef ARDUINO
     StaticString<TargetT, 0>::get_static_buffer(buffer, n, output);
 #else
-    StaticString<TargetT, MAX_KEY_VALUE_COUNT>::get_static_buffer(buffer, n,
-                                                                  output);
+    StaticString<TargetT, MAX_KEY_VALUE_COUNT>::get_static_buffer(buffer, n, output);
 #endif
     sv = std::string_view(output, n);
   } else {

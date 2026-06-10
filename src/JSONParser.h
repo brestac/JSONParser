@@ -48,7 +48,7 @@ ParseResult _parse_impl(const char* name, uint32_t& mask, Cursor& cursor, Args&&
     
     if constexpr (std::is_same<remove_cvref_t<Cursor>, StreamCursor>::value && (sizeof... (Args) > 1)) {
         constexpr size_t n_sv = count_string_view_args_v<Args...>;
-        StaticString<TargetT>::ensure_pool_size(n_sv);
+        StaticString<TargetT, MAX_KEY_VALUE_COUNT>::ensure_pool_size(n_sv);
     }
     
     if constexpr (UseMask) {
