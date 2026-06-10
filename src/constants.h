@@ -37,8 +37,8 @@ inline uint8_t VERSION = 1;
 inline bool PRINT_BUFFER_AS_HEX = false;
 inline size_t MAX_PRINTF_BUFFER_SIZE = 4096;
 inline size_t MAX_POINTER_CURSOR_SIZE = std::numeric_limits<uint32_t>::max(); // Equals to 4294967295 bytes (4GB)
-inline size_t MAX_ITERATIONS = 1 << 16;                                       // 65536
-inline size_t MAX_JSON_DEPTH = 1 << 8;
+inline size_t MAX_ITERATIONS = 1 << 16;                                       // 65536 itérations maximum
+inline size_t MAX_JSON_DEPTH = 1 << 8; // 256 niveaux de profondeur maximum
 
 NAMESPACE_JSON_END
 

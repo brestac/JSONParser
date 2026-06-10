@@ -38,7 +38,7 @@ template <bool UseMask, typename Cursor, typename TargetT = Cursor, typename... 
 ParseResult _parse_impl(const char* name, uint32_t& mask, Cursor& cursor, Args&&... args) {
     uint64_t start = now();
 
-    JSONParserBase<Cursor, TargetT> parser(name, cursor);
+    JSONParserBase<Cursor, UseMask, TargetT> parser(name, cursor);
 
     JSON_DEBUG_COLOR(COLOR_RED, "Parser Cursor=%s TargetT=%s size=%zu\n", typeid(Cursor).name(), typeid(TargetT).name(), sizeof(parser));
     GLOBAL_PARSER_SIZE += sizeof(parser);
@@ -54,9 +54,6 @@ ParseResult _parse_impl(const char* name, uint32_t& mask, Cursor& cursor, Args&&
     if constexpr (UseMask) {
         const bool automask = are_generic_keys(std::forward<Args>(args)...);
         parser.setAutomask(automask);
-        parser.setUseMask(true);
-    } else {
-        parser.setUseMask(false);
     }
 
     parser.parse(std::forward<Args>(args)...);
