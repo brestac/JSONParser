@@ -325,13 +325,13 @@ struct FeatureCollection : public JSONObject {
 };
 
 struct FeatureSansGeometry : public JSONObject {
-  std::string_view type = "";
+  char type[32] = { 0 };
   Properties properties;
   JSON_SERIALIZE_IMPL(type, properties);
 };
 
 struct FeatureCollectionSansGeometry : public JSONObject {
-  char type[32] = { 0 };
+  std::string_view type = "";
   std::vector<FeatureSansGeometry> features;
   JSON_SERIALIZE_IMPL(type, features);
 };
