@@ -325,7 +325,7 @@ struct FeatureCollection : public JSONObject {
 };
 
 struct FeatureSansGeometry : public JSONObject {
-  char type[32] = { 0 };
+  std::string_view type = "";
   Properties properties;
   JSON_SERIALIZE_IMPL(type, properties);
 };

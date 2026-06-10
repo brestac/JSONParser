@@ -127,7 +127,7 @@ void test_parse_from_tcp_stream(const char* url) {
   check(r.error == 0, "parse error=%hhu length=%zu", r.error, r.length);
 
   if constexpr (std::is_same_v<T, FeatureCollectionSansGeometry>) {
-    check(strcmp(s.type, "FeatureCollection") == 0, "type == FeatureCollection, was %s", s.type);
+    check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)fc.type.length(), fc.type.data());
     check(s.features.size() == 1, "One feature");
     check(strcmp(s.features[0].type, "Feature") == 0, "feature[0].type == Feature, was %s", s.features[0].type);
     check(strcmp(s.features[0].properties.name, "Canada") == 0, "feature[0].properties.name == Canada, was %s", s.features[0].properties.name);
