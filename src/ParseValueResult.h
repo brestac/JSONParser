@@ -81,7 +81,7 @@ private:
 
 NAMESPACE_JSON_BEGIN
 
-static const char* valueTypeToString(ParseValueResult result) {
+static const char* valueTypeToString(ParseValueResult& result) {
   uint16_t type = result.valueType();
 
   switch (type) {
@@ -102,7 +102,7 @@ static const char* valueTypeToString(ParseValueResult result) {
   case ParseValueResult::POINTER:
     return "POINTER";
   default:
-    return "UNKNOWN";
+    return "UNKNOWN_JSON_TYPE";
   }
 }
 

@@ -60,7 +60,9 @@ template <typename T> struct container_info {
   using base_type = T;
   static constexpr size_t dimensions = 0;
   static constexpr ContainerKind kind = ContainerKind::NOT_CONTAINER;
+  static constexpr size_t extent = 0;
   static constexpr bool is_container = false;
+  static constexpr bool fixed = false;
 };
 
 // C-array
@@ -70,6 +72,7 @@ template <typename T, size_t N> struct container_info<T[N]> {
   static constexpr ContainerKind kind = ContainerKind::C_ARRAY;
   static constexpr size_t extent = N;
   static constexpr bool is_container = true;
+  static constexpr bool fixed = true;
 };
 
 // Char array
@@ -79,6 +82,7 @@ template <size_t N> struct container_info<char[N]> {
   static constexpr ContainerKind kind = ContainerKind::CHAR_ARRAY;
   static constexpr size_t extent = N;
   static constexpr bool is_container = false;
+  static constexpr bool fixed = true;
 };
 
 // std::array
@@ -88,6 +92,7 @@ template <typename T, size_t N> struct container_info<std::array<T, N>> {
   static constexpr ContainerKind kind = ContainerKind::STD_ARRAY;
   static constexpr size_t extent = N;
   static constexpr bool is_container = true;
+  static constexpr bool fixed = true;
 };
 
 // std::vector
@@ -97,6 +102,7 @@ template <typename T> struct container_info<std::vector<T>> {
   static constexpr ContainerKind kind = ContainerKind::STD_VECTOR;
   static constexpr size_t extent = MAX_ARRAY_LENGTH;
   static constexpr bool is_container = true;
+  static constexpr bool fixed = false;
 };
 
 template <typename T>

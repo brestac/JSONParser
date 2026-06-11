@@ -1,12 +1,7 @@
 #pragma once
 
 // JSONParserBase.h
-//
-// Fournit JSONStreamParser<N> : version de JSONParser qui lit depuis
-// un Stream Arduino via un ring buffer de taille N (puissance de 2).
-//
-// L'implémentation est partagée via JSONParserBase<Cursor>, templatisée
-// uniquement sur le type de curseur. L'API publique est identique à
+
 #include <limits>
 
 #include "ParseDispatchTable.h"
@@ -27,8 +22,6 @@ struct Parser {};
 //  JSONParserBase<Cursor>
 //  Toute la logique du parser, paramétrée uniquement par le
 //  type de curseur (PointerCursor ou StreamCursor).
-//  Ne pas utiliser directement — utiliser JSONParser ou
-//  JSONStreamParser.
 // ============================================================
 template <typename Cursor, bool UseMask, typename TargetT = Cursor>
 class JSONParserBase {
@@ -221,6 +214,8 @@ private:
   template <typename V> ParseValueResult parse_any(V v);
 
   ParseValueResult parse_unknown_value();
+  //ParseValueResult skip_to_array_end();
+  ParseValueResult skip_to_object_end();
 
   size_t bytesConsumed() { return _cursor.bytesConsumed(); }
   bool parse_colon();
@@ -268,7 +263,9 @@ template <typename Cursor, bool UseMask, typename TargetT>
 void JSONParserBase<Cursor, UseMask, TargetT>::set_state(ParserState s) {
   if (_state == END || _state == ERROR || _state == STOPPED)
     return;
+  
   _state = s;
+
   if (_state == COMMA) {
     _reset_key();
   }
@@ -719,6 +716,98 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_unknown_value() {
   return ParseValueResult::VALUE_PARSED;
 }
 
+template <typename Cursor, bool UseMask, typename TargetT>
+ParseValueResult JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
+  JSON_DEBUG_INFO("JSONParserBase::skip_to_object_end\n");
+  // We are in the middle of an object before the comma, we need to skip to the end of the object
+  // We use parse_unknown_value to skip the each value until we find the end of the object
+  size_t iterations = 0;
+
+  while (true) {
+    if (iterations > MAX_ITERATIONS) {
+      JSON_DEBUG_ERROR("JSONParserBase::skip_to_object_end: too many iterations\n");
+
+      return ParseValueResult::NO_RESULT;
+    }
+
+    iterations++;
+
+    if (is_object_end()) {
+      _cursor.advance();
+      break;
+    }
+
+    ParseValueResult r = parse_unknown_value();
+
+    if (r.parsed()) {
+      if (is_object_end()) {
+        //_cursor.advance();
+        break;
+      }
+      else {
+        skip_spaces();
+
+        if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) {
+          JSON_DEBUG_ERROR("JSONParserBase::skip_to_object_end: no comma\n");
+          return ParseValueResult::NO_RESULT;
+        }
+      }
+
+      continue;
+    }
+    else {
+      JSON_DEBUG_ERROR("JSONParserBase::skip_to_object_end: cannot parse value %s for key #%zu\n", valueTypeToString(r), iterations);
+      return ParseValueResult::NO_RESULT;
+    }
+  }
+
+  return ParseValueResult::VALUE_PARSED | ParseValueResult::UNKNOWN;
+}
+/*
+template <typename Cursor, bool UseMask, typename TargetT>
+ParseValueResult
+JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
+  JSON_DEBUG_INFO("JSONParserBase::skip_to_array_end\n");
+  // We are in the middle of an array before the comma, we need to skip to the end of the array
+  // We use parse_unknown_value to skip the each value until we find the end of the array
+  size_t iterations = 0;
+  
+  while (true) {
+    if (iterations > MAX_ITERATIONS) {
+      JSON_DEBUG_ERROR(
+          "JSONParserBase::skip_to_array_end: too many iterations\n");
+      return ParseValueResult::NO_RESULT;
+    }
+    
+    iterations++;
+    
+    ParseValueResult r = parse_unknown_value();
+    if (r.parsed()) {
+      if (is_array_end()) {
+        _cursor.advance();
+        break;
+      }
+      else {
+        // skip the comma
+        skip_spaces();
+        
+        if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) {
+          JSON_DEBUG_ERROR("JSONParserBase::skip_to_array_end: no comma\n");
+          return ParseValueResult::NO_RESULT;
+        }
+        continue;
+      }
+      
+    }
+    else {
+      return ParseValueResult::NO_RESULT;
+    }
+    
+  }
+
+  return ParseValueResult::VALUE_PARSED;
+}
+*/
 // ── parse_value (callback) ────────────────────────────────────
 template <typename Cursor, bool UseMask, typename TargetT>
 ParseValueResult
@@ -902,6 +991,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
         continue;
       } else if (parse_key()) {
         _nParsed++;
+        JSON_DEBUG_INFO("nParsed=%zu\n", _nParsed);
         set_state(COLON);
       } else {
         _state = ERROR;
@@ -919,6 +1009,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
       break;
 
     case VALUE: {
+
       skip_spaces();
       if (is_object_end()) {
         _state = END;
@@ -929,12 +1020,6 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
 
       _nMatched += r.keyFound() ? 1 : 0;
 
-      if (_cursor.depth == 0 && _nMatched >= NPairs) {
-        JSON_DEBUG_WARNING("JSONParserBase::parse: all keys found, stopping\n");
-        _state = END;
-        continue;
-      }
-
       if (!r.keyFound()) { // The key was not found in the arguments. This is
                            // not an error. We skip the value.
         r = parse_unknown_value();
@@ -942,11 +1027,17 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
 
       if (r.parsed()) {
         set_state(COMMA);
-      } else { // The key was found but the value was not parsed. This is an
-               // error.
+      } else { // The key was found but the value was not parsed. This is an error.
         _state = ERROR;
         _lastError = ParserError::INVALID_VALUE;
         _lastParseValueResult = r.valueType();
+      }
+      
+      if constexpr(!std::is_same_v<remove_cvref_t<TargetT>, JSONCallbackObject>) {
+        if (_nMatched >= NPairs) {
+          JSON_DEBUG_WARNING("JSONParserBase::parse: Parser '%s' depth %zu: all keys found,(%zu/%zu) skiping to object end\n", _name, _cursor.depth, _nMatched, NPairs);
+          _state = STOPPED;
+        }
       }
 
       break;
@@ -979,8 +1070,18 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
       return;
 
     case STOPPED:
-      JSON_DEBUG_INFO("JSONParserBase: stopped by callback\n");
-      return;
+      if constexpr (std::is_same_v<remove_cvref_t<TargetT>, JSONCallbackObject>) {
+        JSON_DEBUG_INFO("JSONParserBase: stopped by callback\n");
+        return;
+      } else {
+        if(!skip_to_object_end()) {
+          _state = ERROR;
+          _lastError = ParserError::INVALID_VALUE;
+        } else {
+          _state = END;
+        }
+        break;
+      }
 
     default:
       return;
@@ -1196,15 +1297,13 @@ constexpr To JSONParserBase<Cursor, UseMask, TargetT>::clamp_to_max(From v) {
 template <typename Cursor, bool UseMask, typename TargetT>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_array(UnknownValueType) {
-  std::vector<UnknownValueType> tmp;
+  static std::vector<UnknownValueType> tmp;
   return parse_array(tmp);
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename V>
-enable_if_t<container_info<V>::is_container ||
-                std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>,
-            ParseValueResult>
+enable_if_t<container_info<V>::is_container || std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>, ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_array\n");
   ParseValueResult result = ParseValueResult::NO_RESULT;
@@ -1217,7 +1316,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
 
   uint32_t i = 0;
 
-  while (i < JSON::MAX_ARRAY_LENGTH) {
+  while (i < MAX_ITERATIONS) {
     skip_spaces();
     result |= parse_into_array_at_index(arg_value, i);
 
@@ -1242,11 +1341,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
 
     i++;
   }
-
-  // if (_current_char() == '\0') {
-  //   JSON_DEBUG_WARNING("END OF BUFFER OR STREAM REACHED\n");
-  // }
-
+  
   if (!cursor_scan_char(_cursor, JSON_ARRAY_END_CHARACTER, true)) {
     JSON_DEBUG_WARNING("JSONParserBase::parse_array: no array end\n");
     _state = ERROR;
@@ -1260,8 +1355,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
 
 template <typename Cursor, bool UseMask, typename TargetT>
 ParseValueResult
-JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
-    JSONCallbackObject &cb, uint32_t index) {
+JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(JSONCallbackObject &cb, uint32_t index) {
   cb.setArrayIndex(index);
 
   if (_is_top_level_array) {
@@ -1274,13 +1368,13 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename T, size_t N>
 ParseValueResult
-JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
-    T (&array)[N], uint32_t index) {
+JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(T (&array)[N], uint32_t index) {
+  static UnknownValueType unknown;
+
   if (index >= N) {
     JSON_DEBUG_WARNING(
         "JSONParserBase::parse_into_array_at_index: %zu overflow", index);
-    T dummy;
-    return parse_into_value(dummy);
+    return parse_into_value(unknown);
   }
 
   return parse_into_value(array[index]);
@@ -1289,8 +1383,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename T>
 ParseValueResult
-JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
-    std::vector<T> &array, uint32_t /*index*/) {
+JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(std::vector<T> &array, uint32_t /*index*/) {
   T value{};
   ParseValueResult r = parse_into_value(value);
   if (r & ParseValueResult::VALUE_PARSED)
@@ -1301,11 +1394,10 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename T, size_t N>
 ParseValueResult
-JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
-    std::array<T, N> &array, uint32_t index) {
+JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(std::array<T, N> &array, uint32_t index) {
+  static UnknownValueType unknown;
   if (index >= N) {
-    T dummy;
-    return parse_into_value(dummy);
+    return parse_into_value(unknown);
   }
 
   return parse_into_value(array[index]);
@@ -1329,7 +1421,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
   JSON::ParseResult r = arg_value.fromJSON(name, _cursor);
 
 #if JSON_DEBUG_LEVEL > 0
-  JSON_DEBUG_INFO("In previous JSONParser '%s', parse_object result: ", _name);
+  JSON_DEBUG_INFO("In previous JSONParser '%s', parse_object result: ", name);
   r.print();
   JSON_DEBUG_INFO("Cursor position is now at %zu\n", bytesConsumed());
 #endif
@@ -1339,6 +1431,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
                      arg_value);
     JSON_DEBUG_INFO("%s\n", errorToString((ParserError)r.error));
     _state = END;
+    _lastError = (ParserError)r.error;
     return ParseValueResult::NO_RESULT;
   }
 
