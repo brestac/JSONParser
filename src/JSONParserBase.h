@@ -733,7 +733,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() 
     iterations++;
 
     if (is_object_end()) {
-      _cursor.advance();
+      //_cursor.advance();
       break;
     }
 
