@@ -80,13 +80,13 @@ enable_if_args_valid<Args...> _parse(const char* name, uint32_t& mask, Cursor& c
 template <typename Cursor>
 ParseResult _parse(const char* name, Cursor& cursor, JSONCallbackObject&cb ) {
     uint32_t mask = 0;
-    return _parse_impl<false>(name, mask, cursor, cb);
+    return _parse_impl<false, Cursor, JSONCallbackObject>(name, mask, cursor, cb);
 }
 
 template <typename Cursor>
 ParseResult _parse(const char* name, Cursor& cursor, UnknownValueType& unknown ) {
     uint32_t mask = 0;
-    return _parse_impl<false>(name, mask, cursor, unknown);
+    return _parse_impl<false, Cursor, UnknownValueType>(name, mask, cursor, unknown);
 }
 
 ////////////////////////////////////////////////////////////
