@@ -240,15 +240,15 @@ True‑color (24‑bit) mode: \x1b[38;2;<r>;<g>;<b>m (foreground) or
         _json_name_, this->updated, cursor, MACRO(__VA_ARGS__));               \
   }
 #define TO_JSON_OVERRIDE(...)                                                  \
-  template <typename T> size_t toJSON(T &output, bool updates = true) {        \
+  template <typename T> size_t toJSON(T &output, bool updates = false) {        \
     uint32_t mask = updates ? this->updated : 0;                               \
     return JSON::print(mask, output, MACRO(__VA_ARGS__));                      \
   }\
-  size_t toJSON(PointerCursorWriter &output, bool updates = true) override {        \
+  size_t toJSON(PointerCursorWriter &output, bool updates = false) override {        \
     uint32_t mask = updates ? this->updated : 0;                               \
     return JSON::_print(mask, output, MACRO(__VA_ARGS__));                      \
   }\
-  size_t toJSON(StreamCursor &output, bool updates = true) override {        \
+  size_t toJSON(StreamCursor &output, bool updates = false) override {        \
     uint32_t mask = updates ? this->updated : 0;                               \
     return JSON::_print(mask, output, MACRO(__VA_ARGS__));                      \
   }
