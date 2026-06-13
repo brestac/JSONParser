@@ -256,10 +256,31 @@ struct CharArrayTest : JSONObject {
   JSON_ENCODER_IMPL(name, names, numbers);
 };
 
-struct IntegralArrayTest : JSONObject {
+struct IntegralArray : JSONObject {
   uint8_t hex[4] = {0};
 
-  JSON_ENCODER_IMPL(hex);
+ JSON_SERIALIZE_IMPL(hex);
+};
+
+struct STDArrayArray : JSONObject {
+  using STDArray = std::array<uint8_t, 2>;
+  std::array<STDArray, 2 > array;
+
+ JSON_SERIALIZE_IMPL(array);
+};
+
+struct VectorInt : JSONObject {
+  std::vector<int> numbers;
+  JSON_SERIALIZE_IMPL(numbers);
+};
+
+struct VectorArrayArray : JSONObject {
+  using coord = std::array<uint8_t, 2>;
+  using ring = std::array<coord, 2>;
+
+  std::vector<ring> vector;
+
+  JSON_SERIALIZE_IMPL(vector);
 };
 
 struct Child : public JSONObject {
@@ -318,10 +339,31 @@ struct Geometry : public JSONObject {
   JSON_SERIALIZE_IMPL(type, coordinates);
 };
 
+struct GeometryOneCoord : public JSONObject {
+  using Coordinate = std::array<float, 2>;
+  using RingMono = std::array<Coordinate, 1>;
+  char type[32] = {0};
+  std::array<RingMono, 100> coordinates;
+  JSON_SERIALIZE_IMPL(type, coordinates);
+};
+
 struct Feature : public JSONObject {
   char type[32] = {0};
   Properties properties;
   Geometry geometry;
+  JSON_SERIALIZE_IMPL(type, properties, geometry);
+};
+
+struct FeatureSansGeometry : public JSONObject {
+  char type[32] = {0};
+  Properties properties;
+  JSON_SERIALIZE_IMPL(type, properties);
+};
+
+struct FeatureOneCoord : public JSONObject {
+  char type[32] = {0};
+  Properties properties;
+  GeometryOneCoord geometry;
   JSON_SERIALIZE_IMPL(type, properties, geometry);
 };
 
@@ -331,27 +373,16 @@ struct FeatureCollection : public JSONObject {
   JSON_SERIALIZE_IMPL(type, features);
 };
 
-struct FeatureSansGeometry : public JSONObject {
-  char type[32] = {0};
-  Properties properties;
-  JSON_SERIALIZE_IMPL(type, properties);
-};
-
 struct FeatureCollectionSansGeometry : public JSONObject {
   std::string_view type = "";
   std::vector<FeatureSansGeometry> features;
   JSON_SERIALIZE_IMPL(type, features);
 };
 
-struct VectorInt : JSONObject {
-  std::vector<int> numbers;
-  JSON_SERIALIZE_IMPL(numbers);
-};
-
-struct Ring : public JSONObject {
-  using Coordinate = std::array<float, 2>;
-  std::vector<Coordinate> coordinates;
-  JSON_SERIALIZE_IMPL(coordinates);
+struct FeatureCollectionOneCoord : public JSONObject {
+  std::string_view type = "";
+  std::array<FeatureOneCoord, 3> features;
+  JSON_SERIALIZE_IMPL(type, features);
 };
 
 // ----------------------------------------------------------------
@@ -669,6 +700,72 @@ void test_parse_geojson_small() {
             fc.features[0].geometry.coordinates[0][0][1]);
     }
   }
+}
+
+void test_parse_geojson_sans_geometry_from_file() {
+  DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET\n");
+  File f = LittleFS.open("./canada.json", "r");
+  if (!f) {
+    DEBUG_PRINTF("Failed to open file for reading\n");
+    return;
+  }
+
+  FeatureCollectionSansGeometry fc;
+  JSON::ParseResult pr = fc.fromJSON(&f);
+
+  check(pr.error == 0, "parse error %s", errorToString(pr.error));
+  check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s",
+        (int)fc.type.length(), fc.type.data());
+
+  fc.toJSON(Serial, false);
+}
+
+void test_parse_geojson_one_coordinate_geometry_from_file() {
+  DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET\n");
+  File f = LittleFS.open("./canada.json", "r");
+  if (!f) {
+    DEBUG_PRINTF("Failed to open file for reading\n");
+    return;
+  }
+
+  FeatureCollectionOneCoord fc;
+  JSON::ParseResult pr = fc.fromJSON(&f);
+
+  check(pr.error == 0, "parse error %s", errorToString(pr.error));
+  check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s",
+        (int)fc.type.length(), fc.type.data());
+
+  check(near(fc.features[0].geometry.coordinates[0][0][0], -65.613617f), "coordinates[0][0][0] == -65.613617f, was %f", fc.features[0].geometry.coordinates[0][0][0]);
+}
+
+void test_parse_array_overflow() {
+  DEBUG_PRINTF("\n\nTEST ARRAY OVERFLOW\n");
+  IntegralArray s;
+  const char *json = "{\"hex\":[1,2,3,4,5], \"unknown\":1}";
+  JSON::ParseResult pr = s.fromJSON(json);
+
+  check(pr.error == 0, "parse error %s", errorToString(pr.error));
+  check(s.hex[0] == 1 && s.hex[1] == 2 && s.hex[2] == 3 && s.hex[3] == 4, "hex == [1 2 3 4], was [%d,%d,%d,%d]", s.hex[0], s.hex[1], s.hex[2], s.hex[3]);
+}
+
+void test_parse_array_array_overflow() {
+  DEBUG_PRINTF("\n\nTEST ARRAY OVERFLOW\n");
+  STDArrayArray s;
+  const char *json = "{\"array\":[[1,2],[3,4],[5,6]], \"unknown\":1}";
+  JSON::ParseResult pr = s.fromJSON(json);
+
+  check(pr.error == 0, "parse error %s", errorToString(pr.error));
+  check(s.array[0][0] == 1 && s.array[0][1] == 2, "ok");
+  s.toJSON(Serial);
+}
+
+void test_parse_vector_array_array_overflow() {
+  DEBUG_PRINTF("\n\nTEST ARRAY OVERFLOW\n");
+  VectorArrayArray s;
+  const char *json = "{\"vector\":[[[1,2],[3,4],[5,6]], [[1,2],[3,4],[5,6]]], \"unknown\":1}";
+  JSON::ParseResult pr = s.fromJSON(json);
+  check(pr.error == 0, "parse error %s", errorToString(pr.error));
+  check(s.vector[0][0][0] == 1 && s.vector[1][1][0] == 3, "ok");
 }
 
 #ifndef ARDUINO
@@ -1029,7 +1126,7 @@ void test_print_to_stream_string() {
 void test_print_hex_to_stream_string() {
   DEBUG_PRINTF("\n--- Test: toJSON StreamString with HEX uint8_t array ---\n");
   StreamString stream;
-  IntegralArrayTest s;
+  IntegralArray s;
   s.hex[0] = 0xAA;
   s.hex[1] = 0xBB;
   s.hex[2] = 0xCC;
@@ -1170,7 +1267,7 @@ void test_parse_geojson_from_file() {
   }
 
   // delete file
-  LittleFS.remove(GEOJSON_TEST_FILE_PATH);
+  //LittleFS.remove(GEOJSON_TEST_FILE_PATH);
 }
 
 // ----------------------------------------------------------------
@@ -1357,6 +1454,7 @@ void run_parsing_tests() {
   test_parse_json_subset();
   test_parse_json_subset2();
   test_parse_embedded_object_subset();
+  test_parse_geojson_one_coordinate_geometry_from_file();
 #ifndef ARDUINO
   test_parse_geojson_big();
 #endif
