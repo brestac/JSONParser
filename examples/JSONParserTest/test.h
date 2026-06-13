@@ -339,11 +339,12 @@ struct Geometry : public JSONObject {
   JSON_SERIALIZE_IMPL(type, coordinates);
 };
 
-struct GeometryOneCoord : public JSONObject {
+template<size_t R, size_t C>
+struct GeometryLimited : public JSONObject {
   using Coordinate = std::array<float, 2>;
-  using RingMono = std::array<Coordinate, 1>;
+  using Ring = std::array<Coordinate, C>;
   char type[32] = {0};
-  std::array<RingMono, 100> coordinates;
+  std::array<Ring, R> coordinates;
   JSON_SERIALIZE_IMPL(type, coordinates);
 };
 
@@ -360,10 +361,11 @@ struct FeatureSansGeometry : public JSONObject {
   JSON_SERIALIZE_IMPL(type, properties);
 };
 
-struct FeatureOneCoord : public JSONObject {
+template<size_t R, size_t C>
+struct FeatureLimited : public JSONObject {
   char type[32] = {0};
   Properties properties;
-  GeometryOneCoord geometry;
+  GeometryLimited<R,C> geometry;
   JSON_SERIALIZE_IMPL(type, properties, geometry);
 };
 
@@ -379,9 +381,10 @@ struct FeatureCollectionSansGeometry : public JSONObject {
   JSON_SERIALIZE_IMPL(type, features);
 };
 
-struct FeatureCollectionOneCoord : public JSONObject {
+template<size_t F, size_t R, size_t C>
+struct FeatureCollectionLimited : public JSONObject {
   std::string_view type = "";
-  std::array<FeatureOneCoord, 3> features;
+  std::array<FeatureLimited<R, C>, F> features;
   JSON_SERIALIZE_IMPL(type, features);
 };
 
@@ -728,7 +731,7 @@ void test_parse_geojson_one_coordinate_geometry_from_file() {
     return;
   }
 
-  FeatureCollectionOneCoord fc;
+  FeatureCollectionLimited<1, 1, 10> fc;
   JSON::ParseResult pr = fc.fromJSON(&f);
 
   check(pr.error == 0, "parse error %s", errorToString(pr.error));
