@@ -85,15 +85,15 @@ public:
   ////////////////////////////////////////////////////////////////////////////////
   //  toJSON
   ////////////////////////////////////////////////////////////////////////////////
-  virtual size_t toJSON(PointerCursorWriter & cursor, bool /*updates*/ = true) {
+  virtual size_t toJSON(PointerCursorWriter & cursor, bool /*updates*/ = false) {
     return cursor.write("{}");
   }
 
-  virtual size_t toJSON(StreamCursor & cursor, bool /*updates*/ = true) {
+  virtual size_t toJSON(StreamCursor & cursor, bool /*updates*/ = false) {
     return cursor.write("{}");
   }
 
-  template <typename T> std::enable_if_t<is_stream_v<T>, size_t> toJSON(T& output, bool updates = true) {
+  template <typename T> std::enable_if_t<is_stream_v<T>, size_t> toJSON(T& output, bool updates = false) {
     StreamCursor cursor(output);
     return toJSON(cursor, updates);
   }
