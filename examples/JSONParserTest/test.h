@@ -344,7 +344,7 @@ struct GeometryLimited : public JSONObject {
   using Coordinate = std::array<float, 2>;
   using Ring = std::array<Coordinate, C>;
   char type[32] = {0};
-  std::array<Ring, R> coordinates;
+  std::array<Ring, R> coordinates = {};
   JSON_SERIALIZE_IMPL(type, coordinates);
 };
 
@@ -723,7 +723,7 @@ void test_parse_geojson_sans_geometry_from_file() {
   fc.toJSON(Serial, false);
 }
 
-void test_parse_geojson_one_coordinate_geometry_from_file() {
+void test_parse_geojson_limited_geometry_from_file() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET\n");
   File f = LittleFS.open("./canada.json", "r");
   if (!f) {
@@ -731,7 +731,7 @@ void test_parse_geojson_one_coordinate_geometry_from_file() {
     return;
   }
 
-  FeatureCollectionLimited<1, 1, 10> fc;
+  FeatureCollectionLimited<1, 10, 1> fc;
   JSON::ParseResult pr = fc.fromJSON(&f);
 
   check(pr.error == 0, "parse error %s", errorToString(pr.error));
@@ -739,6 +739,7 @@ void test_parse_geojson_one_coordinate_geometry_from_file() {
         (int)fc.type.length(), fc.type.data());
 
   check(near(fc.features[0].geometry.coordinates[0][0][0], -65.613617f), "coordinates[0][0][0] == -65.613617f, was %f", fc.features[0].geometry.coordinates[0][0][0]);
+  fc.toJSON(Serial);
 }
 
 void test_parse_array_overflow() {
@@ -1270,7 +1271,9 @@ void test_parse_geojson_from_file() {
   }
 
   // delete file
-  //LittleFS.remove(GEOJSON_TEST_FILE_PATH);
+#if ARDUINO
+  LittleFS.remove(GEOJSON_TEST_FILE_PATH);
+#endif
 }
 
 // ----------------------------------------------------------------
@@ -1457,7 +1460,7 @@ void run_parsing_tests() {
   test_parse_json_subset();
   test_parse_json_subset2();
   test_parse_embedded_object_subset();
-  test_parse_geojson_one_coordinate_geometry_from_file();
+  test_parse_geojson_limited_geometry_from_file();
 #ifndef ARDUINO
   test_parse_geojson_big();
 #endif
