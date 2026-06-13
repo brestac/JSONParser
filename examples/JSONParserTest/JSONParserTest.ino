@@ -9,11 +9,11 @@
 #include "src/JSONPrinter.h"
 #include "./test.h"
 
-void test_parse_from_tcp_stream(const char* url);
 bool connectWifi();
 
 static uint32_t free_heap = 0U;
 static uint32_t free_stack = 0U;
+WiFiClient* get_http_stream(HTTPClient& http, WiFiClient& client, const char*ssid, const char*pwd, const char* url);
 
 void setup() {
   Serial.begin(115200);
@@ -35,9 +35,12 @@ void setup() {
   Serial.println("");
   //run_tests();
 
-  //test_parse_from_tcp_stream<Sensor>("http://192.168.1.2:9000/sensor.json");
-  //test_parse_from_tcp_stream<FeatureCollection>("http://192.168.1.2:9000/data.geojson");
-  test_parse_from_tcp_stream<FeatureCollectionSansGeometry>("http://192.168.1.2:9000/canada.json");
+  WiFiClient client;
+  HTTPClient http;
+
+  WiFiClient *stream = get_http_stream(http, client, WIFI_SSID, WIFI_PASSWORD, "http://192.168.1.2:9000/canada.json");
+  test_parse_geojson_big_with_limited_geometry_from_stream(stream);
+  http.end();
 }
 
 void loop() {
@@ -52,7 +55,7 @@ void loop() {
   delay(10);
 }
 
-bool connectWifi() {
+bool connectWifi(const char*ssid, const char*pwd) {
   DEBUG_PRINTLN("Connecting as wifi client...");
   if (WiFi.status() == WL_CONNECTED) return true;
 
@@ -61,7 +64,7 @@ bool connectWifi() {
   uint8_t macAddress[6] = { 170, 0, 0, 0, 0, 1 };
   wifi_set_macaddr(STATION_IF, const_cast<uint8*>(macAddress));
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(ssid, pwd);
 
   uint8_t numberOftry = 0;
   while (WiFi.status() != WL_CONNECTED && numberOftry < 10) {
@@ -82,13 +85,10 @@ bool connectWifi() {
   return true;
 }
 
-template<typename T>
-void test_parse_from_tcp_stream(const char* url) {
-  bool connected = connectWifi();
-  if (!connected) return;
+WiFiClient* get_http_stream(HTTPClient& http, WiFiClient& client, const char*ssid, const char*pwd, const char* url) {
 
-  WiFiClient client;
-  HTTPClient http;  // must be declared after WiFiClient for correct destruction order, because used by http.begin(client,...)
+  bool connected = connectWifi(ssid, pwd);
+  if (!connected) return nullptr;
 
   Serial.print("[HTTP] begin...\n");
 
@@ -96,7 +96,7 @@ void test_parse_from_tcp_stream(const char* url) {
   bool begin = http.begin(client, url);
   if (!begin) {
     // check(false, "Cannot connect to 192.168.1.2. Is the server running ? On a Mac, you can do 'ruby -run -e httpd . -p 9000'");
-    return;
+    return nullptr;
   }
 
   Serial.print("[HTTP] GET...\n");
@@ -104,43 +104,23 @@ void test_parse_from_tcp_stream(const char* url) {
   int httpCode = http.GET();
 
   if (httpCode < 0) {
-    return;
+    return nullptr;
   }
 
   if (httpCode != HTTP_CODE_OK) {
     http.end();
-    return;
+    return nullptr;
   }
 
-  WiFiClient* stream = http.getStreamPtr();
+  WiFiClient *stream = http.getStreamPtr();
 
   unsigned long timer = millis();
   while (stream->available() <= 0) {
     if (millis() - timer > 5000) {
-      return;
+      return nullptr;
     }
     delay(10);
   }
-
-  T s;
-  JSON::ParseResult r = s.fromJSON(stream);
-  check(r.error == 0, "parse error=%hhu length=%zu", r.error, r.length);
-
-  if constexpr (std::is_same_v<T, FeatureCollectionSansGeometry>) {
-    check(s.type == "FeatureCollection", "type == FeatureCollection, was %.*s", (int)s.type.length(), s.type.data());
-    check(s.features.size() == 1, "One feature");
-    check(strcmp(s.features[0].type, "Feature") == 0, "feature[0].type == Feature, was %s", s.features[0].type);
-    check(strcmp(s.features[0].properties.name, "Canada") == 0, "feature[0].properties.name == Canada, was %s", s.features[0].properties.name);
-  }
-
-  if constexpr (std::is_same_v<T, Sensor>) {
-    check(s.id == 11, "s.id == 11");
-    check(near(s.temperature, 20), "s.temperature == 20");
-    check(s.active == true, "s.active == true");
-  }
-
-  s.toJSON(Serial);
-  Serial.println("");
-
-  http.end();
+  
+  return stream;
 }
