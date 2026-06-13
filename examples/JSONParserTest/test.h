@@ -723,25 +723,16 @@ void test_parse_geojson_sans_geometry_from_file() {
   fc.toJSON(Serial, false);
 }
 
-void test_parse_geojson_limited_geometry_from_file() {
+void test_parse_geojson_big_with_limited_geometry_from_stream(Stream* stream) {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET\n");
-  File f = LittleFS.open("./canada.json", "r");
-  if (!f) {
-    DEBUG_PRINTF("Failed to open file for reading\n");
-    return;
-  }
 
   FeatureCollectionLimited<1, 10, 1> fc;
-  JSON::ParseResult pr = fc.fromJSON(&f);
+  JSON::ParseResult pr = fc.fromJSON(stream);
 
   check(pr.error == 0, "parse error %s", errorToString(pr.error));
   check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s",
         (int)fc.type.length(), fc.type.data());
-/*
-Output should be:
-{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Canada"},"geometry":{"type":"Polygon","coordinates":[[[-65.6136169433594,43.4202728271484]],[[-59.8169479370117,43.9283294677734]],[[-66.2827758789062,44.2897186279297]],[[-66.8861236572266,44.6144409179688]],[[-61.1999969482422,45.5583267211914]],[[-60.9938888549805,45.4577713012695]],[[-63.2463912963867,46.435546875]],[[-71.1111145019531,46.8505477905273]],[[-60.4452743530273,46.8616638183594]],[[-64.0397186279297,46.7433242797852]]]}}]}
 
-*/
   check(near(fc.features[0].geometry.coordinates[0][0][0], -65.613617f), "coordinates[0][0][0] == -65.613617f, was %f", fc.features[0].geometry.coordinates[0][0][0]);
   check(near(fc.features[0].geometry.coordinates[0][0][1], 43.420273f), "coordinates[0][0][1] == 43.420273f, was %f", fc.features[0].geometry.coordinates[0][0][1]);
   check(near(fc.features[0].geometry.coordinates[4][0][0], -61.199997f), "coordinates[4][0][0] == -61.199997f, was %f", fc.features[0].geometry.coordinates[4][0][0]);
@@ -750,6 +741,15 @@ Output should be:
   check(near(fc.features[0].geometry.coordinates[9][0][1], 46.743324f), "coordinates[9][0][1] == 46.743324f, was %f", fc.features[0].geometry.coordinates[9][0][1]);
 
   fc.toJSON(Serial);
+}
+
+void test_parse_geojson_big_with_limited_geometry_from_file() {
+  File f = LittleFS.open("./canada.json", "r");
+  if (!f) {
+    DEBUG_PRINTF("Failed to open file for reading\n");
+    return;
+  }
+  test_parse_geojson_big_with_limited_geometry_from_stream(&f);
 }
 
 void test_parse_array_overflow() {
@@ -1470,7 +1470,7 @@ void run_parsing_tests() {
   test_parse_json_subset();
   test_parse_json_subset2();
   test_parse_embedded_object_subset();
-  test_parse_geojson_limited_geometry_from_file();
+  test_parse_geojson_big_with_limited_geometry_from_file();
 #ifndef ARDUINO
   test_parse_geojson_big();
 #endif
