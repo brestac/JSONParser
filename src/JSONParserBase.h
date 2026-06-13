@@ -1397,8 +1397,11 @@ ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(std::array<T, N> &array, uint32_t index) {
   static UnknownValueType unknown;
   if (index >= N) {
+    JSON_DEBUG_COLOR(COLOR_RED, "Array overflow at index %zu\n", index);
     return parse_into_value(unknown);
   }
+
+  JSON_DEBUG_COLOR(COLOR_GREEN, "Parsing array at index %zu into %s\n", index, typeid(T).name());
 
   return parse_into_value(array[index]);
 }
