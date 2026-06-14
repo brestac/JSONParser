@@ -359,17 +359,17 @@ static bool needs_pool(bool unescaped) {
   // JSON_DEBUG_COLOR(COLOR_MAGENTA, "needs_pool<%s, %s>(%d)\n",
   // typeid(Cursor).name(), typeid(TargetT).name(), unescaped);
 
-  if constexpr (std::is_same_v<remove_cvref_t<TargetT>, JSONCallbackObject>) {
-    return unescaped;
-  } else if constexpr (std::is_same_v<remove_cvref_t<Cursor>, StreamCursor> &&
+  // Quand avons-nous besoin d'un pool ?
+  // 1. Quand le string est échappé (unescaped == true) dans tous les cas
+  // 2. Quand le curseur est un StreamCursor et que la cible est une string_view
+
+  
+  if constexpr (std::is_same_v<remove_cvref_t<Cursor>, StreamCursor> &&
                        std::is_same_v<remove_cvref_t<TargetV>,
                                       std::string_view>) {
     return true;
-  } else if constexpr (std::is_same_v<remove_cvref_t<Cursor>,
-                                      PointerCursorReader>) {
-    return unescaped;
   } else {
-    return false;
+    return unescaped;
   }
 }
 
@@ -377,13 +377,15 @@ template <typename Cursor, bool UseMask, typename TargetT>
 template <typename V>
 bool JSONParserBase<Cursor, UseMask, TargetT>::scan_escaped_string(
     std::string_view &sv) {
+  using Pool = StaticString<TargetT>;
 
   bool inEscape = false;
   bool unescaped = false;
   size_t n = 0;
-  static char buffer[JSON::MAX_VALUE_LENGTH];
+  Pool::ensure_pool_size(1);
+  char* pool_start_ptr = Pool::current_pos();
 
-  while (n < sizeof(buffer)) {
+  while (true) {
     unsigned char c = _cursor.peek();
 
     if (c < 0) {
@@ -395,7 +397,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::scan_escaped_string(
     if (inEscape) {
       inEscape = false;
       if (ch != JSON_QUOTE_CHARACTER) {
-        strncpy(buffer + n, &ch, 1);
+        Pool::write_at(ch, n);
       } else {
         unescaped = true;
       }
@@ -409,27 +411,25 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::scan_escaped_string(
       }
     }
 
-    strncpy(buffer + n, &ch, 1);
+    Pool::write_at(ch, n);
 
     _cursor.advance();
     n++;
   }
 
-  if (n >= JSON::MAX_VALUE_LENGTH)
+  if (n >= JSON::MAX_VALUE_LENGTH) {
     return false;
+  }
+    
 
   // Le pool est alloué à l'avance uniquement pour les StreamCursor avec des
-  // valeurs std::string_view dans JSONParser _parse_impl<true, StreamCursor,
-  // UserStruct>
+  // valeurs std::string_view dans JSONParser _parse_impl<true, StreamCursor, UserStruct>
   if (needs_pool<Cursor, TargetT, V>(unescaped)) {
-    // StaticString<TargetT>::increase_pool_size(1);
-    // std::string_view* sv_ptr = &sv;
-    const char *output;
-    StaticString<TargetT, MAX_STRING_POOL_REUSE_COUNT>::get_static_buffer(
-        buffer, n, output);
-    sv = std::string_view(output, n);
+    Pool::increment_values_counter();
+    Pool::move_offset(n);
+    sv = std::string_view(pool_start_ptr, n);
   } else {
-    sv = std::string_view(buffer, n);
+    sv = std::string_view(pool_start_ptr, n);
   }
 
   return true;
@@ -469,10 +469,13 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_string(V &arg_value) {
       if (!scan_escaped_string<V>(parsed_value))
         return ParseValueResult::NO_RESULT;
     }
-  } else {
+  } else if constexpr (std::is_same_v<Cursor, StreamCursor>){
     // StreamCursor : pool obligatoire
     if (!scan_escaped_string<V>(parsed_value))
       return ParseValueResult::NO_RESULT;
+  } else {
+    JSON_DEBUG_ERROR("JSONParserBase::parse_string: unsupported cursor type\n");
+    return ParseValueResult::NO_RESULT;
   }
 
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))

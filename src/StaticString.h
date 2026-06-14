@@ -23,12 +23,11 @@ static void clear_all() {
     }
 }
 
-template <typename T, size_t N> class StaticString {
-  struct Entries {
-    uint32_t hash;
-    size_t offset;
-    //void *ptr = nullptr;
-  };
+template <typename T, size_t N = 0> class StaticString {
+  // struct Entries {
+  //   uint32_t hash;
+  //   size_t offset;
+  // };
 
 public:
   StaticString() = delete;
@@ -68,11 +67,15 @@ public:
       new_size = MAX_STRING_POOL_SIZE;
     }
 
+    bool pool_exists = s_string_pool != nullptr;
     char *p = static_cast<char *>(realloc(s_string_pool, new_size));
 
     if (p) {
       JSON_DEBUG_COLOR(COLOR_BLUE, "StaticString<%s,%zu> %s à %zu octets\n", typeid(T).name(), N, (new_size > s_pool_size) ? "agrandi" : "réduit", new_size);
-      register_if_needed();
+      
+      if (pool_exists == false) {
+        register_if_needed();
+      }
       s_string_pool = p;
       GLOBAL_STRING_POOL_SIZE += new_size - s_pool_size;
       s_pool_size = new_size;
@@ -99,24 +102,38 @@ public:
       s_pool_size = 0;
       s_pool_offset = 0;
       n_values = 0;
-      // id = 0;
       JSON_DEBUG_COLOR(COLOR_RED, "Pool<%s> détruit\n", typeid(T).name());
+      if (GLOBAL_STRING_POOL_SIZE == 0) {
+        JSON_DEBUG_COLOR(COLOR_RED, "All pools destroyed\n");
+      }
     } else {
       JSON_DEBUG_COLOR(COLOR_RED, "Pool déjà détruit\n");
     }
   }
+/*
+  static bool write(unsigned char c) {
+    if (s_pool_offset >= s_pool_size) {
+      JSON_DEBUG_WARNING("Pool plein\n");
+      return false;
+    }
 
-  // static bool write(unsigned char c) {
-  //   if (s_pool_offset >= s_pool_size) {
-  //     JSON_DEBUG_WARNING("Pool plein\n");
-  //     return false;
-  //   }
+    s_string_pool[s_pool_offset++] = static_cast<char>(c);
 
-  //   s_string_pool[s_pool_offset++] = static_cast<char>(c);
+    return true;
+  }
+*/
+  // write at position n in the current offset without moving offest
+  static bool write_at(unsigned char c, size_t n) {
+    if (n >= s_pool_size) {
+      JSON_DEBUG_WARNING("Pool plein\n");
 
-  //   return true;
-  // }
+      return false;
+    }
 
+    s_string_pool[s_pool_offset + n] = static_cast<char>(c);
+
+    return true;
+  }
   // static bool write(const char *str, size_t len) {
   //   if (s_pool_offset + len >= s_pool_size) {
   //     JSON_DEBUG_WARNING("Pool plein\n");
@@ -128,7 +145,7 @@ public:
   //   s_entries[++n_values] = {hash, s_pool_offset};
   //   s_pool_offset += len;
   // }
-
+/*
   static void get_static_buffer(const char *str, size_t len, const char *&output) {
     uint32_t hash = 0;
 
@@ -183,52 +200,6 @@ public:
                      typeid(T).name(), hash);
     return -1;
   }
-
-/*
-static void get_static_buffer(const char *str, size_t len, std::string_view*& output) {
-  uint32_t hash = hash32(str, len);
-  bool found = find_sv(hash, output);
-
-  if (found) {
-    return;
-  }
-
-  if (s_pool_offset + len > s_pool_size) {
-    ensure_pool_size(1);
-  }
-  // si toujours insuffisant après realloc : erreur réelle, on tronque
-  if (s_pool_offset + len > s_pool_size) {
-    output = &EMPTY_SV;
-    return;
-  }
-
-  JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> new entry for hash %u at offset %zu : '%.*s'\n", typeid(T).name(), hash, s_pool_offset, (int)len, str );
-  char *dest = s_string_pool + s_pool_offset;
-  strncpy(dest, str, len);
-  std::string_view sv(dest, len);
-  output = &sv;
-
-  s_entries[n_values] = {hash, s_pool_offset, (void*)output};
-
-  s_pool_offset += len;
-  n_values++;
-}
-
-static bool find_sv(uint32_t hash, std::string_view*& sv) {
-  for (size_t i = 0; i < n_values; i++) {
-    if (s_entries[i].hash == hash) {
-      JSON_DEBUG_COLOR(
-          COLOR_GREEN,
-          "StaticString<%s> found match for hash %u at offset %d\n",
-          typeid(T).name(), hash, s_entries[i].offset);
-      sv = static_cast<std::string_view*>(s_entries[i].ptr);
-      return true;
-    }
-  }
-  JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> no match for hash %u\n",
-                   typeid(T).name(), hash);
-  return false;
-}
 */
   static char *current_pos() { return s_string_pool + s_pool_offset; }
 
@@ -237,6 +208,15 @@ static bool find_sv(uint32_t hash, std::string_view*& sv) {
   static size_t offset() { return s_pool_offset; }
 
   static void increment_values_counter() { n_values++; }
+
+  static void move_offset(int n) { 
+    if (s_pool_offset + n > s_pool_size || s_pool_offset + n < 0) {
+      JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> move_offset out of bounds\n", typeid(T).name());
+      return;
+    }
+
+    s_pool_offset += n;
+  }
 
   static void print() {
     JSON_DEBUG_COLOR(COLOR_BLACK, "StaticString<%s> pool: %zu octets, offset: %zu, values:%u, " "content: '%.*s'\n", typeid(T).name(), s_pool_size, s_pool_offset, n_values, (int)s_pool_offset, s_string_pool);
@@ -247,13 +227,13 @@ private:
   static size_t s_pool_size;   // taille actuellement allouée
   static size_t s_pool_offset; // offset courant dans le pool
   static size_t n_values;      // nombre de valeurs stockées
-  static Entries s_entries[];
+  // static Entries s_entries[];
 };
 
 template <typename T, size_t N> char *StaticString<T, N>::s_string_pool = nullptr;
 template <typename T, size_t N> size_t StaticString<T, N>::s_pool_offset = 0;
 template <typename T, size_t N> size_t StaticString<T, N>::s_pool_size = 0;
 template <typename T, size_t N> size_t StaticString<T, N>::n_values = 0;
-template <typename T, size_t N> typename StaticString<T, N>::Entries StaticString<T, N>::s_entries[N];
+// template <typename T, size_t N> typename StaticString<T, N>::Entries StaticString<T, N>::s_entries[N];
 
 NAMESPACE_JSON_END
