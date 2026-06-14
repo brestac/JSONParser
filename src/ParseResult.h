@@ -42,7 +42,7 @@ static const char* errorToString(ParserError& error) {
   }
 }
 
-struct __attribute__((packed)) ParseResult {
+struct ParseResult {
   size_t length;
   uint8_t nParsed;
   uint8_t nMatched;
