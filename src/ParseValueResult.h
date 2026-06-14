@@ -37,7 +37,8 @@ public:
     return ParseValueResult(_result | other._result);
   }
 
-  constexpr ParseValueResult operator|(const ParseValueResult::Result &otherResult) const {
+  constexpr ParseValueResult
+  operator|(const ParseValueResult::Result &otherResult) const {
     return ParseValueResult(_result | otherResult);
   }
   // Opérateur |= (OR assignment)
@@ -47,7 +48,8 @@ public:
     return *this;
   }
 
-  constexpr ParseValueResult &operator|=(const ParseValueResult::Result &otherResult) {
+  constexpr ParseValueResult &
+  operator|=(const ParseValueResult::Result &otherResult) {
     _result |= otherResult;
     return *this;
   }
@@ -57,26 +59,31 @@ public:
     return ParseValueResult(_result | other._result);
   }
 
-  constexpr ParseValueResult operator&(const ParseValueResult::Result &otherResult) const {
+  constexpr ParseValueResult
+  operator&(const ParseValueResult::Result &otherResult) const {
     return ParseValueResult(_result & otherResult);
   }
 
   constexpr operator uint16_t() const { return _result; }
 
-  constexpr ParseValueResult::Result result() const { return (ParseValueResult::Result)_result;}
+  constexpr ParseValueResult::Result result() const {
+    return (ParseValueResult::Result)_result;
+  }
   constexpr bool keyFound() const { return (_result & KEY_FOUND) != 0; }
   constexpr bool parsed() const { return (_result & VALUE_PARSED) != 0; }
   constexpr bool converted() const { return (_result & VALUE_CONVERTED) != 0; }
   constexpr bool updated() const { return (_result & VALUE_UPDATED) != 0; }
 
   constexpr uint16_t valueType() const {
-    return (_result & (~(KEY_FOUND | VALUE_PARSED | VALUE_CONVERTED | VALUE_UPDATED)));
+    return (_result &
+            (~(KEY_FOUND | VALUE_PARSED | VALUE_CONVERTED | VALUE_UPDATED)));
   }
 
   void print() {
     DEBUG_PRINTF("ParseValueResult: KEY_FOUND=%d VALUE_PARSED=%d "
                  "VALUE_CONVERTED=%d VALUE_UPDATED=%d _type=%hhu\n",
-                 (_result & KEY_FOUND) != 0, (_result & VALUE_PARSED) != 0, (_result & VALUE_CONVERTED) != 0,
+                 (_result & KEY_FOUND) != 0, (_result & VALUE_PARSED) != 0,
+                 (_result & VALUE_CONVERTED) != 0,
                  (_result & VALUE_UPDATED) != 0, valueType());
   }
 
@@ -86,9 +93,10 @@ private:
 
 NAMESPACE_JSON_BEGIN
 
-static const char* valueTypeToString(ParseValueResult::Result& result) {
+static const char *valueTypeToString(ParseValueResult::Result &result) {
   using Result = ParseValueResult::Result;
-  uint16_t type = result & (~(Result::KEY_FOUND | Result::VALUE_PARSED | Result::VALUE_CONVERTED | Result::VALUE_UPDATED));
+  uint16_t type = result & ~(Result::KEY_FOUND | Result::VALUE_PARSED |
+                             Result::VALUE_CONVERTED | Result::VALUE_UPDATED);
 
   switch (type) {
   case ParseValueResult::UNKNOWN:
@@ -112,10 +120,11 @@ static const char* valueTypeToString(ParseValueResult::Result& result) {
   }
 }
 
-static const char* errorToString(ParseValueResult::Result& result) {
+static const char *errorToString(ParseValueResult::Result &result) {
   static char output[32] = {0};
 
-  if ((result & ParseValueResult::KEY_FOUND) && (result & ParseValueResult::VALUE_PARSED) == 0) {
+  if ((result & ParseValueResult::KEY_FOUND) &&
+      (result & ParseValueResult::VALUE_PARSED) == 0) {
     strcat(output, "ERROR PARSING ");
     strcat(output, valueTypeToString(result));
   }
