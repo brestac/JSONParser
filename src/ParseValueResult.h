@@ -9,7 +9,7 @@
 //   ParseValueResult
 // ---------------------------------------------------------------------------
 
-struct __attribute__((packed)) ParseValueResult {
+struct ParseValueResult {
 public:
   enum Result : uint16_t {
     NO_RESULT = 0,
@@ -62,7 +62,7 @@ public:
   }
 
   constexpr operator uint16_t() const { return _result; }
-  
+
   constexpr ParseValueResult::Result result() const { return (ParseValueResult::Result)_result;}
   constexpr bool keyFound() const { return (_result & KEY_FOUND) != 0; }
   constexpr bool parsed() const { return (_result & VALUE_PARSED) != 0; }
