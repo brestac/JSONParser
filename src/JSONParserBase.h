@@ -733,7 +733,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
       JSON_DEBUG_ERROR(
           "JSONParserBase::skip_to_object_end: too many iterations\n");
 
-      return ParseValueResult::NO_RESULT;
+      return ParseValueResult::NO_RESULT | ParseValueResult::OBJECT;
     }
 
     iterations++;
@@ -754,7 +754,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
 
         if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) {
           JSON_DEBUG_ERROR("JSONParserBase::skip_to_object_end: no comma\n");
-          return ParseValueResult::NO_RESULT;
+          return ParseValueResult::NO_RESULT | ParseValueResult::OBJECT;
         }
       }
 
@@ -763,11 +763,11 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
       JSON_DEBUG_ERROR("JSONParserBase::skip_to_object_end: cannot parse value "
                        "%s for key #%zu\n",
                        valueTypeToString(r), iterations);
-      return ParseValueResult::NO_RESULT;
+      return ParseValueResult::NO_RESULT | ParseValueResult::OBJECT;
     }
   }
 
-  return ParseValueResult::VALUE_PARSED;
+  return ParseValueResult::VALUE_PARSED | ParseValueResult::OBJECT;
 }
 /*
 template <typename Cursor, bool UseMask, typename TargetT>
