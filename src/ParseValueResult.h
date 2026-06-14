@@ -75,8 +75,7 @@ public:
   constexpr bool updated() const { return (_result & VALUE_UPDATED) != 0; }
 
   constexpr uint16_t valueType() const {
-    return (_result &
-            (~(KEY_FOUND | VALUE_PARSED | VALUE_CONVERTED | VALUE_UPDATED)));
+    return (_result &~ (KEY_FOUND | VALUE_PARSED | VALUE_CONVERTED | VALUE_UPDATED));
   }
 
   void print() {
@@ -95,7 +94,7 @@ NAMESPACE_JSON_BEGIN
 
 static const char *valueTypeToString(ParseValueResult::Result &result) {
   using Result = ParseValueResult::Result;
-  uint16_t type = result & ~(Result::KEY_FOUND | Result::VALUE_PARSED |
+  uint16_t type = result &~ (Result::KEY_FOUND | Result::VALUE_PARSED |
                              Result::VALUE_CONVERTED | Result::VALUE_UPDATED);
 
   switch (type) {

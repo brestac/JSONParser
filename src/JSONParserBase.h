@@ -1037,7 +1037,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
 
       if (!r.keyFound()) { // The key was not found in the arguments. This is
                            // not an error. We skip the value.
-        r = parse_unknown_value();
+        r = parse_unknown_value() | ParseValueResult::UNKNOWN;
       }
 
       if (r.parsed()) {
