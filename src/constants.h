@@ -24,7 +24,7 @@ constexpr size_t MAX_STRING_POOL_REUSE_COUNT = 0;
 constexpr size_t MAX_KEY_LENGTH   = 1 << 5;  // 32 octets
 constexpr size_t MAX_VALUE_LENGTH = 1 << 6;  // 64 octets
 #else
-constexpr size_t MAX_STRING_POOL_REUSE_COUNT = 1 << 5; // 32 valeurs
+constexpr size_t MAX_STRING_POOL_REUSE_COUNT = 0; // 32 valeurs
 constexpr size_t MAX_KEY_LENGTH   = 1 << 8;  // 256 octets
 constexpr size_t MAX_VALUE_LENGTH = 1 << 8;  // 256 octets
 #endif
