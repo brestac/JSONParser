@@ -151,8 +151,8 @@ static void check(bool condition, std::string_view format, Args &&...args) {
   if (condition) {
     PRINTF_COLOR(COLOR_GREEN, "%*c[PASS] ", 2, ' ');
     ++passed;
-    size_t pos = format.find(",");
-    if (pos == std::string_view::npos) pos = format.find("%");
+    size_t pos = format.find(", was");
+    if (pos == std::string_view::npos) pos = format.find(", should be");
   
     if (pos != std::string_view::npos) {
       std::string_view sub = format.substr(0, pos);
@@ -741,6 +741,8 @@ void test_parse_geojson_big_with_limited_geometry_from_stream(Stream* stream) {
   check(near(fc.features[0].geometry.coordinates[9][0][1], 46.743324f), "coordinates[9][0][1] == 46.743324f, was %f", fc.features[0].geometry.coordinates[9][0][1]);
 
   fc.toJSON(Serial);
+  Serial.println("");
+  pr.print();
 }
 
 void test_parse_geojson_big_with_limited_geometry_from_file() {
