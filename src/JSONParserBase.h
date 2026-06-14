@@ -43,7 +43,7 @@ public:
         _automask(false), _keyMask(0), _nParsed(0), _nMatched(0),
         _nConverted(0), _nUpdated(0),
         _is_top_level_array(false) /*, _nArgs(0)*/,
-        _lastError(ParserError::NO_ERROR), _lastParseValueResult(0),
+        _lastError(ParserError::NO_ERROR), _lastParseError(ParseValueResult::Result::NO_RESULT),
         _key_length(0), _key_buf(new char[JSON::MAX_KEY_LENGTH + 1]{}),
         _val_buf(new char[JSON::MAX_VALUE_LENGTH + 1]{}) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "JSONParserBase(pointer) '%.*s' created\n",
@@ -72,6 +72,7 @@ public:
   size_t parsed_length() { return _cursor.bytesConsumed() - _bytesConsumed; }
   ParserState state() { return _state; }
   ParserError error() { return _lastError; }
+  ParseValueResult::Result parseError() { return _lastParseError; }
 
   // ── Méthodes d'assignation (identiques à JSONParser) ──────
   // (reprises telles quelles — logique pure, pas d'accès au curseur)
@@ -158,7 +159,7 @@ private:
   bool _is_top_level_array;
   // uint8_t _nArgs;
   ParserError _lastError;
-  ParseValueResult _lastParseValueResult;
+  ParseValueResult::Result _lastParseError;
   char _name[12];
   uint8_t _key_length;
   std::unique_ptr<char[]> _key_buf;
@@ -252,7 +253,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::reset() {
   _is_top_level_array = false;
   // _nArgs = 0;
   _lastError = ParserError::NO_ERROR;
-  _lastParseValueResult = 0;
+  _lastParseError = ParseValueResult::Result::NO_RESULT;
   _name[0] = '\0';
   _key_length = 0;
   _key_buf.get()[0] = '\0';
@@ -764,7 +765,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() 
     }
   }
 
-  return ParseValueResult::VALUE_PARSED | ParseValueResult::UNKNOWN;
+  return ParseValueResult::VALUE_PARSED;
 }
 /*
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -960,10 +961,18 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
   // _nArgs = sizeof...(Args);
   size_t iteration = 0;
 
-  while (!_cursor.eof() && iteration <= JSON::MAX_ITERATIONS) {
+  while (!_cursor.eof()) {
     iteration++;
+
     if (iteration % 64 == 0)
       yield();
+
+    if (iteration >= MAX_ITERATIONS) {
+      JSON_DEBUG_ERROR("JSONParserBase::parse: too many iterations\n");
+      _state = ERROR;
+      _lastError = ParserError::TOO_MANY_ITERATIONS;
+      break;
+    }
 
 #if JSON_DEBUG_LEVEL > 0
     print_state(iteration);
@@ -1033,7 +1042,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
       } else { // The key was found but the value was not parsed. This is an error.
         _state = ERROR;
         _lastError = ParserError::INVALID_VALUE;
-        _lastParseValueResult = r.valueType();
+        _lastParseError = r.result();
       }
       
       if constexpr(!std::is_same_v<remove_cvref_t<TargetT>, JSONCallbackObject>) {
@@ -1077,7 +1086,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
         JSON_DEBUG_INFO("JSONParserBase: stopped by callback\n");
         return;
       } else {
-        if(!skip_to_object_end()) {
+        if(!(skip_to_object_end().parsed())) {
           _state = ERROR;
           _lastError = ParserError::INVALID_VALUE;
         } else {
@@ -1495,7 +1504,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::print_state(size_t iteration) {
     [[maybe_unused]] const char *error =
         (_state == ERROR) ? errorToString(_lastError) : "";
     [[maybe_unused]] const char *errorValueType =
-        (_state == ERROR) ? valueTypeToString(_lastParseValueResult) : "";
+        (_state == ERROR) ? valueTypeToString(_lastParseError) : "";
 
     char *output = static_cast<char *>(malloc(length));
     strncpy(output, _cursor.start() + col_number * length, length);
