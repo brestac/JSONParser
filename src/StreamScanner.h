@@ -36,6 +36,8 @@ template <typename Cursor>
 bool cursor_scan_until(Cursor &cur, char delim, size_t maxLen = 0, bool consume = true, bool consumeDelim = false) {
   size_t i = 0;
   while (true) {
+    CHECK_LOOP(false);
+    
     int c = cur.peek(i);
     if (c < 0)
       return false; // fin de flux
@@ -78,7 +80,9 @@ constexpr bool cursor_scan_ranges_once(Cursor &cur, char (&ranges)[RN][2], bool 
 template <typename Cursor, size_t RN>
 constexpr bool cursor_scan_ranges(Cursor &cur, char (&ranges)[RN][2], size_t maxLen = 0, bool consume = true) {
   size_t n = 0;
-  while (maxLen == 0 || n < maxLen) {
+  size_t iteration = 0;
+  while ((maxLen == 0 || n < maxLen) && ++iteration < JSON::MAX_ITERATIONS) {
+
     int got = cur.peek(n);
     if (got < 0)
       break;
@@ -121,6 +125,7 @@ bool cursor_scan_chars_once(Cursor &cur, const char (&chars)[ChN], bool consume 
 template <typename Cursor> bool cursor_skip_spaces(Cursor &cur) {
   bool skipped = false;
   while (true) {
+    CHECK_LOOP(false);
     int got = cur.peek();
     if (got < 0)
       break;

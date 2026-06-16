@@ -37,6 +37,7 @@ public:
   // Ne lit que les octets immédiatement disponibles.
   void refill() {
     while (available() < N) {
+      CHECK_LOOP(void());
       int avail = _stream->available();
       if (avail <= 0)
         break;
@@ -155,6 +156,7 @@ public:
                                       '\t', '\n', '\r', '\0'};
     size_t n = 0;
     while (n < maxLen) {
+      CHECK_LOOP(0);
       int c = _ring.peek(n);
       if (c < 0)
         break;
