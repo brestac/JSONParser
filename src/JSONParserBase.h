@@ -44,7 +44,7 @@ public:
         _nConverted(0), _nUpdated(0),
         _is_top_level_array(false) /*, _nArgs(0)*/,
         _lastError(ParserError::NO_ERROR),
-        _lastParseError(ParseValueResult::Result::NO_RESULT), _key_length(0),
+        _lastParseError(0), _key_length(0),
         _key_buf(new char[JSON::MAX_KEY_LENGTH + 1]{}),
         _val_buf(new char[JSON::MAX_VALUE_LENGTH + 1]{}) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "JSONParserBase(pointer) '%.*s' created\n",
@@ -73,7 +73,7 @@ public:
   size_t parsed_length() { return _cursor.bytesConsumed() - _bytesConsumed; }
   ParserState state() { return _state; }
   ParserError error() { return _lastError; }
-  ParseValueResult::Result parseError() { return _lastParseError; }
+  ParseValueResult parseError() { return _lastParseError; }
 
   // ── Méthodes d'assignation (identiques à JSONParser) ──────
   // (reprises telles quelles — logique pure, pas d'accès au curseur)
@@ -160,7 +160,7 @@ private:
   bool _is_top_level_array;
   // uint8_t _nArgs;
   ParserError _lastError;
-  ParseValueResult::Result _lastParseError;
+  ParseValueResult _lastParseError;
   char _name[12];
   uint8_t _key_length;
   std::unique_ptr<char[]> _key_buf;
@@ -254,7 +254,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::reset() {
   _is_top_level_array = false;
   // _nArgs = 0;
   _lastError = ParserError::NO_ERROR;
-  _lastParseError = ParseValueResult::Result::NO_RESULT;
+  _lastParseError = ParseValueResult();
   _name[0] = '\0';
   _key_length = 0;
   _key_buf.get()[0] = '\0';
@@ -293,6 +293,8 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_key() {
   size_t n = 0;
 
   while (n < JSON::MAX_KEY_LENGTH) {
+    CHECK_LOOP(false);
+    
     int c = _cursor.peek(n);
     if (c < 0) {
       _reset_key();
@@ -304,6 +306,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_key() {
                  (ch >= '0' && ch <= '9') || ch == '_' || ch == '$';
     if (!valid)
       break;
+
     _key_buf.get()[n++] = ch;
   }
 
@@ -344,6 +347,8 @@ size_t
 JSONParserBase<Cursor, UseMask, TargetT>::scan_digits(size_t max_length) {
   size_t n = 0;
   while (max_length == 0 || n < max_length) {
+    CHECK_LOOP(0);
+    
     int c = _cursor.peek(n);
     if (c < 0)
       break;
@@ -352,7 +357,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::scan_digits(size_t max_length) {
       break;
     n++;
   }
+  
   _cursor.advance(n);
+  
   return n;
 }
 
@@ -384,8 +391,10 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::scan_escaped_string(
   size_t n = 0;
   Pool::ensure_pool_size(1);
   char *pool_start_ptr = Pool::current_pos();
-
+  
   while (true) {
+    CHECK_LOOP(false);
+    
     unsigned char c = _cursor.peek();
 
     if (c < 0) {
@@ -481,8 +490,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_string(V &arg_value) {
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true))
     return ParseValueResult::NO_RESULT;
 
-  return ParseValueResult::VALUE_PARSED |
-         assign_parsed_value_to_value(parsed_value, arg_value);
+  return assign_parsed_value_to_value(parsed_value, arg_value) | ParseValueResult::STRING_PARSED;
 }
 // ── parse_integer ────────────────────────────────────────────
 // Extrait les digits dans un buffer local, puis appelle strtol.
@@ -519,8 +527,6 @@ ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_numeric\n");
 
-  ParseValueResult result = ParseValueResult::NO_RESULT;
-
   char *start;
 
   if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
@@ -529,7 +535,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
     static char tmp[64];
     size_t len = _cursor.peekToken(tmp, sizeof(tmp) - 1);
     if (len == 0)
-      return result;
+      return ParseValueResult::PARSE_ERROR_NUMERIC;
 
     tmp[len] = '\0';
     start = tmp;
@@ -562,7 +568,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
   size_t consumed = static_cast<size_t>(end - start);
 
   if (consumed == 0)
-    return result;
+    return ParseValueResult::PARSE_ERROR_NUMERIC;
 
   _cursor.advance(consumed);
 
@@ -574,8 +580,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
     }
   }
 
-  return ParseValueResult::VALUE_PARSED |
-         assign_parsed_value_to_value(parsed_value, arg_value);
+  return assign_parsed_value_to_value(parsed_value, arg_value) | ParseValueResult::NUMERIC_PARSED;
 }
 
 // ── parse_bool ───────────────────────────────────────────────
@@ -586,15 +591,15 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_bool(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_bool\n");
   if (cursor_scan_keyword(_cursor, JSON_FALSE, true)) {
     bool pv = false;
-    return ParseValueResult::VALUE_PARSED |
-           assign_parsed_value_to_value(pv, arg_value);
+    return assign_parsed_value_to_value(pv, arg_value) | ParseValueResult::BOOLEAN_PARSED;
   }
+  
   if (cursor_scan_keyword(_cursor, JSON_TRUE, true)) {
     bool pv = true;
-    return ParseValueResult::VALUE_PARSED |
-           assign_parsed_value_to_value(pv, arg_value);
+    return assign_parsed_value_to_value(pv, arg_value) | ParseValueResult::BOOLEAN_PARSED;
   }
-  return ParseValueResult::NO_RESULT;
+  
+  return ParseValueResult::PARSE_ERROR_BOOLEAN;
 }
 
 // ── parse_null ───────────────────────────────────────────────
@@ -603,11 +608,12 @@ template <typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_null(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_null\n");
-  if (!cursor_scan_keyword(_cursor, JSON_NULL, true))
-    return ParseValueResult::NO_RESULT;
+  if (!cursor_scan_keyword(_cursor, JSON_NULL, true)) {
+    return ParseValueResult::PARSE_ERROR_NULL;
+  }
+  
   NullType pv;
-  return ParseValueResult::VALUE_PARSED |
-         assign_parsed_value_to_value(pv, arg_value);
+  return assign_parsed_value_to_value(pv, arg_value) | ParseValueResult::NULL_VALUE_PARSED;
 }
 
 // ── parse_nan ────────────────────────────────────────────────
@@ -616,11 +622,12 @@ template <typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_nan(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_nan\n");
-  if (!cursor_scan_keyword(_cursor, JSON_NAN, true))
-    return ParseValueResult::NO_RESULT;
+  if (!cursor_scan_keyword(_cursor, JSON_NAN, true)) {
+    return ParseValueResult::PARSE_ERROR_NUMERIC;
+  }
+    
   NullType pv;
-  return ParseValueResult::VALUE_PARSED |
-         assign_parsed_value_to_value(pv, arg_value);
+  return assign_parsed_value_to_value(pv, arg_value) | ParseValueResult::NUMERIC_PARSED;
 }
 
 // ── parse_infinity ───────────────────────────────────────────
@@ -629,11 +636,12 @@ template <typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_infinity(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_infinity\n");
-  if (!cursor_scan_keyword(_cursor, JSON_INFINITY, true))
-    return ParseValueResult::NO_RESULT;
+  if (!cursor_scan_keyword(_cursor, JSON_INFINITY, true)) {
+    return ParseValueResult::PARSE_ERROR_NUMERIC;
+  }
+
   InfinityType pv;
-  return ParseValueResult::VALUE_PARSED |
-         assign_parsed_value_to_value(pv, arg_value);
+  return assign_parsed_value_to_value(pv, arg_value) | ParseValueResult::NUMERIC_PARSED;
 }
 
 // ── parse_numeric ────────────────────────────────────────────
@@ -647,14 +655,15 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
               parse_integer(arg_value).parsed() ||
               parse_nan(arg_value).parsed() ||
               parse_infinity(arg_value).parsed();
-    return ok ? ParseValueResult::VALUE_PARSED : ParseValueResult::NO_RESULT;
+    return ok ? ParseValueResult::NUMERIC_PARSED : ParseValueResult::PARSE_ERROR_NUMERIC;
   } else if constexpr (std::is_floating_point_v<remove_cvref_t<V>>) {
     return parse_floating_point(arg_value);
   } else if constexpr (std::is_integral_v<remove_cvref_t<V>> &&
                        !std::is_same_v<remove_cvref_t<V>, bool>) {
     return parse_integer(arg_value);
   }
-  return ParseValueResult::NO_RESULT;
+
+  return ParseValueResult::PARSE_ERROR_NUMERIC;
 }
 
 // ── parse_unknown_value ───────────────────────────────────────
@@ -663,23 +672,18 @@ template <typename Cursor, bool UseMask, typename TargetT>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_unknown_value() {
   JSON_DEBUG_INFO("JSONParserBase::parse_unknown_value\n");
-  [[maybe_unused]] size_t iterations = 0;
+  [[maybe_unused]] size_t iteration = 0;
   int depth = 0;
   bool inString = false;
   bool escape = false;
 
   while (true) {
-    if (iterations > JSON::MAX_ITERATIONS) {
-      JSON_DEBUG_ERROR(
-          "JSONParserBase::parse_unknown_value: too many iterations\n");
-      return ParseValueResult::NO_RESULT;
-    }
-
-    iterations++;
+    CHECK_LOOP(ParseValueResult::PARSE_ERROR_UNKNOWN);
+    
     int c = _cursor.peek();
 
     if (c < 0)
-      return ParseValueResult::NO_RESULT;
+      return ParseValueResult::PARSE_ERROR_UNKNOWN;
 
     char ch = static_cast<char>(c);
 
@@ -714,9 +718,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_unknown_value() {
   }
 
   JSON_DEBUG_INFO("JSONParserBase::parse_unknown_value iterations=%zu\n",
-                  iterations);
+                  iteration);
 
-  return ParseValueResult::VALUE_PARSED;
+  return ParseValueResult::OBJECT_PARSED;
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -726,17 +730,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
   // We are in the middle of an object before the comma, we need to skip to the
   // end of the object We use parse_unknown_value to skip the each value until
   // we find the end of the object
-  size_t iterations = 0;
 
   while (true) {
-    if (iterations > MAX_ITERATIONS) {
-      JSON_DEBUG_ERROR(
-          "JSONParserBase::skip_to_object_end: too many iterations\n");
-
-      return ParseValueResult::NO_RESULT | ParseValueResult::OBJECT;
-    }
-
-    iterations++;
+    CHECK_LOOP(ParseValueResult::PARSE_ERROR_OBJECT);
 
     if (is_object_end()) {
       //_cursor.advance();
@@ -754,7 +750,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
 
         if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) {
           JSON_DEBUG_ERROR("JSONParserBase::skip_to_object_end: no comma\n");
-          return ParseValueResult::NO_RESULT | ParseValueResult::OBJECT;
+          return ParseValueResult::PARSE_ERROR_OBJECT;
         }
       }
 
@@ -762,12 +758,12 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
     } else {
       JSON_DEBUG_ERROR("JSONParserBase::skip_to_object_end: cannot parse value "
                        "%s for key #%zu\n",
-                       valueTypeToString(r), iterations);
-      return ParseValueResult::NO_RESULT | ParseValueResult::OBJECT;
+                       errorToString(r), iteration);
+      return ParseValueResult::PARSE_ERROR_OBJECT;
     }
   }
 
-  return ParseValueResult::VALUE_PARSED | ParseValueResult::OBJECT;
+  return ParseValueResult::OBJECT_PARSED;
 }
 /*
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -827,10 +823,10 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_value(JSONCallbackObject &cb) {
   if (_is_top_level_array) {
     JSON_DEBUG_INFO("JSONParserBase<Cursor, UseMask, TargetT>::parse_value top "
                     "level array\n");
-    return ParseValueResult::KEY_FOUND | parse_array(cb);
+    return parse_array(cb) | ParseValueResult::KEY_FOUND;
   }
 
-  return ParseValueResult::KEY_FOUND | parse_into_value(cb);
+  return parse_into_value(cb) | ParseValueResult::KEY_FOUND;
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -839,7 +835,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask, TargetT>::parse_value(
   JSON_DEBUG_WARNING("JSONParserBase<Cursor, UseMask, TargetT>::parse_value "
                      "UnknownValueType\n");
 
-  return ParseValueResult::KEY_FOUND | parse_into_value(unknown);
+  return parse_into_value(unknown) | ParseValueResult::KEY_FOUND;
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -866,7 +862,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_value(TableT &table,
     return ParseValueResult::NO_RESULT;
   }
 
-  ParseValueResult result = ParseValueResult(ParseValueResult::KEY_FOUND);
+  ParseValueResult result;
+  result |= ParseValueResult::KEY_FOUND;
+  
   result |= dispatch_by_index(entry->arg_index, *this, args,
                               std::make_index_sequence<NPairs>{});
 
@@ -896,42 +894,40 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_value(V &arg_value) {
   if constexpr (std::is_same_v<remove_cvref_t<V>, JSONCallbackObject>) {
     return parse_any(arg_value);
   } else if constexpr (std::is_same_v<V, bool>) {
-    return parse_bool(arg_value) | ParseValueResult::BOOLEAN;
+    return parse_bool(arg_value) | ParseValueResult::BOOLEAN_PARSED;
   } else if constexpr (std::is_floating_point_v<V>) {
-    return parse_floating_point(arg_value) | ParseValueResult::FLOAT;
+    return parse_floating_point(arg_value) | ParseValueResult::FLOAT_PARSED;
   } else if constexpr (std::is_integral_v<V>) {
-    return parse_integer(arg_value) | ParseValueResult::INTEGER;
+    return parse_integer(arg_value) | ParseValueResult::NUMERIC_PARSED;
   } else if constexpr (std::is_same_v<V, std::string_view> ||
                        is_char_array_v<V>) {
-    return parse_string(arg_value) | ParseValueResult::STRING;
+    return parse_string(arg_value) | ParseValueResult::STRING_PARSED;
   } else if constexpr (is_uint_array_v<V>) {
     ParseValueResult result = parse_string(arg_value);
 
     if (result.parsed()) {
-      return result | ParseValueResult::STRING;
+      return result | ParseValueResult::STRING_PARSED;
     }
 
     result = parse_array(arg_value);
-    return result.parsed() ? result | ParseValueResult::ARRAY
-                           : ParseValueResult::NO_RESULT;
+    return result.parsed() ? result | ParseValueResult::ARRAY_PARSED
+                           : ParseValueResult::PARSE_ERROR_ARRAY;
   } else if constexpr (is_container_v<V>) {
-    return parse_array(arg_value) | ParseValueResult::ARRAY;
+    return parse_array(arg_value) | ParseValueResult::ARRAY_PARSED;
   } else if constexpr (std::is_same_v<remove_cvref_t<V>, UnknownValueType>) {
     return parse_any(arg_value);
   } else if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<V>>) {
-    return parse_object(arg_value) | ParseValueResult::OBJECT;
+    return parse_object(arg_value) | ParseValueResult::OBJECT_PARSED;
   } else if constexpr (std::is_pointer_v<V>) {
     ParseValueResult result = parse_null(arg_value);
     if constexpr (!std::is_const_v<std::remove_pointer_t<V>> &&
                   !std::is_same_v<V, UnknownValueType>) {
       if (!result.parsed() && arg_value != nullptr)
-        result |= parse_into_value(*arg_value) |
-                  ParseValueResult::POINTER; // TODO: check if this
-                                             // is correct
+        result |= parse_into_value(*arg_value);
     }
     return result;
   } else {
-    return ParseValueResult::NO_RESULT | ParseValueResult::UNKNOWN;
+    return ParseValueResult::PARSE_ERROR_UNKNOWN;
   }
 }
 
@@ -1046,7 +1042,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
                // error.
         _state = ERROR;
         _lastError = ParserError::INVALID_VALUE;
-        _lastParseError = r.result();
+        _lastParseError = r;
       }
 
       if constexpr (!std::is_same_v<remove_cvref_t<TargetT>,
@@ -1101,7 +1097,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
         } else {
           _state = ERROR;
           _lastError = ParserError::INVALID_VALUE;
-          _lastParseError = r.result();
+          _lastParseError = r;
         }
         break;
       }
@@ -1122,6 +1118,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::assign_same_type(PV &pv, V &v) {
     v = pv;
     return ParseValueResult::VALUE_UPDATED;
   }
+  
   return ParseValueResult::NO_RESULT;
 }
 
@@ -1242,34 +1239,32 @@ JSONParserBase<Cursor, UseMask, TargetT>::assign_parsed_value_to_value(PV &pv,
   if constexpr (std::is_same_v<PV, V> &&
                 is_container_from_list<V, arguments_array_types>::value &&
                 container_info<V>::dimensions == 1) {
-    result |= ParseValueResult::VALUE_CONVERTED | assign_array_to_array(pv, v);
+    result |= assign_array_to_array(pv, v) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_same_v<PV, V>) {
-    result |= ParseValueResult::VALUE_CONVERTED | assign_same_type(pv, v);
+    result |= assign_same_type(pv, v) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_convertible_v<PV, V> && std::is_integral_v<PV> &&
                        std::is_integral_v<V>) {
     result |=
-        ParseValueResult::VALUE_CONVERTED | assign_integral_to_integral(pv, v);
+        assign_integral_to_integral(pv, v) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_convertible_v<PV, V> &&
                        std::is_floating_point_v<PV>) {
-    result |= ParseValueResult::VALUE_CONVERTED | assign_convertible(pv, v);
+    result |= assign_convertible(pv, v) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_same_v<PV, std::string_view> &&
                        is_char_array_v<V>) {
-    result |= ParseValueResult::VALUE_CONVERTED |
-              assign_string_view_to_char_array(pv, v);
+    result |= assign_string_view_to_char_array(pv, v) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_same_v<PV, NullType> && std::is_pointer_v<V>) {
     result |=
-        ParseValueResult::VALUE_CONVERTED | assign_null_ptr_to_pointer(pv, v);
+        assign_null_ptr_to_pointer(pv, v) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_same_v<PV, NaNType>) {
     return result;
   } else if constexpr (std::is_same_v<PV, InfinityType>) {
     result |=
-        ParseValueResult::VALUE_CONVERTED | assign_infinity_to_integral(pv, v);
+        assign_infinity_to_integral(pv, v) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_same_v<PV, std::string_view> &&
                        is_uint_array_v<V>) {
-    result |= ParseValueResult::VALUE_CONVERTED |
-              assign_string_view_to_unsigned_array(pv, v);
+    result |= assign_string_view_to_unsigned_array(pv, v) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_same_v<V, JSONCallbackObject>) {
-    result |= ParseValueResult::VALUE_CONVERTED | assign_callback_object(pv, v);
+    result |= assign_callback_object(pv, v) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_same_v<V, UnknownValueType>) {
     return result;
   } else {
@@ -1331,28 +1326,28 @@ enable_if_t<container_info<V>::is_container ||
             ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_array\n");
-  ParseValueResult result = ParseValueResult::NO_RESULT;
+  ParseValueResult result;
 
   if (!is_array_start()) {
-    return result;
+    return ParseValueResult::PARSE_ERROR_ARRAY;
   }
 
   _cursor.advance();
 
-  uint32_t i = 0;
+  size_t i = 0;
 
   while (i < MAX_ITERATIONS) {
     skip_spaces();
     result |= parse_into_array_at_index(arg_value, i);
 
     if (_state == STOPPED) {
-      return ParseValueResult::VALUE_PARSED;
+      return ParseValueResult::ARRAY_PARSED;
     }
 
     if (!result.parsed()) {
       JSON_DEBUG_WARNING(
           "JSONParserBase::parse_array: cannot parse value at index %zu\n", i);
-      return ParseValueResult::NO_RESULT;
+      return ParseValueResult::PARSE_ERROR_ARRAY;
     }
 
     skip_spaces();
@@ -1370,12 +1365,12 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   if (!cursor_scan_char(_cursor, JSON_ARRAY_END_CHARACTER, true)) {
     JSON_DEBUG_WARNING("JSONParserBase::parse_array: no array end\n");
     _state = ERROR;
-    return ParseValueResult::NO_RESULT;
+    return ParseValueResult::PARSE_ERROR_ARRAY;
   }
 
   skip_spaces();
 
-  return ParseValueResult::VALUE_PARSED;
+  return ParseValueResult::ARRAY_PARSED;
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -1414,8 +1409,10 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
     std::vector<T> &array, uint32_t /*index*/) {
   T value{};
   ParseValueResult r = parse_into_value(value);
-  if (r & ParseValueResult::VALUE_PARSED)
+  if (r.parsed()) {
     array.push_back(value);
+  }
+
   return r;
 }
 
@@ -1445,7 +1442,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
   ParseValueResult result = ParseValueResult::NO_RESULT;
 
   if (!is_object_start()) {
-    return ParseValueResult::NO_RESULT;
+    return ParseValueResult::PARSE_ERROR_OBJECT;
   }
   bool key_not_set = _key_buf.get()[0] == '\0' || _key_length == 0;
   const char *name = key_not_set ? "$UNAMED" : _key_buf.get();
@@ -1462,11 +1459,11 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
   if (r.error != NO_ERROR) {
     JSON_DEBUG_TYPES("In previous JSONParser::parse_object error parsing %s :",
                      arg_value);
-    JSON_DEBUG_INFO("%s\n", errorToString((ParserError)r.error));
+    JSON_DEBUG_INFO("%s\n", errorToString(r.error));
     _state = END;
     _lastError = r.error;
     _lastParseError = r.parseError;
-    return ParseValueResult::NO_RESULT;
+    return ParseValueResult::PARSE_ERROR_OBJECT;
   }
 
   if constexpr (std::is_same_v<remove_cvref_t<V>, JSONCallbackObject>) {
@@ -1476,8 +1473,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
     }
   }
 
-  result |= ParseValueResult::VALUE_PARSED | ParseValueResult::VALUE_UPDATED |
-            ParseValueResult::VALUE_CONVERTED;
+  result |= ParseValueResult::VALUE_CONVERTED;
 
   return result;
 }
@@ -1488,6 +1484,7 @@ template <typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_any(V arg_value) {
   ParseValueResult result = ParseValueResult::NO_RESULT;
+
   result = parse_string(arg_value);
   if (result.parsed())
     return result;
@@ -1523,7 +1520,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::print_state(size_t iteration) {
     [[maybe_unused]] const char *error =
         (_state == ERROR) ? errorToString(_lastError) : "";
     [[maybe_unused]] const char *errorValueType =
-        (_state == ERROR) ? valueTypeToString(_lastParseError) : "";
+        (_state == ERROR) ? errorToString(_lastParseError) : "";
 
     char *output = static_cast<char *>(malloc(length));
     strncpy(output, _cursor.start() + col_number * length, length);

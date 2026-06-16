@@ -20,7 +20,8 @@ constexpr uint32_t operator""_hash(const char* str, size_t len) {
 
 constexpr int parse_int_constexpr(const char* str) {
   int result = 0;
-  while (*str >= '0' && *str <= '9') {
+  size_t iteration = 0;
+  while (*str >= '0' && *str <= '9' && ++iteration < JSON::MAX_ITERATIONS) {
     result = result * 10 + (*str - '0');
     ++str;
   }
