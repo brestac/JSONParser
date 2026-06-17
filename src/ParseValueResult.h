@@ -11,23 +11,6 @@
 
 struct ParseValueResult {
 public:
-  // enum Result : uint16_t {
-  //   NO_RESULT = 0,
-  //   KEY_FOUND = 1 << 0,
-  //   VALUE_PARSED = 1 << 1,
-  //   VALUE_CONVERTED = 1 << 2,
-  //   VALUE_UPDATED = 1 << 3,
-  //   UNKNOWN = 1 << 4,
-  //   STRING = 1 << 5,
-  //   INTEGER = 1 << 6,
-  //   FLOAT = 1 << 7,
-  //   BOOLEAN = 1 << 8,
-  //   NULL_VALUE = 1 << 9,
-  //   POINTER = 1 << 10,
-  //   ARRAY = 1 << 11,
-  //   OBJECT = 1 << 12
-  // };
-
   enum State : uint8_t {
     NO_RESULT = 0,
     KEY_FOUND = 1 << 0,
@@ -35,7 +18,7 @@ public:
     VALUE_UPDATED = 1 << 2,
     // BEGINING OF ERRORS 8 to 56 means no error
     STRING_PARSED = 1 << 3, // parsed JSON type, no error
-    NUMERIC_PARSED = 16, // parsed JSON type, no error
+    INTEGER_PARSED = 16, // parsed JSON type, no error
     FLOAT_PARSED = 24,// parsed JSON type, no error
     BOOLEAN_PARSED = 32,// parsed JSON type, no error
     NULL_VALUE_PARSED = 40,// parsed JSON type, no error
@@ -48,27 +31,18 @@ public:
     PARSE_ERROR_NULL = 104, // error parsing JSON type Null
     PARSE_ERROR_ARRAY = 112, // error parsing JSON type Array
     PARSE_ERROR_OBJECT = 120, // error parsing JSON type Object
-    CUSTOM_ERROR_1 = 128, // custom error
-    CUSTOM_ERROR_2 = 136, // custom error
-    CUSTOM_ERROR_3 = 144, // custom error
-    CUSTOM_ERROR_4 = 152, // custom error
-    CUSTOM_ERROR_5 = 160, // custom error
-    CUSTOM_ERROR_6 = 168, // custom error
-    CUSTOM_ERROR_7 = 176, // custom error
-    CUSTOM_ERROR_8 = 184,
-    CUSTOM_ERROR_9 = 192,
-    CUSTOM_ERROR_10 = 200,
-    CUSTOM_ERROR_11 = 208,
-    CUSTOM_ERROR_12 = 216,
-    CUSTOM_ERROR_13 = 224,
-    CUSTOM_ERROR_14 = 232,
-    CUSTOM_ERROR_15 = 240,
-    CUSTOM_ERROR_16 = 248,
+    PARSE_ERROR_OBJECT_NO_START = 128,
+    PARSE_ERROR_OBJECT_NO_END = 136,
+    PARSE_ERROR_ARRAY_NO_START = 144, // custom error
+    PARSE_ERROR_ARRAY_NO_END = 152, // custom error
+    PARSE_ERROR_ARRAY_OVERFLOW = 160,
+    PARSE_ERROR_STRING_NO_START = 168,
+    PARSE_ERROR_STRING_NO_END = 176,
+    PARSE_ERROR_STRING_ESCAPE = 184,
     PARSE_ERROR_UNKNOWN = 255 // unknown error
   };
 
   static constexpr uint8_t PARSE_MASK = 0x03;
-  static constexpr uint8_t ERROR_OFFSET = 3;
   static constexpr uint8_t ERROR_MASK = 0xF8;
 
   // Constructeurs
@@ -101,16 +75,6 @@ public:
     return _state;
   }
 
-  // // Opérateur | (OR)
-  // constexpr ParseValueResult operator|(const ParseValueResult &other) const {
-  //   //return ParseValueResult(_result | other._result);
-  //   // Replace the last 3 bits of _state with the last 3 bits of other._state
-  //   // Set the first 5 bits of _state to the first 5 bits of other._state
-  //   uint8_t parse_state = other._state & ((1 << 0) | (1 << 1));
-  //   uint8_t key_found = other._state & KEY_FOUND;
-  //   uint8_t error = other._state & ERROR_MASK;
-  //   return ParseValueResult((_state & ~((1 << 0) | (1 << 1) | KEY_FOUND | ERROR_MASK)) | parse_state | key_found | error);
-  // }
   uint8_t get_state(uint8_t otherState) const {
     // In this situation, otherState is not a mask but one of the State enum values
     uint8_t state = _state;
@@ -123,11 +87,20 @@ public:
     return state;
   }
 
+  // Opérateur | (OR)
+
+  constexpr ParseValueResult
+  operator|(const ParseValueResult &other) const {
+    uint8_t state = get_state(other._state);
+    return ParseValueResult(state);
+  }
+
   constexpr ParseValueResult
   operator|(const ParseValueResult::State &otherState) const {
     uint8_t state = get_state(otherState);
     return ParseValueResult(state);
   }
+
   // Opérateur |= (OR assignment)
 
   constexpr ParseValueResult &operator|=(const ParseValueResult &other) {
@@ -135,42 +108,16 @@ public:
     return *this;
   }
 
-  // constexpr ParseValueResult &
-  // operator|=(const ParseValueResult::Result &otherResult) {
-  //   _result |= otherResult;
-  //   return *this;
-  // }
-
-  // // Opérateur & (AND)
-  // constexpr ParseValueResult operator&(const ParseValueResult &other) const {
-  //   return ParseValueResult(_result | other._result);
-  // }
-
-  // constexpr ParseValueResult
-  // operator&(const ParseValueResult::Result &otherResult) const {
-  //   return ParseValueResult(_result & otherResult);
-  // }
-
-  // constexpr operator uint8_t() const { return _state; }
-
-  // constexpr ParseValueResult::Result result() const {
-  //   return (ParseValueResult::Result)_result;
-  // }
-  // constexpr bool keyFound() const { return (_result & KEY_FOUND) != 0; }
-  // constexpr bool parsed() const { return (_result & VALUE_PARSED) != 0; }
-  // constexpr bool converted() const { return (_result & VALUE_CONVERTED) != 0; }
-  // constexpr bool updated() const { return (_result & VALUE_UPDATED) != 0; }
-
-  // constexpr uint16_t valueType() const {
-  //   return (_result &~ (KEY_FOUND | VALUE_PARSED | VALUE_CONVERTED | VALUE_UPDATED));
-  // }
+  constexpr ParseValueResult &operator|=(const ParseValueResult::State &otherState) {
+    _state = get_state(otherState);
+    return *this;
+  }
 
   void print() {
 
   }
 
 private:
-  //uint16_t _result;
   uint8_t _state;
 };
 
@@ -181,20 +128,48 @@ static const char *parseErrorToString(uint8_t &state) {
   uint8_t error = state & ParseValueResult::ERROR_MASK;
   
   switch (error) {
+  case ParseValueResult::NO_RESULT:
+    return "NO_RESULT";
   case ParseValueResult::BOOLEAN_PARSED:
-    return "BOOLEAN";
-  case ParseValueResult::NUMERIC_PARSED:
-    return "NUMERIC";
+    return "BOOLEAN_PARSED";
+  case ParseValueResult::INTEGER_PARSED:
+    return "INTEGER_PARSED";
   case ParseValueResult::FLOAT_PARSED:
-    return "FLOAT";
+    return "FLOAT_PARSED";
   case ParseValueResult::STRING_PARSED:
-    return "STRING";
+    return "STRING_PARSED";
   case ParseValueResult::ARRAY_PARSED:
-    return "ARRAY";
+    return "ARRAY_PARSED";
   case ParseValueResult::OBJECT_PARSED:
-    return "OBJECT";
+    return "OBJECT_PARSED";
   case ParseValueResult::NULL_VALUE_PARSED:
-    return "NULL";
+    return "NULL_VALUE_PARSED";
+  case ParseValueResult::PARSE_ERROR_STRING:
+    return "PARSE_ERROR_STRING";
+  case ParseValueResult::PARSE_ERROR_NUMERIC:
+    return "PARSE_ERROR_NUMERIC";
+  case ParseValueResult::PARSE_ERROR_FLOAT:
+    return "PARSE_ERROR_FLOAT";
+  case ParseValueResult::PARSE_ERROR_BOOLEAN:
+    return "PARSE_ERROR_BOOLEAN";
+  case ParseValueResult::PARSE_ERROR_NULL:
+    return "PARSE_ERROR_NULL";
+  case ParseValueResult::PARSE_ERROR_ARRAY:
+    return "PARSE_ERROR_ARRAY";
+  case ParseValueResult::PARSE_ERROR_OBJECT:
+    return "PARSE_ERROR_OBJECT";
+  case ParseValueResult::PARSE_ERROR_ARRAY_NO_START:
+    return "PARSE_ERROR_ARRAY_NO_START";
+  case ParseValueResult::PARSE_ERROR_ARRAY_NO_END:
+    return "PARSE_ERROR_ARRAY_NO_END";
+  case ParseValueResult::PARSE_ERROR_ARRAY_OVERFLOW:
+    return "PARSE_ERROR_ARRAY_OVERFLOW";
+  case ParseValueResult::PARSE_ERROR_STRING_NO_START:
+    return "PARSE_ERROR_STRING_NO_START";
+  case ParseValueResult::PARSE_ERROR_STRING_NO_END:
+    return "PARSE_ERROR_STRING_NO_END";
+  case ParseValueResult::PARSE_ERROR_STRING_ESCAPE:
+    return "PARSE_ERROR_STRING_ESCAPE";
   default:
     return "UNKNOWN_ERROR";
   }
@@ -204,7 +179,7 @@ const char *parseStateToString(uint8_t &state) {
   uint8_t parse_state = state & ParseValueResult::PARSE_MASK;
   switch (parse_state) {
     case ParseValueResult::NO_RESULT:
-      return "NO_RESULT";
+      return "-";
     case ParseValueResult::VALUE_CONVERTED:
       return "VALUE_CONVERTED";
     case ParseValueResult::VALUE_UPDATED:
@@ -215,15 +190,13 @@ const char *parseStateToString(uint8_t &state) {
 }
 
 static const char *errorToString(ParseValueResult &result) {
-  static char output[32] = {0};
+  static char output[80] = {0};
 
   uint8_t state = result.state();
   bool key_found = state & ParseValueResult::KEY_FOUND;
-  strcpy(output, key_found ? "KEY_FOUND | " : "KEY_NOT_FOUND | ");
-  strcat(output, parseStateToString(state));
-  strcat(output, " | ");
-  strcat(output, parseErrorToString(state));
 
+  snprintf(output, sizeof(output), "%s %s %s", key_found ? "KEY_FOUND" : "KEY_NOT_FOUND", parseStateToString(state), parseErrorToString(state));
+  
   return output;
 }
 
