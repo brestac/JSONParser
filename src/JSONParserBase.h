@@ -39,7 +39,7 @@ public:
 
   // ── Constructeur PointerCursor ─
   explicit JSONParserBase(const char *name, Cursor &cursor)
-      : _cursor(cursor), _bytesConsumed(cursor.bytesConsumed()), _state(IDLE),
+      : _cursor(cursor), _state(IDLE),
         _automask(false), _keyMask(0), _nParsed(0), _nMatched(0),
         _nConverted(0), _nUpdated(0),
         _is_top_level_array(false) /*, _nArgs(0)*/,
@@ -72,7 +72,6 @@ public:
 
   template <typename... Args> void parse(Args &&...args);
 
-  size_t parsed_length() { return _cursor.bytesConsumed() - _bytesConsumed; }
   ParserState state() { return _state; }
   ParserError error() { return _lastError; }
   ParseValueResult parseError() { return _lastParseError; }
@@ -146,10 +145,10 @@ public:
   bool automask() { return _automask; }
   void setAutomask(bool automask) { _automask = automask; }
   bool stopped() { return _state == STOPPED; }
+  size_t bytesConsumed() { return _cursor.bytesConsumed(); }
 
 private:
   Cursor &_cursor; // ← reference: shared across nested parsers
-  size_t _bytesConsumed;
   ParserState _state;
   bool _automask;
   uint8_t _keyMask;
@@ -222,7 +221,6 @@ private:
   // ParseValueResult skip_to_array_end();
   ParseValueResult skip_to_object_end();
 
-  size_t bytesConsumed() { return _cursor.bytesConsumed(); }
   bool parse_colon();
   bool parse_comma();
   bool is_object_start() { return _current_char() == JSON_START_CHARACTER; }
