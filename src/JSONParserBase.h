@@ -49,8 +49,10 @@ public:
         _val_buf(new char[JSON::MAX_VALUE_LENGTH + 1]{}) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "JSONParserBase(pointer) '%.*s' created\n",
                      (int)strlen(name), name);
+#if JSON_DEBUG_LEVEL > 0
     strncpy(_name, name, sizeof(_name));
     _name[sizeof(_name) - 1] = '\0';
+#endif
     _cursor.depth++;
   }
 
@@ -144,8 +146,6 @@ public:
   bool automask() { return _automask; }
   void setAutomask(bool automask) { _automask = automask; }
   bool stopped() { return _state == STOPPED; }
-  void setName(const char *name) { strncpy(_name, name, sizeof(_name)); }
-  std::string_view name() { return std::string_view(_name); }
 
 private:
   Cursor &_cursor; // ← reference: shared across nested parsers
@@ -161,7 +161,9 @@ private:
   // uint8_t _nArgs;
   ParserError _lastError;
   ParseValueResult _lastParseError;
+#if JSON_DEBUG_LEVEL > 0
   char _name[12];
+#endif
   uint8_t _key_length;
   std::unique_ptr<char[]> _key_buf;
   std::unique_ptr<char[]> _val_buf;
@@ -256,7 +258,9 @@ void JSONParserBase<Cursor, UseMask, TargetT>::reset() {
   // _nArgs = 0;
   _lastError = ParserError::NO_ERROR;
   _lastParseError = ParseValueResult();
+#if JSON_DEBUG_LEVEL > 0
   _name[0] = '\0';
+#endif
   _key_length = 0;
   _key_buf.get()[0] = '\0';
   _val_buf[0] = '\0';
@@ -1552,7 +1556,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::print_state(size_t iteration) {
     // replace(output, old_chars, new_char);
     replace_endl(output, length);
 
-    DEBUG_PRINTF("Parser '%s': %.*s %s pos=%zu it=%zu, p=%p\n%s%*c%s %s %s "
+    JSON_DEBUG_INFO("Parser '%s': %.*s %s pos=%zu it=%zu, p=%p\n%s%*c%s %s %s "
                  "key='%.*s' \x1b[0m\n",
                  _name, (int)length, (const char *)output, dots,
                  bytesConsumed(), iteration, this, color,
