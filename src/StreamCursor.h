@@ -35,16 +35,19 @@ public:
 
   // Tente de remplir le buffer depuis le stream (appels non-bloquants).
   // Ne lit que les octets immédiatement disponibles.
-  void refill() {
+  void refill() {    
     while (available() < N) {
-      CHECK_LOOP(void());
       int avail = _stream->available();
       if (avail <= 0)
         break;
       int c = _stream->read();
       if (c < 0)
         break;
-      _buf[_head++ & MASK] = static_cast<char>(c);
+      uint8_t addr = _head & MASK;
+      if (addr < N) {
+         _buf[addr] = static_cast<char>(c);
+         _head++;
+      }
     }
   }
 

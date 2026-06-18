@@ -698,7 +698,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_unknown_value() {
   bool escape = false;
 
   while (true) {
-    CHECK_LOOP(ParseValueResult::PARSE_ERROR_UNKNOWN);
+    CHECK_LOOP(ParseValueResult::PARSE_ERROR_OVERFLOW);
 
     int c = _cursor.peek();
 
@@ -752,7 +752,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
   // we find the end of the object
 
   while (true) {
-    CHECK_LOOP(ParseValueResult::PARSE_ERROR_OBJECT);
+    CHECK_LOOP(ParseValueResult::PARSE_ERROR_OVERFLOW);
 
     if (is_object_end()) {
       //_cursor.advance();
@@ -770,7 +770,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
 
         if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) {
           JSON_DEBUG_ERROR("JSONParserBase::skip_to_object_end: no comma\n");
-          return ParseValueResult::PARSE_ERROR_OBJECT;
+          return ParseValueResult::PARSE_ERROR_OBJECT_NO_COMMA;
         }
       }
 
@@ -779,7 +779,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
       JSON_DEBUG_ERROR("JSONParserBase::skip_to_object_end: cannot parse value "
                        "%s for key #%zu\n",
                        errorToString(r), iteration);
-      return ParseValueResult::PARSE_ERROR_OBJECT;
+      return r;
     }
   }
 
@@ -1361,7 +1361,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
       JSON_DEBUG_WARNING("JSONParserBase::parse_array: too many elements\n");
       _state = ERROR;
       _lastError = ParserError::TOO_MANY_ITERATIONS;
-      return ParseValueResult::PARSE_ERROR_ARRAY_OVERFLOW;
+      return ParseValueResult::PARSE_ERROR_OVERFLOW;
     }
 
     skip_spaces();
@@ -1490,7 +1490,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
     _state = END;
     _lastError = r.error;
     _lastParseError = r.parseError;
-    return ParseValueResult::PARSE_ERROR_OBJECT;
+    return _lastParseError;
   }
 
   if constexpr (std::is_same_v<remove_cvref_t<V>, JSONCallbackObject>) {
