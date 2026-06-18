@@ -47,57 +47,58 @@ public:
 
   // Constructeurs
 //  constexpr ParseValueResult(uint16_t r) : _result(r) {}
-  constexpr ParseValueResult() : _state(0) {}
-  constexpr ParseValueResult(uint8_t s) : _state(s) {}
+  constexpr ParseValueResult() : _state(State::NO_RESULT) {}
+  constexpr ParseValueResult(State s) : _state(s) {}
+  constexpr ParseValueResult(uint8_t s) : _state(static_cast<State>(s)) {}
 
   bool keyFound() const {
-    return (_state & KEY_FOUND) != 0;
+    return (static_cast<uint8_t>(_state) & KEY_FOUND) != 0;
   }
   
   bool parsed() const {
-    uint8_t error = _state & ERROR_MASK;
+    uint8_t error = static_cast<uint8_t>(_state) & ERROR_MASK;
     return error >= STRING_PARSED && error <= OBJECT_PARSED;
   }
 
   bool converted() const {
-    return (_state & VALUE_CONVERTED) != 0;
+    return (static_cast<uint8_t>(_state) & VALUE_CONVERTED) != 0;
   }
 
   bool updated() const {
-    return (_state & VALUE_UPDATED) != 0;
+    return (static_cast<uint8_t>(_state) & VALUE_UPDATED) != 0;
   }
 
-  uint8_t error() const {
-    return _state & ERROR_MASK;
+  State error() const {
+    return static_cast<State>(_state & ERROR_MASK);
   }
 
-  uint8_t state() const {
+  State state() const {
     return _state;
   }
 
-  uint8_t get_state(uint8_t otherState) const {
+  State get_state(State otherState) const {
     // In this situation, otherState is not a mask but one of the State enum values
-    uint8_t state = _state;
+    uint8_t state = static_cast<uint8_t>(_state);
     state |= (otherState & ~ERROR_MASK);
     
     if (otherState & ERROR_MASK) {
       state |= (state & ~ERROR_MASK) | (otherState & ERROR_MASK);
     }
     
-    return state;
+    return static_cast<State>(state);
   }
 
   // Opérateur | (OR)
 
   constexpr ParseValueResult
   operator|(const ParseValueResult &other) const {
-    uint8_t state = get_state(other._state);
+    State state = get_state(other._state);
     return ParseValueResult(state);
   }
 
   constexpr ParseValueResult
   operator|(const ParseValueResult::State &otherState) const {
-    uint8_t state = get_state(otherState);
+    State state = get_state(otherState);
     return ParseValueResult(state);
   }
 
@@ -118,14 +119,14 @@ public:
   }
 
 private:
-  uint8_t _state;
+  State _state;
 };
 
 NAMESPACE_JSON_BEGIN
 
-static const char *parseErrorToString(uint8_t &state) {
+static const char *parseErrorToString(ParseValueResult::State &state) {
 
-  uint8_t error = state & ParseValueResult::ERROR_MASK;
+  uint8_t error = static_cast<uint8_t>(state) & ParseValueResult::ERROR_MASK;
   
   switch (error) {
   case ParseValueResult::NO_RESULT:
@@ -175,8 +176,9 @@ static const char *parseErrorToString(uint8_t &state) {
   }
 }
 
-const char *parseStateToString(uint8_t &state) {
-  uint8_t parse_state = state & ParseValueResult::PARSE_MASK;
+const char *parseStateToString(ParseValueResult::State &state) {
+  uint8_t parse_state = static_cast<uint8_t>(state) & ParseValueResult::PARSE_MASK;
+  
   switch (parse_state) {
     case ParseValueResult::NO_RESULT:
       return "-";
@@ -192,8 +194,8 @@ const char *parseStateToString(uint8_t &state) {
 static const char *errorToString(ParseValueResult &result) {
   static char output[80] = {0};
 
-  uint8_t state = result.state();
-  bool key_found = state & ParseValueResult::KEY_FOUND;
+  ParseValueResult::State state = result.state();
+  bool key_found = static_cast<uint8_t>(state) & ParseValueResult::KEY_FOUND;
 
   snprintf(output, sizeof(output), "%s %s %s", key_found ? "KEY_FOUND" : "KEY_NOT_FOUND", parseStateToString(state), parseErrorToString(state));
   
