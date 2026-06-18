@@ -38,7 +38,7 @@ public:
   };
 
   // ── Constructeur PointerCursor ─
-  explicit JSONParserBase(const char *name, Cursor &cursor)
+  explicit JSONParserBase([[maybe_unused]] const char *name, Cursor &cursor)
       : _cursor(cursor), _state(IDLE),
         _automask(false), _keyMask(0), _nParsed(0), _nMatched(0),
         _nConverted(0), _nUpdated(0),
@@ -1531,7 +1531,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_any(V arg_value) {
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
-void JSONParserBase<Cursor, UseMask, TargetT>::print_state(size_t iteration) {
+void JSONParserBase<Cursor, UseMask, TargetT>::print_state([[maybe_unused]] size_t iteration) {
   // We cannot print the state of a StreamCursor because it is not seekable.
   if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
     size_t length = std::min(_cursor.size(), JSON::DEBUG_COLUMN_WIDTH);
