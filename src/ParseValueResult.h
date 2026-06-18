@@ -51,40 +51,40 @@ public:
   constexpr ParseValueResult(State s) : _state(s) {}
   constexpr ParseValueResult(uint8_t s) : _state(static_cast<State>(s)) {}
 
-  bool keyFound() const {
+  constexpr bool keyFound() const {
     return (static_cast<uint8_t>(_state) & KEY_FOUND) != 0;
   }
-  
-  bool parsed() const {
+
+  constexpr bool parsed() const {
     uint8_t error = static_cast<uint8_t>(_state) & ERROR_MASK;
     return error >= STRING_PARSED && error <= OBJECT_PARSED;
   }
 
-  bool converted() const {
+  constexpr bool converted() const {
     return (static_cast<uint8_t>(_state) & VALUE_CONVERTED) != 0;
   }
 
-  bool updated() const {
+  constexpr bool updated() const {
     return (static_cast<uint8_t>(_state) & VALUE_UPDATED) != 0;
   }
 
-  State error() const {
+  constexpr State error() const {
     return static_cast<State>(_state & ERROR_MASK);
   }
 
-  State state() const {
+  constexpr State state() const {
     return _state;
   }
 
-  State get_state(State otherState) const {
+  constexpr State get_state(State otherState) const {
     // In this situation, otherState is not a mask but one of the State enum values
     uint8_t state = static_cast<uint8_t>(_state);
     state |= (otherState & ~ERROR_MASK);
-    
+
     if (otherState & ERROR_MASK) {
       state |= (state & ~ERROR_MASK) | (otherState & ERROR_MASK);
     }
-    
+
     return static_cast<State>(state);
   }
 
@@ -127,7 +127,7 @@ NAMESPACE_JSON_BEGIN
 static const char *parseErrorToString(ParseValueResult::State &state) {
 
   uint8_t error = static_cast<uint8_t>(state) & ParseValueResult::ERROR_MASK;
-  
+
   switch (error) {
   case ParseValueResult::NO_RESULT:
     return "NO_RESULT";
@@ -178,7 +178,7 @@ static const char *parseErrorToString(ParseValueResult::State &state) {
 
 const char *parseStateToString(ParseValueResult::State &state) {
   uint8_t parse_state = static_cast<uint8_t>(state) & ParseValueResult::PARSE_MASK;
-  
+
   switch (parse_state) {
     case ParseValueResult::NO_RESULT:
       return "-";
@@ -198,7 +198,7 @@ static const char *errorToString(ParseValueResult &result) {
   bool key_found = static_cast<uint8_t>(state) & ParseValueResult::KEY_FOUND;
 
   snprintf(output, sizeof(output), "%s %s %s", key_found ? "KEY_FOUND" : "KEY_NOT_FOUND", parseStateToString(state), parseErrorToString(state));
-  
+
   return output;
 }
 

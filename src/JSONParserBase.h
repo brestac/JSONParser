@@ -297,7 +297,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_key() {
 
   while (n < JSON::MAX_KEY_LENGTH) {
     CHECK_LOOP(false);
-    
+
     int c = _cursor.peek(n);
     if (c < 0) {
       _reset_key();
@@ -351,7 +351,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::scan_digits(size_t max_length) {
   size_t n = 0;
   while (max_length == 0 || n < max_length) {
     CHECK_LOOP(0);
-    
+
     int c = _cursor.peek(n);
     if (c < 0)
       break;
@@ -360,9 +360,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::scan_digits(size_t max_length) {
       break;
     n++;
   }
-  
+
   _cursor.advance(n);
-  
+
   return n;
 }
 
@@ -394,10 +394,10 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::scan_escaped_string(
   size_t n = 0;
   Pool::ensure_pool_size(1);
   char *pool_start_ptr = Pool::current_pos();
-  
+
   while (true) {
     CHECK_LOOP(false);
-    
+
     unsigned char c = _cursor.peek();
 
     if (c < 0) {
@@ -470,7 +470,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_string(V &arg_value) {
   if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
     // Chemin rapide : pointer direct dans le buffer
     const char *str_start = _cursor.ptr();
-    
+
     if (!cursor_scan_until(_cursor, JSON_QUOTE_CHARACTER, MAX_VALUE_LENGTH, true, false)) {
       return ParseValueResult::PARSE_ERROR_STRING_NO_START;
     }
@@ -479,7 +479,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_string(V &arg_value) {
 
     if (_cursor.peek(-1) == JSON_ESCAPE_CHARACTER) {
       _cursor.go_to(str_start);
-      
+
       if (!scan_escaped_string<V>(parsed_value))
         return ParseValueResult::PARSE_ERROR_STRING_ESCAPE;
     }
@@ -598,12 +598,12 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_bool(V &arg_value) {
     bool pv = false;
     return assign_parsed_value_to_value(pv, arg_value) | ParseValueResult::BOOLEAN_PARSED;
   }
-  
+
   if (cursor_scan_keyword(_cursor, JSON_TRUE, true)) {
     bool pv = true;
     return assign_parsed_value_to_value(pv, arg_value) | ParseValueResult::BOOLEAN_PARSED;
   }
-  
+
   return ParseValueResult::PARSE_ERROR_BOOLEAN;
 }
 
@@ -616,7 +616,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_null(V &arg_value) {
   if (!cursor_scan_keyword(_cursor, JSON_NULL, true)) {
     return ParseValueResult::PARSE_ERROR_NULL;
   }
-  
+
   NullType pv;
   return assign_parsed_value_to_value(pv, arg_value) | ParseValueResult::NULL_VALUE_PARSED;
 }
@@ -630,7 +630,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_nan(V &arg_value) {
   if (!cursor_scan_keyword(_cursor, JSON_NAN, true)) {
     return ParseValueResult::PARSE_ERROR_NUMERIC;
   }
-    
+
   NullType pv;
   return assign_parsed_value_to_value(pv, arg_value) | ParseValueResult::FLOAT_PARSED;
 }
@@ -665,7 +665,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_any_numeric(V &arg_value) {
   r = parse_infinity(arg_value);
   if (r.parsed())
     return r;
-  
+
   return ParseValueResult::PARSE_ERROR_NUMERIC;
 }
 // ── parse_numeric ────────────────────────────────────────────
@@ -699,7 +699,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_unknown_value() {
 
   while (true) {
     CHECK_LOOP(ParseValueResult::PARSE_ERROR_UNKNOWN);
-    
+
     int c = _cursor.peek();
 
     if (c < 0)
@@ -884,7 +884,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_value(TableT &table,
 
   ParseValueResult result;
   result |= ParseValueResult::KEY_FOUND;
-  
+
   result |= dispatch_by_index(entry->arg_index, *this, args,
                               std::make_index_sequence<NPairs>{});
 
@@ -1051,7 +1051,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
 
       if (!r.keyFound()) { // The key was not found in the arguments. This is
                            // not an error. We skip the value.
-        r = parse_unknown_value() | ParseValueResult::UNKNOWN;
+        r = parse_unknown_value();
       }
 
       if (r.parsed()) {
@@ -1138,7 +1138,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::assign_same_type(PV &pv, V &v) {
     v = pv;
     return ParseValueResult::VALUE_UPDATED;
   }
-  
+
   return ParseValueResult::NO_RESULT;
 }
 
@@ -1365,13 +1365,13 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
     }
 
     skip_spaces();
-    
+
     ParseValueResult result = parse_into_array_at_index(arg_value, i);
 
     if (_state == STOPPED) {
       return ParseValueResult::ARRAY_PARSED;
     }
-    
+
     if (!result.parsed()) {
       JSON_DEBUG_WARNING(
           "JSONParserBase::parse_array: cannot parse value at index %zu\n", i);
