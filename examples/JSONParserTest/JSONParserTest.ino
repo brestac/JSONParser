@@ -13,7 +13,6 @@ bool connectWifi();
 
 static uint32_t free_heap = 0U;
 static uint32_t free_stack = 0U;
-WiFiClient* get_http_stream(HTTPClient& http, WiFiClient& client, const char*ssid, const char*pwd, const char* url);
 
 void setup() {
   Serial.begin(115200);
@@ -33,15 +32,9 @@ void setup() {
   free_stack = ESP.getFreeContStack();
 
   Serial.println("");
-  run_tests();
-  return;
+//  run_tests();
 
-  WiFiClient client;
-  HTTPClient http;
-
-  WiFiClient *stream = get_http_stream(http, client, WIFI_SSID, WIFI_PASSWORD, "http://192.168.1.2:9000/data.geojson");
-  test_parse_geojson_big_with_limited_geometry_from_stream(stream);
-  http.end();
+  test_http_stream(WIFI_SSID, WIFI_PASSWORD, "http://192.168.1.2:10000/canada.json");
 }
 
 void loop() {
@@ -62,8 +55,8 @@ bool connectWifi(const char*ssid, const char*pwd) {
 
   // WIFI
   WiFi.mode(WIFI_STA);
-  uint8_t macAddress[6] = { 170, 0, 0, 0, 0, 1 };
-  wifi_set_macaddr(STATION_IF, const_cast<uint8*>(macAddress));
+  uint8_t mac[6] = {170,0,0,0,0,11};
+  wifi_set_macaddr(STATION_IF, const_cast<uint8 *>(mac));
 
   WiFi.begin(ssid, pwd);
 
@@ -79,6 +72,8 @@ bool connectWifi(const char*ssid, const char*pwd) {
     return false;
   } else {
     Serial.printf("WiFi connected status:%d\n", WiFi.status());
+    Serial.println(WiFi.localIP());
+
     WiFi.setAutoReconnect(true);
     WiFi.persistent(true);
   }
@@ -86,31 +81,39 @@ bool connectWifi(const char*ssid, const char*pwd) {
   return true;
 }
 
-WiFiClient* get_http_stream(HTTPClient& http, WiFiClient& client, const char*ssid, const char*pwd, const char* url) {
+void test_http_stream(const char*ssid, const char*pwd, String url) {
+  WiFiClient client;
+  HTTPClient http;
 
   bool connected = connectWifi(ssid, pwd);
-  if (!connected) return nullptr;
+  if (!connected) {
+    Serial.println("[WIFI] Cannot connect\n");
+    return;
+  }
 
   Serial.print("[HTTP] begin...\n");
 
   // configure server and url
+  http.addHeader("Content-Type", "text/plain");
+
   bool begin = http.begin(client, url);
   if (!begin) {
-    // check(false, "Cannot connect to 192.168.1.2. Is the server running ? On a Mac, you can do 'ruby -run -e httpd . -p 9000'");
-    return nullptr;
+    Serial.println("[HTTP] Cannot connect to host");
+    return;
   }
-
-  Serial.print("[HTTP] GET...\n");
+  Serial.printf("[HTTP] GET %s\n", url.c_str());
   // start connection and send HTTP header
   int httpCode = http.GET();
 
   if (httpCode < 0) {
-    return nullptr;
+    Serial.printf("[HTTP] Connection refused %d\n", httpCode);
+    return;
   }
 
   if (httpCode != HTTP_CODE_OK) {
+    Serial.printf("[HTTP] Bad response %d\n", httpCode);
     http.end();
-    return nullptr;
+    return;
   }
 
   WiFiClient *stream = http.getStreamPtr();
@@ -118,10 +121,11 @@ WiFiClient* get_http_stream(HTTPClient& http, WiFiClient& client, const char*ssi
   unsigned long timer = millis();
   while (stream->available() <= 0) {
     if (millis() - timer > 5000) {
-      return nullptr;
+      Serial.println("[HTTP] stream timeout");
+      return;
     }
     delay(10);
   }
-  
-  return stream;
+
+  test_parse_geojson_big_with_limited_geometry_from_stream(stream);
 }
