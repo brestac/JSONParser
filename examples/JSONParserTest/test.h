@@ -672,7 +672,7 @@ void test_parse_geojson_small() {
   JSON::ParseResult pr = fc.fromJSON(stream);
 
   check(pr.error == 0, "parse");
-  check(fc.type == "FeatureCollection", "type == FeatureCollection was %.*s",
+  check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s",
         (int)fc.type.length(), fc.type.data());
   check(fc.features.size() == 1, "1 feature, was %u", fc.features.size());
 
@@ -680,26 +680,26 @@ void test_parse_geojson_small() {
     check(strcmp(fc.features[0].type, "Feature") == 0,
           "feature.type == Feature, was %s", fc.features[0].type);
     check(strcmp(fc.features[0].properties.name, "Canada") == 0,
-          "properties.name == Canada was %s", fc.features[0].properties.name);
+          "properties.name == Canada, was %s", fc.features[0].properties.name);
     check(strcmp(fc.features[0].geometry.type, "Polygon") == 0,
-          "geometry.type == Polygon was %s", fc.features[0].geometry.type);
-    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings was %u",
+          "geometry.type == Polygon, was %s", fc.features[0].geometry.type);
+    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings, was %u",
           fc.features[0].geometry.coordinates.size());
     if (fc.features[0].geometry.coordinates.size() >= 2) {
       check(fc.features[0].geometry.coordinates[0].size() == 5,
-            "ring[0] has 5 points was %u",
+            "ring[0] has 5 points, was %u",
             fc.features[0].geometry.coordinates[0].size());
       check(fc.features[0].geometry.coordinates[1].size() == 5,
-            "ring[1] has 5 points was %u",
+            "ring[1] has 5 points, was %u",
             fc.features[0].geometry.coordinates[1].size());
       // Spot-check first coordinate of ring[0]: [-140.99778, 41.675105]
       check(near(fc.features[0].geometry.coordinates[0][0][0], -140.99778f,
                  0.001f),
-            "ring[0][0].lon ≈ -140.998 was %f",
+            "ring[0][0].lon ≈ -140.998, was %f",
             fc.features[0].geometry.coordinates[0][0][0]);
       check(near(fc.features[0].geometry.coordinates[0][0][1], 41.675105f,
                  0.001f),
-            "ring[0][0].lat ≈ 41.675 was %f",
+            "ring[0][0].lat ≈ 41.675, was %f",
             fc.features[0].geometry.coordinates[0][0][1]);
     }
   }
@@ -837,22 +837,22 @@ void test_parse_geojson_big() {
     check(strcmp(fc.features[0].type, "Feature") == 0,
           "feature.type == Feature, was %s", fc.features[0].type);
     check(strcmp(fc.features[0].properties.name, "Canada") == 0,
-          "properties.name == Canada was %s", fc.features[0].properties.name);
+          "properties.name == Canada, was %s", fc.features[0].properties.name);
     check(strcmp(fc.features[0].geometry.type, "Polygon") == 0,
-          "geometry.type == Polygon was %s", fc.features[0].geometry.type);
-    check(fc.features[0].geometry.coordinates.size() == 480, "480 rings was %u",
+          "geometry.type == Polygon, was %s", fc.features[0].geometry.type);
+    check(fc.features[0].geometry.coordinates.size() == 480, "480 rings, was %u",
           fc.features[0].geometry.coordinates.size());
     if (fc.features[0].geometry.coordinates.size() >= 2) {
       check(fc.features[0].geometry.coordinates[0].size() == 14,
-            "ring[0] has 5 points was %u",
+            "ring[0] has 5 points, was %u",
             fc.features[0].geometry.coordinates[0].size());
       check(fc.features[0].geometry.coordinates[1].size() == 33,
-            "ring[1] has 5 points was %u",
+            "ring[1] has 5 points, was %u",
             fc.features[0].geometry.coordinates[1].size());
       // Spot-check first coordinate of ring[0]: [-140.99778, 41.675105]
       check(
           near(fc.features[0].geometry.coordinates[0][0][0], -65.614f, 0.001f),
-          "ring[0][0].lon ≈ -65.614 was %.3f",
+          "ring[0][0].lon ≈ -65.614, was %.3f",
           fc.features[0].geometry.coordinates[0][0][0]);
     }
   }
@@ -1118,7 +1118,7 @@ void test_print_geojson_to_buffer() {
       "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\","
       "\"properties\":{\"name\":\"feature_0\"},\"geometry\":{\"type\":"
       "\"Polygon\",\"coordinates\":[[[1,2],[3,4],[5,6],[7,8]]]}}]}";
-  check(strcmp(buf, expected) == 0, "toJSON output should be \n%s\n, got \n%s",
+  check(strcmp(buf, expected) == 0, "toJSON output, should be \n%s\n, got \n%s",
         expected, buf);
 }
 
@@ -1135,7 +1135,7 @@ void test_print_to_stream_string() {
   const char *expected =
       "{\"name\":\"name\",\"names\":[\"a\",\"b\",\"\"],\"numbers\":[12,10000]}";
   check(strcmp(stream.c_str(), expected) == 0,
-        "toJSON output should be %s, got %s", expected, stream.c_str());
+        "toJSON output, should be %s, got %s", expected, stream.c_str());
 }
 
 void test_print_hex_to_stream_string() {
@@ -1150,7 +1150,7 @@ void test_print_hex_to_stream_string() {
   s.toJSON(stream);
   const char *expected = "{\"hex\":\"AABBCCDD\"}";
   check(strcmp(stream.c_str(), expected) == 0,
-        "toJSON output should be %s, got %s", expected, stream.c_str());
+        "toJSON output, should be %s, got %s", expected, stream.c_str());
 }
 
 // ----------------------------------------------------------------
@@ -1177,7 +1177,7 @@ void test_roundtrip() {
   check(result.error == 0, "parse");
   check(copy.id == 72, "id == 72");
   check(copy.active == true, "active == true");
-  check(near(copy.temperature, 19.8f), "temperature ≈ 19.8 and was %f",
+  check(near(copy.temperature, 19.8f), "temperature ≈ 19.8, was %f",
         copy.temperature);
 }
 
