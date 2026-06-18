@@ -389,10 +389,10 @@ struct FeatureCollectionLimited : public JSONObject {
 };
 
 // ----------------------------------------------------------------
-// test_callback
+// test_parse_callback
 // ----------------------------------------------------------------
 
-void test_callback() {
+void test_parse_callback() {
   DEBUG_PRINTF("\nTEST CALLBACK\n");
   DEBUG_PRINTF(
       "------------------------------------------------------------\n");
@@ -445,10 +445,10 @@ void test_callback() {
 }
 
 // ----------------------------------------------------------------
-// testArrayCallback
+// test_parse_array_callback
 // ----------------------------------------------------------------
 
-void testArrayCallback() {
+void test_parse_array_callback() {
   DEBUG_PRINTF("\nTEST ARRAY CALLBACK\n");
   DEBUG_PRINTF(
       "------------------------------------------------------------\n");
@@ -1450,8 +1450,8 @@ void test_parse_geojson_from_stream(Stream *stream) {
 
 void run_parsing_tests() {
   // with callback
-  test_callback();
-  testArrayCallback();
+  test_parse_callback();
+  test_parse_array_callback();
 
   test_parsing();
   test_parse_indexed_keys();
