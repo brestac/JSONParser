@@ -18,7 +18,7 @@ desktop-test-arduino: tests/desktop.cpp $(HEADERS)
 
 desktop-test-debug: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
-	NIX_HARDENING_ENABLE= $(CXX) $(CXXFLAGS) -O0 -std=gnu++17 -Wall -Wextra -ferror-limit=50 -I. tests/desktop.cpp -o build/desktop-test-debug
+	NIX_HARDENING_ENABLE= $(CXX) $(CXXFLAGS) -O0 -std=gnu++17 -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments -Wno-variadic-macros -Wno-vla-extension -ferror-limit=50 -I. tests/desktop.cpp -o build/desktop-test-debug
 	cp -n tests/canada.json build/canada.json
 
 xcode:
