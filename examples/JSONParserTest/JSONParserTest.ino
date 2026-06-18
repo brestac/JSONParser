@@ -33,24 +33,25 @@ void setup() {
   free_stack = ESP.getFreeContStack();
 
   Serial.println("");
-  //run_tests();
+  run_tests();
+  return;
 
   WiFiClient client;
   HTTPClient http;
 
-  WiFiClient *stream = get_http_stream(http, client, WIFI_SSID, WIFI_PASSWORD, "http://192.168.1.2:9000/canada.json");
+  WiFiClient *stream = get_http_stream(http, client, WIFI_SSID, WIFI_PASSWORD, "http://192.168.1.2:9000/data.geojson");
   test_parse_geojson_big_with_limited_geometry_from_stream(stream);
   http.end();
 }
 
 void loop() {
-  static bool printed = false;
-  if (printed == false) {
-    Serial.printf("Free heap: %u => %u\n", free_heap, ESP.getFreeHeap());
-    Serial.printf("Free stack: %u => %u\n", free_stack, ESP.getFreeContStack());
-    Serial.printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
-    printed = true;
-  }
+  // static bool printed = false;
+  // if (printed == false) {
+  //   Serial.printf("Free heap: %u => %u\n", free_heap, ESP.getFreeHeap());
+  //   Serial.printf("Free stack: %u => %u\n", free_stack, ESP.getFreeContStack());
+  //   Serial.printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
+  //   printed = true;
+  // }
 
   delay(10);
 }
