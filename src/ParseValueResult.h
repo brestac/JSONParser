@@ -35,10 +35,11 @@ public:
     PARSE_ERROR_OBJECT_NO_END = 136,
     PARSE_ERROR_ARRAY_NO_START = 144, // custom error
     PARSE_ERROR_ARRAY_NO_END = 152, // custom error
-    PARSE_ERROR_ARRAY_OVERFLOW = 160,
+    PARSE_ERROR_OVERFLOW = 160,
     PARSE_ERROR_STRING_NO_START = 168,
     PARSE_ERROR_STRING_NO_END = 176,
     PARSE_ERROR_STRING_ESCAPE = 184,
+    PARSE_ERROR_OBJECT_NO_COMMA = 192,
     PARSE_ERROR_UNKNOWN = 255 // unknown error
   };
 
@@ -163,14 +164,20 @@ static const char *parseErrorToString(ParseValueResult::State &state) {
     return "PARSE_ERROR_ARRAY_NO_START";
   case ParseValueResult::PARSE_ERROR_ARRAY_NO_END:
     return "PARSE_ERROR_ARRAY_NO_END";
-  case ParseValueResult::PARSE_ERROR_ARRAY_OVERFLOW:
-    return "PARSE_ERROR_ARRAY_OVERFLOW";
+  case ParseValueResult::PARSE_ERROR_OVERFLOW:
+    return "PARSE_ERROR_OVERFLOW";
   case ParseValueResult::PARSE_ERROR_STRING_NO_START:
     return "PARSE_ERROR_STRING_NO_START";
   case ParseValueResult::PARSE_ERROR_STRING_NO_END:
     return "PARSE_ERROR_STRING_NO_END";
   case ParseValueResult::PARSE_ERROR_STRING_ESCAPE:
     return "PARSE_ERROR_STRING_ESCAPE";
+  case ParseValueResult::PARSE_ERROR_OBJECT_NO_START:
+    return "PARSE_ERROR_OBJECT_NO_START";
+  case ParseValueResult::PARSE_ERROR_OBJECT_NO_END:
+    return "PARSE_ERROR_OBJECT_NO_END";
+  case ParseValueResult::PARSE_ERROR_OBJECT_NO_COMMA:
+    return "PARSE_ERROR_OBJECT_NO_COMMA";
   default:
     return "UNKNOWN_ERROR";
   }
