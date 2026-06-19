@@ -1335,8 +1335,28 @@ constexpr To JSONParserBase<Cursor, UseMask, TargetT>::clamp_to_max(From v) {
 template <typename Cursor, bool UseMask, typename TargetT>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_array(UnknownValueType) {
-  static std::vector<UnknownValueType> tmp;
-  return parse_array(tmp);
+  // Pas de vecteur statique : on skip chaque élément directement
+  if (!is_array_start())
+    return ParseValueResult::PARSE_ERROR_ARRAY_NO_START;
+
+  _cursor.advance();
+
+  while (true) {
+    skip_spaces();
+    if (is_array_end()) break;
+
+    ParseValueResult r = parse_unknown_value();
+    if (!r.parsed()) return r;
+
+    skip_spaces();
+    if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) break;
+  }
+
+  if (!cursor_scan_char(_cursor, JSON_ARRAY_END_CHARACTER, true))
+    return ParseValueResult::PARSE_ERROR_ARRAY_NO_END;
+
+  skip_spaces();
+  return ParseValueResult::ARRAY_PARSED;
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
