@@ -1439,12 +1439,11 @@ template <typename T, size_t N>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
     T (&array)[N], uint32_t index) {
-  static UnknownValueType unknown;
 
   if (index >= N) {
     JSON_DEBUG_WARNING(
         "JSONParserBase::parse_into_array_at_index: %zu overflow", index);
-    return parse_into_value(unknown);
+    return parse_into_value(UNKNOW_VALUE_STATIC);
   }
 
   return parse_into_value(array[index]);
@@ -1469,10 +1468,10 @@ template <typename T, size_t N>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
     std::array<T, N> &array, uint32_t index) {
-  static UnknownValueType unknown;
+
   if (index >= N) {
     JSON_DEBUG_COLOR(COLOR_RED, "Array overflow at index %zu\n", index);
-    return parse_into_value(unknown);
+    return parse_into_value(UNKNOW_VALUE_STATIC);
   }
 
   JSON_DEBUG_COLOR(COLOR_GREEN, "Parsing array at index %zu into %s\n", index,

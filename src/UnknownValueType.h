@@ -24,3 +24,5 @@ struct UnknownValueType : JSONObject {
   constexpr bool operator==(const UnknownValueType & /*other*/) const { return true; }
   constexpr bool operator!=(const UnknownValueType & /*other*/) const { return false; }
 };
+
+static UnknownValueType UNKNOW_VALUE_STATIC;
