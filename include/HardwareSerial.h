@@ -19,7 +19,7 @@
 
 class HardwareSerial : public Stream {
 public:
-  explicit constexpr HardwareSerial() : _pos(0) {}
+  explicit HardwareSerial() : _pos(0) {}
 
   // flush():
   // Empty implementation by default in Print::
