@@ -35,56 +35,39 @@ public:
 
   // Tente de remplir le buffer depuis le stream (appels non-bloquants).
   // Ne lit que les octets immédiatement disponibles.
-  void refill() {    
-    while (available() < N) {
-      int avail = _stream->available();
-      if (avail <= 0)
-        break;
-      int c = _stream->read();
-      if (c < 0)
-        break;
-      uint8_t addr = _head & MASK;
-      if (addr < N) {
-         _buf[addr] = static_cast<char>(c);
-         _head++;
-      }
-    }
-  }
+void refill() {
+  size_t space = N - available();
+  if (space == 0) return;
 
-  // Peek à l'offset i (0 = prochain octet), sans consommer.
-  // Effectue un refill si nécessaire.
-  // Retourne -1 si la donnée n'est pas disponible (timeout / fin de flux).
-  int peek(size_t offset = 0) {
-    if (offset >= available()) {
-      refill();
-    }
-    
-    if (offset >= available()) {
-      return -1;
-    }
-    
-    return static_cast<unsigned char>(_buf[(_tail + offset) & MASK]);
+  // Écriture dans la partie libre du ring buffer (contiguë modulo N)
+  // On lit par blocs dans un tmp puis on copie octet par octet
+  static char tmp[N];
+  size_t n = _stream->readBytes(tmp, space);  // bloquant avec timeout
+  for (size_t i = 0; i < n; i++) {
+      _buf[_head & MASK] = tmp[i];
+      _head++;
   }
+}
+// Peek à l'offset i (0 = prochain octet), sans consommer.
+// Effectue un refill si nécessaire.
+// Retourne -1 si la donnée n'est pas disponible (timeout / fin de flux).
+int peek(size_t offset = 0) {
+  if (offset >= available()) refill();
+  if (offset >= available()) return -1;
+  return static_cast<unsigned char>(_buf[(_tail + offset) & MASK]);
+}
+
+// Lit et consomme un octet. Retourne -1 si vide.
+int read() {
+  if (!_stream) return -1;
+  if (available() == 0) refill();
+  if (available() == 0) return -1;  // vrai timeout/EOF
+  return static_cast<unsigned char>(_buf[_tail++ & MASK]);
+}
+
 
   // Consomme n octets (les marque comme lus)
   void consume(size_t n) { _tail += n; }
-
-  // Lit et consomme un octet. Retourne -1 si vide.
-  int read() {
-    if (!_stream) {
-      return -1;
-    }
-
-    if (available() == 0) {
-      refill();
-    }
-
-    if (available() == 0) {
-      return -1;
-    }
-
-    return static_cast<unsigned char>(_buf[_tail++ & MASK]);
-  }
 
 private:
   static constexpr size_t MASK = N - 1;
