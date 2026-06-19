@@ -186,16 +186,15 @@ static const char *parseErrorToString(ParseValueResult::State &state) {
 const char *parseStateToString(ParseValueResult::State &state) {
   uint8_t parse_state = static_cast<uint8_t>(state) & ParseValueResult::PARSE_MASK;
 
-  switch (parse_state) {
-    case ParseValueResult::NO_RESULT:
-      return "-";
-    case ParseValueResult::VALUE_CONVERTED:
-      return "VALUE_CONVERTED";
-    case ParseValueResult::VALUE_UPDATED:
-      return "VALUE_UPDATED";
-    default:
-      return "UNKNOWN_PARSE_STATE";
+  if (parse_state == ParseValueResult::NO_RESULT) {
+    return "NO_RESULT";
+  } else if (parse_state & ParseValueResult::VALUE_UPDATED) {
+    return "VALUE_UPDATED";
+  } else if (parse_state & ParseValueResult::VALUE_CONVERTED) {
+    return "VALUE_CONVERTED";
   }
+  
+  return "";
 }
 
 static const char *errorToString(ParseValueResult &result) {
