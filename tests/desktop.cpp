@@ -1,6 +1,6 @@
 
 #define DEBUG_ESP_PORT Serial
-#define JSON_DEBUG_LEVEL 1
+#define JSON_DEBUG_LEVEL 0
 
 #include <array>
 #include <chrono>
@@ -26,8 +26,8 @@
 #include "../examples/JSONParserTest/test.h"
 
 int main() {
-  testArrayCallback();
-  // std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
-  // std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
+  run_tests();
+  std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
+  std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
   return 0;
 }
