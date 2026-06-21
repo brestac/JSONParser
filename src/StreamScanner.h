@@ -36,7 +36,7 @@ template <typename Cursor>
 bool cursor_scan_until(Cursor &cur, char delim, size_t maxLen = 0, bool consume = true, bool consumeDelim = false) {
   size_t i = 0;
   while (true) {
-    CHECK_LOOP(false);
+    CHECK_LOOP(MAX_ITERATIONS, false);
     
     int c = cur.peek(i);
     if (c < 0)
@@ -125,7 +125,7 @@ bool cursor_scan_chars_once(Cursor &cur, const char (&chars)[ChN], bool consume 
 template <typename Cursor> bool cursor_skip_spaces(Cursor &cur) {
   bool skipped = false;
   while (true) {
-    CHECK_LOOP(false);
+    CHECK_LOOP(MAX_ITERATIONS, false);
     int got = cur.peek();
     if (got < 0)
       break;
