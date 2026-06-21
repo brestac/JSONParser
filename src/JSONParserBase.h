@@ -445,10 +445,9 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::scan_escaped_string(
   if (needs_pool<Cursor, TargetT, V>(unescaped)) {
     Pool::increment_values_counter();
     Pool::move_offset(n);
-    sv = std::string_view(pool_start_ptr, n);
-  } else {
-    sv = std::string_view(pool_start_ptr, n);
   }
+
+  sv = std::string_view(pool_start_ptr, n);
 
   return true;
 }

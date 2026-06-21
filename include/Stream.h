@@ -6,12 +6,16 @@
 
 #include "ArduinoCompat.h"
 
+#define PARSE_TIMEOUT 1000 // default number of milli-seconds to wait
+#define NO_SKIP_CHAR 1 // a magic char not found in a valid ASCII numeric field
+
 class Stream {
 protected:
-  unsigned long _timeout = 1000;  // number of milliseconds to wait for the next char before aborting timed read
-  unsigned long _startMillis;  // used for timeout measurement
-  int timedRead();    // private method to read stream with timeout
-  int timedPeek();    // private method to peek stream with timeout
+  unsigned long _timeout = PARSE_TIMEOUT; // number of milliseconds to wait for the next
+                                 // char before aborting timed read
+  unsigned long _startMillis;    // used for timeout measurement
+  int timedRead();               // private method to read stream with timeout
+  int timedPeek();               // private method to peek stream with timeout
 
 public:
   // Writing
@@ -33,37 +37,34 @@ public:
   size_t readBytes(char *buffer, size_t length);
 };
 
-#define PARSE_TIMEOUT 1000  // default number of milli-seconds to wait
-#define NO_SKIP_CHAR  1  // a magic char not found in a valid ASCII numeric field
-
 // private method to read stream with timeout
 int Stream::timedRead() {
-    int c;
-    _startMillis = millis();
-    do {
-        c = read();
-        if(c >= 0)
-            return c;
-        if(_timeout == 0)
-            return -1;
-        yield();
-    } while(millis() - _startMillis < _timeout);
-    return -1;     // -1 indicates timeout
+  int c;
+  _startMillis = millis();
+  do {
+    c = read();
+    if (c >= 0)
+      return c;
+    if (_timeout == 0)
+      return -1;
+    yield();
+  } while (millis() - _startMillis < _timeout);
+  return -1; // -1 indicates timeout
 }
 
 // private method to peek stream with timeout
 int Stream::timedPeek() {
-    int c;
-    _startMillis = millis();
-    do {
-        c = peek();
-        if(c >= 0)
-            return c;
-        if(_timeout == 0)
-            return -1;
-        yield();
-    } while(millis() - _startMillis < _timeout);
-    return -1;     // -1 indicates timeout
+  int c;
+  _startMillis = millis();
+  do {
+    c = peek();
+    if (c >= 0)
+      return c;
+    if (_timeout == 0)
+      return -1;
+    yield();
+  } while (millis() - _startMillis < _timeout);
+  return -1; // -1 indicates timeout
 }
 
 // read characters from stream into buffer
@@ -73,13 +74,13 @@ int Stream::timedPeek() {
 //
 size_t Stream::readBytes(char *buffer, size_t length) {
 
-    size_t count = 0;
-    while(count < length) {
-        int c = timedRead();
-        if(c < 0)
-            break;
-        *buffer++ = (char) c;
-        count++;
-    }
-    return count;
+  size_t count = 0;
+  while (count < length) {
+    int c = timedRead();
+    if (c < 0)
+      break;
+    *buffer++ = (char)c;
+    count++;
+  }
+  return count;
 }
