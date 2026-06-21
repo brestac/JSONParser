@@ -560,7 +560,7 @@ void test_parsing() {
 
   JSON::ParseResult result = p.fromJSON(json);
 
-  check(result.error == 0, "parse");
+  check(result.error == 0, "parse ok, was %s:%s", errorToString(result.error), errorToString(result.parseError));
   check(p.ville == std::string_view("Lyon"), "ville == Lyon");
   check(p.age == 45, "age == 45");
   check(near(p.taille, 1.82f), "taille ≈ 1.82");
@@ -812,20 +812,17 @@ char *read_file(const char *filename) {
   return buffer;
 }
 
+template <typename T>
 void test_parse_geojson_big() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING BIG FILE\n");
   DEBUG_PRINTF(
       "------------------------------------------------------------\n");
 
-  FILE *file = fopen("./canada.json", "r");
-
-  if (!file) {
-    DEBUG_PRINTF("ERROR: Could not open canada.json\n");
-    return;
-  }
-
   char *json = read_file("./canada.json");
-  FeatureCollection fc;
+  T fc;
+
+  constexpr bool limited = std::is_same_v<T, FeatureCollectionLimited<1, 10, 1>>;
+  
   uint64_t start = now();
   JSON::ParseResult pr = fc.fromJSON(json);
   [[maybe_unused]] uint64_t elapsed1 = now() - start;
@@ -841,15 +838,10 @@ void test_parse_geojson_big() {
           "properties.name == Canada, was %s", fc.features[0].properties.name);
     check(strcmp(fc.features[0].geometry.type, "Polygon") == 0,
           "geometry.type == Polygon, was %s", fc.features[0].geometry.type);
-    check(fc.features[0].geometry.coordinates.size() == 480, "480 rings, was %u",
-          fc.features[0].geometry.coordinates.size());
+    check(fc.features[0].geometry.coordinates.size() == (limited ? 10 : 480), "%u rings, was %u", (limited ? 10 : 480), fc.features[0].geometry.coordinates.size());
     if (fc.features[0].geometry.coordinates.size() >= 2) {
-      check(fc.features[0].geometry.coordinates[0].size() == 14,
-            "ring[0] has 5 points, was %u",
-            fc.features[0].geometry.coordinates[0].size());
-      check(fc.features[0].geometry.coordinates[1].size() == 33,
-            "ring[1] has 5 points, was %u",
-            fc.features[0].geometry.coordinates[1].size());
+      check(fc.features[0].geometry.coordinates[0].size() == (limited ? 1 : 14), "ring[0] has %u points, was %u", (limited ? 1 : 14), fc.features[0].geometry.coordinates[0].size());
+      check(fc.features[0].geometry.coordinates[1].size() == (limited ? 1 : 33), "ring[1] has %u points, was %u", (limited ? 1 : 33), fc.features[0].geometry.coordinates[1].size());
       // Spot-check first coordinate of ring[0]: [-140.99778, 41.675105]
       check(
           near(fc.features[0].geometry.coordinates[0][0][0], -65.614f, 0.001f),
@@ -865,42 +857,15 @@ void test_parse_geojson_big() {
   [[maybe_unused]] uint64_t elapsed2 = now() - start;
   free(json);
 
+  float factor = (float)elapsed1 / (float)elapsed2;
+  bool faster = elapsed1 < elapsed2;
   DEBUG_PRINTF("JSONParser Parsing time: %lu µs\n", elapsed1);
   DEBUG_PRINTF("RapidJSON Parsing time: %lu µs\n", elapsed2);
-  DEBUG_PRINTF("JSONParser is %.1f times slower than RapidJSON\n", (float)elapsed1 / (float)elapsed2);
+  DEBUG_PRINTF("JSONParser is %.1f times %s than RapidJSON\n", faster ? "faster" : "slower", faster ? 1.0f / factor : factor);
 }
 
-void test_parse_geojson_big_with_limited_geometry_from_buffer(const char * filename) {
-  DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET BIG FILE\n");
-  DEBUG_PRINTF(
-      "------------------------------------------------------------\n");
-  
-  FILE *file = fopen(filename, "r");
-
-  if (!file) {
-    DEBUG_PRINTF("ERROR: Could not open canada.json\n");
-    return;
-  }
-
-  char *json = read_file(filename);
-
-  FeatureCollectionLimited<1, 10, 1> fc;
-
-  uint64_t start = now();
-  JSON::ParseResult pr = fc.fromJSON(json);
-  [[maybe_unused]] uint64_t elapsed1 = now() - start;
-
-  rapidjson::Document d;
-  start = now();
-  d.Parse(json);
-  [[maybe_unused]] uint64_t elapsed2 = now() - start;
-  free(json);
-
-  check(pr.error == 0, "parse error %s", errorToString(pr.error));
-  pr.print();
-  DEBUG_PRINTF("JSONParser Parsing time: %lu µs\n", elapsed1);
-  DEBUG_PRINTF("RapidJSON Parsing time: %lu µs\n", elapsed2);
-  DEBUG_PRINTF("JSONParser is %.1f times slower\n", (float)elapsed1 / (float)elapsed2);
+void test_parse_geojson_big_with_limited_geometry() {
+  test_parse_geojson_big<FeatureCollectionLimited<1, 10, 1>>();
 }
 
 #endif
@@ -1509,8 +1474,8 @@ void run_parsing_tests() {
   test_parse_embedded_object_subset();
   test_parse_geojson_big_with_limited_geometry_from_file();
 #ifndef ARDUINO
-  test_parse_geojson_big();
-  test_parse_geojson_big_with_limited_geometry_from_buffer("./canada.json");
+  test_parse_geojson_big<FeatureCollection>();
+  test_parse_geojson_big_with_limited_geometry();
 #endif
 }
 

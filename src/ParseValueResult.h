@@ -187,14 +187,14 @@ const char *parseStateToString(ParseValueResult::State &state) {
   uint8_t parse_state = static_cast<uint8_t>(state) & ParseValueResult::PARSE_MASK;
 
   if (parse_state == ParseValueResult::NO_RESULT) {
-    return "VALUE_NOT_CONVERTED_NOT_UPDATED";
+    return "NO_RESULT";
   } else if (parse_state & ParseValueResult::VALUE_UPDATED) {
     return "VALUE_UPDATED";
   } else if (parse_state & ParseValueResult::VALUE_CONVERTED) {
     return "VALUE_CONVERTED";
   }
   
-  return "";
+  return "VALUE_NOT_CONVERTED_NOT_UPDATED";
 }
 
 static const char *errorToString(ParseValueResult &result) {
