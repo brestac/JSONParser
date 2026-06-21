@@ -142,7 +142,7 @@ public:
                                       '\t', '\n', '\r', '\0'};
     size_t n = 0;
     while (n < maxLen) {
-      CHECK_LOOP(0);
+      CHECK_LOOP(MAX_ITERATIONS, 0);
       int c = _ring.peek(n);
       if (c < 0)
         break;

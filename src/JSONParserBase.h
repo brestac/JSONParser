@@ -302,7 +302,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_key() {
   size_t n = 0;
 
   while (n < JSON::MAX_KEY_LENGTH) {
-    CHECK_LOOP(false);
+    CHECK_LOOP(MAX_ITERATIONS,false);
 
     int c = _cursor.peek(n);
     if (c < 0) {
@@ -356,7 +356,7 @@ size_t
 JSONParserBase<Cursor, UseMask, TargetT>::scan_digits(size_t max_length) {
   size_t n = 0;
   while (max_length == 0 || n < max_length) {
-    CHECK_LOOP(0);
+    CHECK_LOOP(MAX_ITERATIONS,0);
 
     int c = _cursor.peek(n);
     if (c < 0)
@@ -402,7 +402,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::scan_escaped_string(
   char *pool_start_ptr = Pool::current_pos();
 
   while (true) {
-    CHECK_LOOP(false);
+    CHECK_LOOP(MAX_ITERATIONS,false);
 
     unsigned char c = _cursor.peek();
 
@@ -706,7 +706,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
   bool escape = false;
 
   while (true) {
-    CHECK_LOOP(ParseValueResult::PARSE_ERROR_OVERFLOW);
+    CHECK_LOOP(MAX_ITERATIONS,ParseValueResult::PARSE_ERROR_OVERFLOW);
 
     int c = _cursor.peek();
 
@@ -797,7 +797,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
   bool inString = true;
 
   while (inString) {
-    CHECK_LOOP(ParseValueResult::PARSE_ERROR_OVERFLOW);
+    CHECK_LOOP(MAX_ITERATIONS,ParseValueResult::PARSE_ERROR_OVERFLOW);
 
     int c = _cursor.peek();
 
@@ -849,7 +849,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
   // we find the end of the object
 
   while (true) {
-    CHECK_LOOP(ParseValueResult::PARSE_ERROR_OVERFLOW);
+    CHECK_LOOP(MAX_ITERATIONS,ParseValueResult::PARSE_ERROR_OVERFLOW);
 
     if (is_object_end()) {
       //_cursor.advance();
@@ -893,7 +893,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
   skip_spaces();
   
   while (true) {
-    CHECK_LOOP(ParseValueResult::PARSE_ERROR_OVERFLOW);
+    CHECK_LOOP(MAX_ITERATIONS,ParseValueResult::PARSE_ERROR_OVERFLOW);
 
     // Always use the generic skip_value<void>() here: direct array elements
     // may be sub-containers (e.g. rings inside coordinates), even when
@@ -1072,20 +1072,9 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
   static const StaticDispatchTable<NPairs> table(refs);
 
   // _nArgs = sizeof...(Args);
-  size_t iteration = 0;
 
   while (!_cursor.eof()) {
-    iteration++;
-
-    if (iteration % 64 == 0)
-      yield();
-
-    if (iteration >= MAX_ITERATIONS) {
-      JSON_DEBUG_ERROR("JSONParserBase::parse: too many iterations\n");
-      _state = ERROR;
-      _lastError = ParserError::TOO_MANY_ITERATIONS;
-      break;
-    }
+    CHECK_LOOP_VOID(MAX_ITERATIONS,_state = ERROR; _lastError = ParserError::TOO_MANY_ITERATIONS;)
 
 #if JSON_DEBUG_LEVEL > 0
     print_state(iteration);
