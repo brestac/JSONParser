@@ -37,6 +37,7 @@ RGB values 0‑255.
 
 #define CHECK_LOOP(RETURN_VALUE)                                               \
   static size_t iteration = 0;                                                 \
+  if (iteration % 64 == 0) yield();                                            \
   if (++iteration > JSON::MAX_ITERATIONS) {                                    \
     JSON_DEBUG_ERROR("Too many iterations\n");                                 \
     return RETURN_VALUE;                                                       \
