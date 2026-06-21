@@ -1,6 +1,6 @@
 
 #define DEBUG_ESP_PORT Serial
-#define JSON_DEBUG_LEVEL 0
+#define JSON_DEBUG_LEVEL JSON_DEBUG_LEVEL_NONE
 
 #include <array>
 #include <chrono>
@@ -26,7 +26,7 @@
 #include "../examples/JSONParserTest/test.h"
 
 int main() {
-  test_parse_geojson_big_with_limited_geometry_from_buffer("./data.geojson");
+  run_tests();
   std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
   std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
   return 0;
