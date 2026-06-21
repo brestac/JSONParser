@@ -784,6 +784,7 @@ void test_parse_vector_array_array_overflow() {
 }
 
 #ifndef ARDUINO
+
 char *read_file(const char *filename) {
   FILE *file = fopen(filename, "r");
 
@@ -866,7 +867,42 @@ void test_parse_geojson_big() {
 
   DEBUG_PRINTF("JSONParser Parsing time: %lu µs\n", elapsed1);
   DEBUG_PRINTF("RapidJSON Parsing time: %lu µs\n", elapsed2);
+  DEBUG_PRINTF("JSONParser is %.1f times slower than RapidJSON\n", (float)elapsed1 / (float)elapsed2);
 }
+
+void test_parse_geojson_big_with_limited_geometry_from_buffer(const char * filename) {
+  DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET BIG FILE\n");
+  DEBUG_PRINTF(
+      "------------------------------------------------------------\n");
+  
+  FILE *file = fopen(filename, "r");
+
+  if (!file) {
+    DEBUG_PRINTF("ERROR: Could not open canada.json\n");
+    return;
+  }
+
+  char *json = read_file(filename);
+
+  FeatureCollectionLimited<1, 10, 1> fc;
+
+  uint64_t start = now();
+  JSON::ParseResult pr = fc.fromJSON(json);
+  [[maybe_unused]] uint64_t elapsed1 = now() - start;
+
+  rapidjson::Document d;
+  start = now();
+  d.Parse(json);
+  [[maybe_unused]] uint64_t elapsed2 = now() - start;
+  free(json);
+
+  check(pr.error == 0, "parse error %s", errorToString(pr.error));
+  pr.print();
+  DEBUG_PRINTF("JSONParser Parsing time: %lu µs\n", elapsed1);
+  DEBUG_PRINTF("RapidJSON Parsing time: %lu µs\n", elapsed2);
+  DEBUG_PRINTF("JSONParser is %.1f times slower\n", (float)elapsed1 / (float)elapsed2);
+}
+
 #endif
 // ----------------------------------------------------------------
 // Test 1 – fromJSON via char buffer
@@ -1474,6 +1510,7 @@ void run_parsing_tests() {
   test_parse_geojson_big_with_limited_geometry_from_file();
 #ifndef ARDUINO
   test_parse_geojson_big();
+  test_parse_geojson_big_with_limited_geometry_from_buffer("./canada.json");
 #endif
 }
 
