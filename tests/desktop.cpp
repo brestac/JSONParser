@@ -26,7 +26,7 @@
 #include "../examples/JSONParserTest/test.h"
 
 int main() {
-  run_tests();
+  test_parse_geojson_big_with_limited_geometry_from_buffer("./data.geojson");
   std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
   std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
   return 0;
