@@ -132,7 +132,8 @@ public:
 
   template <typename V>
   enable_if_t<container_info<V>::is_container ||
-                  std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>,
+                  std::is_same_v<JSONCallbackObject, remove_cvref_t<V>> ||
+std::is_same_v<UnknownValueType, remove_cvref_t<V>>,
               ParseValueResult>
   parse_array(V &arg_value);
 
@@ -212,13 +213,18 @@ private:
   template <typename V> ParseValueResult parse_null(V &v);
   template <typename V> ParseValueResult parse_nan(V &v);
   template <typename V> ParseValueResult parse_infinity(V &v);
-  ParseValueResult parse_array(UnknownValueType);
+  // ParseValueResult parse_array(UnknownValueType);
 
   template <typename V> ParseValueResult parse_object(V &v);
   template <typename V> ParseValueResult parse_any(V v);
 
-  ParseValueResult parse_unknown_value();
-  // ParseValueResult skip_to_array_end();
+  template <typename T = void> std::enable_if_t<!std::is_floating_point_v<T> && !std::is_integral_v<T> && !std::is_same_v<T, bool> && !container_info<T>::is_container, ParseValueResult> skip_value();
+  template <typename T> std::enable_if_t<std::is_floating_point_v<T>, ParseValueResult> skip_value();
+  template <typename T> std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, ParseValueResult> skip_value();
+  template <typename T> std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>, ParseValueResult> skip_value();
+  template <typename T> std::enable_if_t<std::is_same_v<T, bool>, ParseValueResult> skip_value();
+  template <typename T> std::enable_if_t<container_info<T>::kind == ContainerKind::CHAR_ARRAY || std::is_same_v<std::string_view, T>, ParseValueResult> skip_value();
+  template <typename T> ParseValueResult skip_to_array_end();
   ParseValueResult skip_to_object_end();
 
   bool parse_colon();
@@ -686,14 +692,16 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
   return ParseValueResult::PARSE_ERROR_NUMERIC;
 }
 
-// ── parse_unknown_value ───────────────────────────────────────
+// ── skip_value ───────────────────────────────────────
 // Saute une valeur JSON sans la parser (objet, tableau, littéral...)
 template <typename Cursor, bool UseMask, typename TargetT>
-ParseValueResult
-JSONParserBase<Cursor, UseMask, TargetT>::parse_unknown_value() {
-  JSON_DEBUG_INFO("JSONParserBase::parse_unknown_value\n");
-  [[maybe_unused]] size_t iteration = 0;
-  int depth = 0;
+template <typename T>
+std::enable_if_t<!std::is_floating_point_v<T> && !std::is_integral_v<T> && !std::is_same_v<T, bool> && !container_info<T>::is_container, ParseValueResult>
+JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
+#ifdef __GXX_RTTI
+  JSON_DEBUG_INFO("JSONParserBase::skip_value BaseType=%s\n", typeid(BaseType).name());
+#endif
+  int8_t depth = 0;
   bool inString = false;
   bool escape = false;
 
@@ -737,10 +745,95 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_unknown_value() {
     _cursor.advance();
   }
 
-  JSON_DEBUG_INFO("JSONParserBase::parse_unknown_value iterations=%zu\n",
-                  iteration);
-
   return ParseValueResult::OBJECT_PARSED;
+}
+
+// skip value for floating point : float or double
+template <typename Cursor, bool UseMask, typename TargetT>
+template <typename T>
+std::enable_if_t<std::is_floating_point_v<T>, ParseValueResult>
+JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
+  cursor_scan_char(_cursor, '-', true);
+  size_t len = scan_digits(MAX_VALUE_LENGTH);
+  len += static_cast<uint8_t>(cursor_scan_char(_cursor, '.', true));
+  len += scan_digits(MAX_VALUE_LENGTH);
+
+  return (len > 0) ? ParseValueResult::FLOAT_PARSED : ParseValueResult::NO_RESULT;
+}
+
+// skip value for unsigned integral
+template <typename Cursor, bool UseMask, typename TargetT>
+template <typename T>
+std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, ParseValueResult>
+JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
+  size_t len = scan_digits(MAX_VALUE_LENGTH);
+  return (len > 0) ? ParseValueResult::FLOAT_PARSED : ParseValueResult::NO_RESULT;
+}
+
+// skip value for signed integral
+template <typename Cursor, bool UseMask, typename TargetT>
+template <typename T>
+std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>, ParseValueResult>
+JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
+  cursor_scan_char(_cursor, '-', true);
+  size_t len = scan_digits(MAX_VALUE_LENGTH);
+  return (len > 0) ? ParseValueResult::FLOAT_PARSED : ParseValueResult::NO_RESULT;
+}
+
+// skip value for string. We need to handle escape sequences.
+template <typename Cursor, bool UseMask, typename TargetT>
+template <typename T>
+std::enable_if_t<container_info<T>::kind == ContainerKind::CHAR_ARRAY || std::is_same_v<std::string_view, T>, ParseValueResult>
+JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
+  if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true)) {
+    return ParseValueResult::PARSE_ERROR_STRING_NO_START;
+  }
+
+  bool escape = false;
+  bool inString = true;
+
+  while (inString) {
+    CHECK_LOOP(ParseValueResult::PARSE_ERROR_OVERFLOW);
+
+    int c = _cursor.peek();
+
+    if (c < 0) {
+      return ParseValueResult::PARSE_ERROR_STRING_NO_END;
+    }
+
+    char ch = static_cast<char>(c);
+
+    if (escape) {
+      escape = false;
+    }
+
+    if (ch == JSON_ESCAPE_CHARACTER && !escape) {
+      escape = true;
+      _cursor.advance();
+      continue;
+    }
+
+    if (ch == JSON_QUOTE_CHARACTER && !escape) {
+      inString = false;
+      break;
+    }
+
+    _cursor.advance();
+  }
+
+  if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true)) {
+    return ParseValueResult::PARSE_ERROR_STRING_NO_END;
+  }
+  
+  return ParseValueResult::STRING_PARSED;
+}
+
+// skip value for boolean
+template <typename Cursor, bool UseMask, typename TargetT>
+template <typename T>
+std::enable_if_t<std::is_same_v<T, bool>, ParseValueResult>
+JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
+  return (cursor_scan_keyword(_cursor, JSON_TRUE, true) || cursor_scan_keyword(_cursor, JSON_FALSE, true));
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -748,7 +841,7 @@ ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
   JSON_DEBUG_INFO("JSONParserBase::skip_to_object_end\n");
   // We are in the middle of an object before the comma, we need to skip to the
-  // end of the object We use parse_unknown_value to skip the each value until
+  // end of the object We use skip_value to skip the each value until
   // we find the end of the object
 
   while (true) {
@@ -759,7 +852,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
       break;
     }
 
-    ParseValueResult r = parse_unknown_value();
+    ParseValueResult r = skip_value();
 
     if (r.parsed()) {
       if (is_object_end()) {
@@ -785,26 +878,20 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
 
   return ParseValueResult::OBJECT_PARSED;
 }
-/*
+
 template <typename Cursor, bool UseMask, typename TargetT>
+template<typename BaseType>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
   JSON_DEBUG_INFO("JSONParserBase::skip_to_array_end\n");
-  // We are in the middle of an array before the comma, we need to skip to the
-end of the array
-  // We use parse_unknown_value to skip the each value until we find the end of
-the array size_t iterations = 0;
+  // We are in the middle of an array before the comma, we need to skip to the end of the array
+  // We use skip_value to skip the each value until we find the end of the array size_t iterations = 0;
 
   while (true) {
-    if (iterations > MAX_ITERATIONS) {
-      JSON_DEBUG_ERROR(
-          "JSONParserBase::skip_to_array_end: too many iterations\n");
-      return ParseValueResult::NO_RESULT;
-    }
+    CHECK_LOOP(ParseValueResult::PARSE_ERROR_OVERFLOW);
 
-    iterations++;
-
-    ParseValueResult r = parse_unknown_value();
+    ParseValueResult r = skip_value<BaseType>();
+    
     if (r.parsed()) {
       if (is_array_end()) {
         _cursor.advance();
@@ -825,12 +912,11 @@ the array size_t iterations = 0;
     else {
       return ParseValueResult::NO_RESULT;
     }
-
   }
 
-  return ParseValueResult::VALUE_PARSED;
+  return ParseValueResult::ARRAY_PARSED;
 }
-*/
+
 // ── parse_value (callback) ────────────────────────────────────
 template <typename Cursor, bool UseMask, typename TargetT>
 ParseValueResult
@@ -1051,7 +1137,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
 
       if (!r.keyFound()) { // The key was not found in the arguments. This is
                            // not an error. We skip the value.
-        r = parse_unknown_value();
+        r = skip_value();
       }
 
       if (r.parsed()) {
@@ -1322,47 +1408,11 @@ constexpr To JSONParserBase<Cursor, UseMask, TargetT>::clamp_to_max(From v) {
   return static_cast<To>(v);
 }
 
-// ── parse_array ──────────────────────────────────────────────
-
-// template <typename Cursor>
-// template <typename T>
-// enable_if_t<is_derived_json_data_container_v<T>, ParseValueResult>
-// JSONParserBase<Cursor, UseMask, TargetT>::parse_array(T &arg_value) {
-//   JSON_DEBUG_INFO("JSONParserBase::parse_array with derived JSONObject
-//   objects\n"); return parse_array(arg_value);
-// }
-
-template <typename Cursor, bool UseMask, typename TargetT>
-ParseValueResult
-JSONParserBase<Cursor, UseMask, TargetT>::parse_array(UnknownValueType) {
-  // Pas de vecteur statique : on skip chaque élément directement
-  if (!is_array_start())
-    return ParseValueResult::PARSE_ERROR_ARRAY_NO_START;
-
-  _cursor.advance();
-
-  while (true) {
-    skip_spaces();
-    if (is_array_end()) break;
-
-    ParseValueResult r = parse_unknown_value();
-    if (!r.parsed()) return r;
-
-    skip_spaces();
-    if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) break;
-  }
-
-  if (!cursor_scan_char(_cursor, JSON_ARRAY_END_CHARACTER, true))
-    return ParseValueResult::PARSE_ERROR_ARRAY_NO_END;
-
-  skip_spaces();
-  return ParseValueResult::ARRAY_PARSED;
-}
-
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename V>
 enable_if_t<container_info<V>::is_container ||
-                std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>,
+                std::is_same_v<JSONCallbackObject, remove_cvref_t<V>> ||
+std::is_same_v<UnknownValueType, remove_cvref_t<V>>,
             ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_array\n");
@@ -1374,8 +1424,11 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   _cursor.advance();
 
   size_t i = 0;
-
-  while (true) {
+  bool underflow = false;
+  constexpr size_t max = container_info<V>::is_container ? container_info<V>::extent : MAX_ARRAY_LENGTH;
+  using BaseType = typename container_info<V>::base_type;
+  
+  while (i < max) {
 
     if (i > MAX_ARRAY_LENGTH) {
       JSON_DEBUG_WARNING("JSONParserBase::parse_array: too many elements\n");
@@ -1385,8 +1438,13 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
     }
 
     skip_spaces();
-
-    ParseValueResult result = parse_into_array_at_index(arg_value, i);
+    ParseValueResult result;
+    
+    if constexpr (std::is_same_v<UnknownValueType, remove_cvref_t<V>>) {
+      result = skip_value();
+    } else {
+      result = parse_into_array_at_index(arg_value, i);
+    }
 
     if (_state == STOPPED) {
       return ParseValueResult::ARRAY_PARSED;
@@ -1404,6 +1462,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
       JSON_DEBUG_WARNING("JSONParserBase::parse_array: no comma at index %zu, "
                          "assuming end of array\n",
                          i);
+      if (i < max - 1) {
+        underflow = true;
+      }
       break;
     }
 
@@ -1411,9 +1472,13 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   }
 
   if (!cursor_scan_char(_cursor, JSON_ARRAY_END_CHARACTER, true)) {
-    JSON_DEBUG_WARNING("JSONParserBase::parse_array: no array end\n");
-    _state = ERROR;
-    return ParseValueResult::PARSE_ERROR_ARRAY_NO_END;
+    if (underflow) {
+      JSON_DEBUG_WARNING("JSONParserBase::parse_array: no array end\n");
+      _state = ERROR;
+      return ParseValueResult::PARSE_ERROR_ARRAY_NO_END;
+    } else {
+      return skip_to_array_end<BaseType>();
+    }
   }
 
   skip_spaces();
@@ -1443,7 +1508,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
   if (index >= N) {
     JSON_DEBUG_WARNING(
         "JSONParserBase::parse_into_array_at_index: %zu overflow", index);
-    return parse_into_value(UNKNOW_VALUE_STATIC);
+    return ParseValueResult::PARSE_ERROR_OVERFLOW;
   }
 
   return parse_into_value(array[index]);
@@ -1471,12 +1536,12 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_array_at_index(
 
   if (index >= N) {
     JSON_DEBUG_COLOR(COLOR_RED, "Array overflow at index %zu\n", index);
-    return parse_into_value(UNKNOW_VALUE_STATIC);
+    return ParseValueResult::PARSE_ERROR_OVERFLOW;
   }
-
+#ifdef __GXX_RTTI
   JSON_DEBUG_COLOR(COLOR_GREEN, "Parsing array at index %zu into %s\n", index,
                    typeid(T).name());
-
+#endif
   return parse_into_value(array[index]);
 }
 
