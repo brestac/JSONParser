@@ -890,7 +890,12 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
   while (true) {
     CHECK_LOOP(ParseValueResult::PARSE_ERROR_OVERFLOW);
 
-    ParseValueResult r = skip_value<BaseType>();
+    // Always use the generic skip_value<void>() here: direct array elements
+    // may be sub-containers (e.g. rings inside coordinates), even when
+    // BaseType (the scalar leaf type) is a primitive like float.
+    // Type-specialised skip_value<float> only knows how to skip a bare
+    // number and would fail on "[…]" sub-arrays.
+    ParseValueResult r = skip_value();
     
     if (r.parsed()) {
       if (is_array_end()) {
