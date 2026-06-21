@@ -35,36 +35,45 @@ public:
 
   // Tente de remplir le buffer depuis le stream (appels non-bloquants).
   // Ne lit que les octets immédiatement disponibles.
-void refill() {
-  size_t space = N - available();
-  if (space == 0) return;
+  void refill() {
+    size_t space = N - available();
+    if (space == 0)
+      return;
 
-  // Écriture dans la partie libre du ring buffer (contiguë modulo N)
-  // On lit par blocs dans un tmp puis on copie octet par octet
-  static char tmp[N];
-  size_t n = _stream->readBytes(tmp, space);  // bloquant avec timeout
-  for (size_t i = 0; i < n; i++) {
+    // Écriture dans la partie libre du ring buffer (contiguë modulo N)
+    // On lit par blocs dans un tmp puis on copie octet par octet
+    static char tmp[N];
+    size_t n = _stream->readBytes(tmp, space); // bloquant avec timeout
+    for (size_t i = 0; i < n; i++) {
       _buf[_head & MASK] = tmp[i];
       _head++;
+    }
   }
-}
-// Peek à l'offset i (0 = prochain octet), sans consommer.
-// Effectue un refill si nécessaire.
-// Retourne -1 si la donnée n'est pas disponible (timeout / fin de flux).
-int peek(size_t offset = 0) {
-  if (offset >= available()) refill();
-  if (offset >= available()) return -1;
-  return static_cast<unsigned char>(_buf[(_tail + offset) & MASK]);
-}
+  // Peek à l'offset i (0 = prochain octet), sans consommer.
+  // Effectue un refill si nécessaire.
+  // Retourne -1 si la donnée n'est pas disponible (timeout / fin de flux).
+  int peek(size_t offset = 0) {
+    if (offset >= available())
+      refill();
+    if (offset >= available())
+      return -1;
+    return static_cast<unsigned char>(_buf[(_tail + offset) & MASK]);
+  }
 
-// Lit et consomme un octet. Retourne -1 si vide.
-int read() {
-  if (!_stream) return -1;
-  if (available() == 0) refill();
-  if (available() == 0) return -1;  // vrai timeout/EOF
-  return static_cast<unsigned char>(_buf[_tail++ & MASK]);
-}
+  // Lit et consomme un octet. Retourne -1 si vide.
+  int read() {
+    if (!_stream)
+      return -1;
+    if (available() == 0)
+      refill();
+    if (available() == 0)
+      return -1; // vrai timeout/EOF
+    return static_cast<unsigned char>(_buf[_tail++ & MASK]);
+  }
 
+  size_t readBytes(char *buffer, size_t length) {
+    return _stream->readBytes(buffer, length);
+  }
 
   // Consomme n octets (les marque comme lus)
   void consume(size_t n) { _tail += n; }
@@ -92,12 +101,12 @@ private:
 
 class StreamCursor {
 public:
-
-  StreamCursor(Stream* stream) : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
+  StreamCursor(Stream *stream)
+      : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
     JSON_DEBUG_TYPES("StreamCursor created from %s\n", stream);
   }
 
-  StreamCursor(Stream& stream) : StreamCursor(&stream) { }
+  StreamCursor(Stream &stream) : StreamCursor(&stream) {}
 
   ~StreamCursor() { JSON_DEBUG_WARNING("StreamCursor destroyed\n"); }
 
@@ -127,6 +136,10 @@ public:
     else
       _eof = true;
     return c;
+  }
+
+  size_t readBytes(char *buffer, size_t length) {
+    return _ring.readBytes(buffer, length);
   }
 
   bool eof() const { return _eof; }
@@ -215,7 +228,7 @@ public:
     return write((const uint8_t *)str, N);
   }
 
-  size_t write(const char* str) {
+  size_t write(const char *str) {
     return write((const uint8_t *)str, strlen(str));
   }
 
@@ -225,7 +238,7 @@ public:
   // Retourne le nombre d'octets écrits.
 
   template <typename... Args>
-  size_t printf(const char* format, Args &&...args) {
+  size_t printf(const char *format, Args &&...args) {
     char buf[STREAM_BUFFER_SIZE];
 
     // snprintf écrit au plus sizeof(buf)-1 caractères
@@ -273,6 +286,7 @@ public:
   size_t bytesWritten() const { return _written; }
 
   int8_t depth = -1;
+
 private:
   RingBuffer<JSON::RING_BUFFER_SIZE> _ring;
   Stream *_stream; // référence directe pour l'écriture
