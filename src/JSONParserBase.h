@@ -223,7 +223,7 @@ private:
   template <typename T> std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, ParseValueResult> skip_value();
   template <typename T> std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>, ParseValueResult> skip_value();
   template <typename T> std::enable_if_t<std::is_same_v<T, bool>, ParseValueResult> skip_value();
-  template <typename T> std::enable_if_t<container_info<T>::kind == ContainerKind::CHAR_ARRAY || std::is_same_v<std::string_view, T>, ParseValueResult> skip_value();
+  template <typename T> std::enable_if_t<std::is_same_v<std::string_view, T>, ParseValueResult> skip_value();
   template <typename T> ParseValueResult skip_to_array_end();
   ParseValueResult skip_to_object_end();
 
@@ -699,7 +699,7 @@ template <typename T>
 std::enable_if_t<!std::is_floating_point_v<T> && !std::is_integral_v<T> && !std::is_same_v<T, bool> && !container_info<T>::is_container, ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
 #ifdef __GXX_RTTI
-  JSON_DEBUG_INFO("JSONParserBase::skip_value BaseType=%s\n", typeid(BaseType).name());
+  JSON_DEBUG_INFO("JSONParserBase::skip_value Type=%s\n", typeid(T).name());
 #endif
   int8_t depth = 0;
   bool inString = false;
@@ -753,6 +753,7 @@ template <typename Cursor, bool UseMask, typename TargetT>
 template <typename T>
 std::enable_if_t<std::is_floating_point_v<T>, ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
+  JSON_DEBUG_INFO("JSONParserBase::skip_value floating point\n");
   cursor_scan_char(_cursor, '-', true);
   size_t len = scan_digits(MAX_VALUE_LENGTH);
   len += static_cast<uint8_t>(cursor_scan_char(_cursor, '.', true));
@@ -766,6 +767,7 @@ template <typename Cursor, bool UseMask, typename TargetT>
 template <typename T>
 std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
+  JSON_DEBUG_INFO("JSONParserBase::skip_value unsigned integral\n");
   size_t len = scan_digits(MAX_VALUE_LENGTH);
   return (len > 0) ? ParseValueResult::FLOAT_PARSED : ParseValueResult::NO_RESULT;
 }
@@ -775,6 +777,7 @@ template <typename Cursor, bool UseMask, typename TargetT>
 template <typename T>
 std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>, ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
+  JSON_DEBUG_INFO("JSONParserBase::skip_value signed integral\n");
   cursor_scan_char(_cursor, '-', true);
   size_t len = scan_digits(MAX_VALUE_LENGTH);
   return (len > 0) ? ParseValueResult::FLOAT_PARSED : ParseValueResult::NO_RESULT;
@@ -783,8 +786,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
 // skip value for string. We need to handle escape sequences.
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename T>
-std::enable_if_t<container_info<T>::kind == ContainerKind::CHAR_ARRAY || std::is_same_v<std::string_view, T>, ParseValueResult>
+std::enable_if_t<std::is_same_v<std::string_view, T>, ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::skip_value() {
+  JSON_DEBUG_INFO("JSONParserBase::skip_value string\n");
   if (!cursor_scan_char(_cursor, JSON_QUOTE_CHARACTER, true)) {
     return ParseValueResult::PARSE_ERROR_STRING_NO_START;
   }
@@ -880,13 +884,14 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
-template<typename BaseType>
+template<typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
   JSON_DEBUG_INFO("JSONParserBase::skip_to_array_end\n");
-  // We are in the middle of an array before the comma, we need to skip to the end of the array
-  // We use skip_value to skip the each value until we find the end of the array size_t iterations = 0;
-
+  // We are in the middle of an array after the comma, we need to skip to the end of the array
+  // We use skip_value to skip the each value until we find the end of the array;
+  skip_spaces();
+  
   while (true) {
     CHECK_LOOP(ParseValueResult::PARSE_ERROR_OVERFLOW);
 
@@ -895,7 +900,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
     // BaseType (the scalar leaf type) is a primitive like float.
     // Type-specialised skip_value<float> only knows how to skip a bare
     // number and would fail on "[…]" sub-arrays.
-    ParseValueResult r = skip_value();
+    ParseValueResult r = skip_value<V>();
     
     if (r.parsed()) {
       if (is_array_end()) {
@@ -1431,7 +1436,6 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   size_t i = 0;
   bool underflow = false;
   constexpr size_t max = container_info<V>::is_container ? container_info<V>::extent : MAX_ARRAY_LENGTH;
-  using BaseType = typename container_info<V>::base_type;
   
   while (i < max) {
 
@@ -1482,7 +1486,12 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
       _state = ERROR;
       return ParseValueResult::PARSE_ERROR_ARRAY_NO_END;
     } else {
-      return skip_to_array_end<BaseType>();
+      using container = container_info<V>;
+      if constexpr (container::is_container && container::dimensions == 1) {
+        return skip_to_array_end<typename container::base_type>();
+      } else {
+        return skip_to_array_end<void>();
+      }      
     }
   }
 
