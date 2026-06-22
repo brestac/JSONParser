@@ -36,18 +36,20 @@ public:
   // Tente de remplir le buffer depuis le stream (appels non-bloquants).
   // Ne lit que les octets immédiatement disponibles.
   void refill() {
-    size_t space = N - available();
-    if (space == 0)
-      return;
-
-    // Écriture dans la partie libre du ring buffer (contiguë modulo N)
-    // On lit par blocs dans un tmp puis on copie octet par octet
-    static char tmp[N];
-    size_t n = _stream->readBytes(tmp, space); // bloquant avec timeout
-    for (size_t i = 0; i < n; i++) {
-      _buf[_head & MASK] = tmp[i];
-      _head++;
-    }
+      size_t space = N - available();
+      if (space == 0) return;
+  
+      size_t head_pos = _head & MASK;
+      size_t contiguous = N - head_pos;          // octets jusqu'à la fin physique
+      size_t first = std::min(space, contiguous);
+      size_t n = _stream->readBytes(_buf + head_pos, first);
+      _head += n;
+  
+      if (n == first && first < space) {         // wrap-around
+          size_t second = space - first;
+          n = _stream->readBytes(_buf, second);
+          _head += n;
+      }
   }
   // Peek à l'offset i (0 = prochain octet), sans consommer.
   // Effectue un refill si nécessaire.
