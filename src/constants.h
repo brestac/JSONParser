@@ -13,6 +13,7 @@ NAMESPACE_JSON_BEGIN
 static size_t GLOBAL_PARSER_SIZE = 0;
 static size_t MAX_GLOBAL_PARSER_SIZE = 0;
 static size_t GLOBAL_STRING_POOL_SIZE = 0;
+static uint16_t YIELD_EVERY = 128;
 static const char *EMPTY_STRING = "";
 
 constexpr size_t STREAM_BUFFER_SIZE = 1 << 7;     // 128 octets

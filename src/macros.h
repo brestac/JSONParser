@@ -35,21 +35,21 @@ RGB values 0‑255.
 
 #define TO_STRING(x) #x
 
-#define CHECK_LOOP(MAX,RETURN_VALUE)                                               \
+#define CHECK_LOOP(MAX,RETURN_VALUE)                                           \
   static size_t iteration = 0;                                                 \
-  if (iteration % 64 == 0) yield();                                            \
-  if (++iteration > MAX) {                                    \
+  if (iteration % YIELD_EVERY == 0) yield();                                   \
+  if (++iteration > MAX) {                                                     \
     JSON_DEBUG_ERROR("Too many iterations\n");                                 \
     return RETURN_VALUE;                                                       \
   }
 
-#define CHECK_LOOP_VOID(MAX,STATEMENT)                                           \
-static size_t iteration = 0;                                                 \
-if (iteration % 64 == 0) yield();                                            \
-if (++iteration > MAX) {                                    \
-  JSON_DEBUG_ERROR("Too many iterations\n");                                 \
-  STATEMENT                                                                  \
-  return;                                                                    \
+#define CHECK_LOOP_VOID(MAX,STATEMENT)                                         \
+static size_t iteration = 0;                                                   \
+if (iteration % YIELD_EVERY == 0) yield();                                     \
+if (++iteration > MAX) {                                                       \
+  JSON_DEBUG_ERROR("Too many iterations\n");                                   \
+  STATEMENT                                                                    \
+  return;                                                                      \
 }
 
 #define COLOR_BLACK 30
