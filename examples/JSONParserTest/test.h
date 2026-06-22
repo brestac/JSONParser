@@ -148,6 +148,8 @@ static int failed = 0;
 
 template <typename... Args>
 static void check(bool condition, std::string_view format, Args &&...args) {
+  bool print_args = true;
+  
   if (condition) {
     PRINTF_COLOR(COLOR_GREEN, "%*c[PASS] ", 2, ' ');
     ++passed;
@@ -155,19 +157,15 @@ static void check(bool condition, std::string_view format, Args &&...args) {
     if (pos == std::string_view::npos) pos = format.find(", should be");
   
     if (pos != std::string_view::npos) {
-      std::string_view sub = format.substr(0, pos);
-      DEBUG_PRINTF("%.*s\n", (int)sub.length(), sub.data());
-    } else
-      DEBUG_PRINTF("%.*s\n", (int)format.length(), format.data());
+      format = format.substr(0, pos);
+      print_args = false;
+    }
   } else {
     PRINTF_COLOR(COLOR_RED, "%*c[FAIL] ", 2, ' ');
     ++failed;
   }
 
-  if (condition)
-    return;
-
-  if constexpr (sizeof...(Args) > 0) {
+  if (sizeof...(Args) > 0 && print_args) {
     char _buf[512];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-security"
