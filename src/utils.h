@@ -17,18 +17,26 @@
 
 #include "constants.h"
 #include "macros.h"
+#include "StreamScanner.h"
 
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T (&dst)[N], uint8_t *src, size_t src_size);
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T dst, uint8_t (&src)[N]);
-
 template <typename T, size_t N> constexpr bool copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size);
-
 bool get_byte_fromHexString(uint8_t &value, const char* src, size_t src_size);
 template <typename T> bool get_unsigned_integral_fromHexString(T &value, const char* src, size_t src_size);
-
 template <typename T> constexpr T be_to_h(T value);
-
 unsigned long long now();
+
+template<uint8_t N>
+constexpr bool is_in_ranges(char c, char (&ranges)[N][2]) {
+  for (uint8_t i = 0; i < N; i++) {
+    if (c >= ranges[i][0] && c <= ranges[i][1]) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 constexpr uint8_t _hex_to_dec(char c) {
   if (c >= '0' && c <= '9') {
@@ -78,7 +86,7 @@ template <typename T, size_t N, size_t M> constexpr bool copy_array(T (&dst)[N][
 }
 
 constexpr bool _is_hex_char(char c) {
-  return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+  return is_in_ranges(c, JSON_HEX_CHARACTERS_RANGES);
 }
 
 bool get_byte_fromHexString(uint8_t &value, const char* src, size_t src_size) {

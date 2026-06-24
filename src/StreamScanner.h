@@ -66,7 +66,7 @@ constexpr bool cursor_scan_ranges_once(Cursor &cur, char (&ranges)[RN][2], bool 
   if (got < 0)
     return false;
   char c = static_cast<char>(got);
-  for (size_t i = 0; i < RN; i++) {
+  for (uint8_t i = 0; i < RN; i++) {
     if (c >= ranges[i][0] && c <= ranges[i][1]) {
       if (consume)
         cur.advance();
@@ -88,7 +88,7 @@ constexpr bool cursor_scan_ranges(Cursor &cur, char (&ranges)[RN][2], size_t max
       break;
     char c = static_cast<char>(got);
     bool matched = false;
-    for (size_t i = 0; i < RN; i++) {
+    for (uint8_t i = 0; i < RN; i++) {
       if (c >= ranges[i][0] && c <= ranges[i][1]) {
         matched = true;
         break;
@@ -104,6 +104,20 @@ constexpr bool cursor_scan_ranges(Cursor &cur, char (&ranges)[RN][2], size_t max
   return result;
 }
 
+// --- scan_chars : avance tant que les caractères sont dans l'ensemble ---
+template <typename Cursor, size_t ChN>
+bool cursor_scan_chars(Cursor &cur, const char (&chars)[ChN], bool consume = true) {
+  bool found = false;
+
+  while(true) {
+    CHECK_LOOP(MAX_ITERATIONS, false);
+    if (!cursor_scan_chars_once(cur, chars, consume))
+      break;
+    found = true;
+  }
+
+  return found;
+}
 // --- scan_chars_once : teste un seul caractère contre un ensemble ---
 template <typename Cursor, size_t ChN>
 bool cursor_scan_chars_once(Cursor &cur, const char (&chars)[ChN], bool consume = true) {
@@ -111,7 +125,7 @@ bool cursor_scan_chars_once(Cursor &cur, const char (&chars)[ChN], bool consume 
   if (got < 0)
     return false;
   char c = static_cast<char>(got);
-  for (size_t i = 0; i < ChN; i++) {
+  for (uint8_t i = 0; i < ChN; i++) {
     if (c == chars[i]) {
       if (consume)
         cur.advance();
@@ -121,23 +135,23 @@ bool cursor_scan_chars_once(Cursor &cur, const char (&chars)[ChN], bool consume 
   return false;
 }
 
-// --- skip_spaces ---
-template <typename Cursor> bool cursor_skip_spaces(Cursor &cur) {
-  bool skipped = false;
-  while (true) {
-    CHECK_LOOP(MAX_ITERATIONS, false);
-    int got = cur.peek();
-    if (got < 0)
-      break;
-    char c = static_cast<char>(got);
-    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
-      cur.advance();
-      skipped = true;
-    } else {
-      break;
-    }
-  }
-  return skipped;
-}
+// // --- skip_spaces ---
+// template <typename Cursor> bool cursor_skip_spaces(Cursor &cur) {
+//   bool skipped = false;
+//   while (true) {
+//     CHECK_LOOP(MAX_ITERATIONS, false);
+//     int got = cur.peek();
+//     if (got < 0)
+//       break;
+//     char c = static_cast<char>(got);
+//     for (uint8_t i = 0; i < 4; i++) {
+//       if (c == JSON_SPACE_CHARACTERS[i]) {
+//         cur.advance();
+//         skipped = true;
+//       }
+//     }
+//   }
+//   return skipped;
+// }
 
 NAMESPACE_JSON_END
