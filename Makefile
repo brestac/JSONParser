@@ -1,7 +1,7 @@
 all: desktop-test
 
 CXX = clang++
-override CXXFLAGS += -g -Wall -Werror -DJSON_DEBUG_LEVEL_NONE=0 -DJSON_DEBUG_LEVEL_INFO=1 -DJSON_DEBUG_LEVEL_WARNING=2 -DJSON_DEBUG_LEVEL_ERROR=3
+override CXXFLAGS += -g -Wall -Werror -Werror=unused-variable -Wno-format-security -DJSON_DEBUG_LEVEL_NONE=0 -DJSON_DEBUG_LEVEL_INFO=1 -DJSON_DEBUG_LEVEL_WARNING=2 -DJSON_DEBUG_LEVEL_ERROR=3
 
 SRC_HEADERS   = $(wildcard src/*.h)
 TEST_HEADERS  = $(wildcard tests/*.h)
@@ -13,7 +13,7 @@ desktop-test: tests/desktop.cpp $(HEADERS)
 
 desktop-test-arduino: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
-	$(CXX) $(CXXFLAGS) -Os -std=gnu++17 -g -fno-rtti -falign-functions=4 -ffunction-sections -fdata-sections -fno-exceptions -I. tests/desktop.cpp -o build/desktop-test-arduino
+	g++ $(CXXFLAGS) -Wno-unknown-pragmas -Os -std=gnu++17 -g -fno-rtti -falign-functions=4 -ffunction-sections -fdata-sections -fno-exceptions -I. tests/desktop.cpp -o build/desktop-test-arduino
 	cp -n tests/canada.json build/canada.json
 
 desktop-test-debug: tests/desktop.cpp $(HEADERS)
