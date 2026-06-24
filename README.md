@@ -9,7 +9,7 @@
   }
   
   Person person{"William", 32};
-  person.fromJSON("{age:22}");
+  person.fromJSON("{\"age\":22}");
   
   person.toJSON(Serial); // prints full object: {name:"William", "age":22}
   person.toJSON(Serial, true); // prints updated values: {"age":22}
@@ -32,11 +32,18 @@
         break;
     }
 
-    // We stop after parsing index 1
+    // We stop after parsing the second object
     if (key.getArrayIndex() >= 1) {
       stop = true;
     }
   }
+```
+
+## Get detailed parse result
+```c++
+  Person person{"William", 32};
+  JSON::ParseResult res = person.fromJSON("{\"age\":22,\"unknown\":55, \"name\":0}");
+  res.print(); // {"length":8,"nParsed":3,"nMatched":2,"nConverted":1,"nUpdated":1,"error":"NO_ERROR","elapsed":10,"stopped":false}
 ```
 
 ## Features
