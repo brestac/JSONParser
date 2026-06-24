@@ -249,7 +249,7 @@ private:
     return _current_char() == JSON_ARRAY_START_CHARACTER;
   }
   bool is_array_end() { return _current_char() == JSON_ARRAY_END_CHARACTER; }
-  bool skip_spaces() { return cursor_skip_spaces(_cursor); }
+  bool skip_spaces();
   size_t scan_digits(size_t max_length = 0);
 
   void set_state(ParserState s);
@@ -260,7 +260,11 @@ private:
 // ============================================================
 //  Implémentation des méthodes
 // ============================================================
-
+template <typename Cursor, bool UseMask, typename TargetT>
+bool JSONParserBase<Cursor, UseMask, TargetT>::skip_spaces() {
+  return cursor_scan_chars(_cursor, JSON_SPACE_CHARACTERS, true);
+}
+  
 template <typename Cursor, bool UseMask, typename TargetT>
 void JSONParserBase<Cursor, UseMask, TargetT>::reset() {
   // _cursor is passed from parser to parser and should not be reset
@@ -325,8 +329,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_key() {
     }
     char ch = static_cast<char>(c);
     // Valide si dans JSON_KEY_CHARACTERS (ranges a–z A–Z 0–9 _ $)
-    bool valid = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
-                 (ch >= '0' && ch <= '9') || ch == '_' || ch == '$';
+    bool valid = is_in_ranges(ch, JSON_KEY_CHARACTERS_RANGES);
     if (!valid)
       break;
 
@@ -354,7 +357,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_key() {
 // ── parse_colon ───────────────────────────────────────────────
 template <typename Cursor, bool UseMask, typename TargetT>
 bool JSONParserBase<Cursor, UseMask, TargetT>::parse_colon() {
-  cursor_skip_spaces(_cursor);
+  skip_spaces();
   return cursor_scan_char(_cursor, JSON_COLON_CHARACTER, true);
 }
 
@@ -368,22 +371,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_comma() {
 template <typename Cursor, bool UseMask, typename TargetT>
 size_t
 JSONParserBase<Cursor, UseMask, TargetT>::scan_digits(size_t max_length) {
-  size_t n = 0;
-  while (max_length == 0 || n < max_length) {
-    CHECK_LOOP(MAX_ITERATIONS, 0);
-
-    int c = _cursor.peek(n);
-    if (c < 0)
-      break;
-    char ch = static_cast<char>(c);
-    if (ch < '0' || ch > '9')
-      break;
-    n++;
-  }
-
-  _cursor.advance(n);
-
-  return n;
+  return cursor_scan_ranges(_cursor, JSON_DIGIT_CHARACTERS_RANGES, max_length, true);
 }
 
 template <typename Cursor, typename TargetT, typename TargetV>

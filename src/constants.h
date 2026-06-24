@@ -14,7 +14,6 @@ static size_t GLOBAL_PARSER_SIZE = 0;
 static size_t MAX_GLOBAL_PARSER_SIZE = 0;
 static size_t GLOBAL_STRING_POOL_SIZE = 0;
 static uint16_t YIELD_EVERY = 128;
-static const char *EMPTY_STRING = "";
 
 constexpr size_t STREAM_BUFFER_SIZE = 1 << 7;     // 128 octets
 constexpr size_t RING_BUFFER_SIZE = 1 << 8;       // 256 octets
@@ -43,9 +42,9 @@ inline size_t MAX_JSON_DEPTH = 1 << 8; // 256 niveaux de profondeur maximum
 NAMESPACE_JSON_END
 
 static char JSON_SPACE_CHARACTERS[4] = {' ', '\t', '\n', '\r'};
-static char JSON_HEX_CHARACTERS[3][2] = {{'a', 'f'}, {'A', 'F'}, {'0', '9'}};
-static char JSON_KEY_CHARACTERS[5][2] = {{'a', 'z'}, {'A', 'Z'}, {'0', '9'}, {'_', '_'}, {'$', '$'}};
-static char JSON_DIGIT_CHARACTERS_RANGE[2] = {'0', '9'};
+static char JSON_HEX_CHARACTERS_RANGES[3][2] = {{'a', 'f'}, {'A', 'F'}, {'0', '9'}};
+static char JSON_KEY_CHARACTERS_RANGES[5][2] = {{'a', 'z'}, {'A', 'Z'}, {'0', '9'}, {'_', '_'}, {'$', '$'}};
+static char JSON_DIGIT_CHARACTERS_RANGES[1][2] = {{'0', '9'}};
 
 static constexpr char JSON_START_CHARACTER = '{';
 static constexpr char JSON_END_CHARACTER = '}';
