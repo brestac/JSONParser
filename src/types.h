@@ -276,3 +276,6 @@ struct string_view_arg_counter<Key, Value, Rest...> {
 
 template <typename... Args>
 constexpr size_t count_string_view_args_v = string_view_arg_counter<Args...>::value;
+
+template<typename T>
+constexpr bool is_basic_value = std::is_integral_v<T> || std::is_floating_point_v<T>;

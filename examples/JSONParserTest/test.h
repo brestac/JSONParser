@@ -813,6 +813,9 @@ char *read_file(const char *filename) {
 template <typename T>
 void test_parse_geojson_big() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING BIG FILE\n");
+if constexpr (std::is_same_v<std::remove_extent_t<T>, std::remove_extent_t<FeatureCollectionLimited<0,0,0>>>) {
+  DEBUG_PRINTF("TESTING FEATURECOLLECTIONLIMITED\n");
+}
   DEBUG_PRINTF(
       "------------------------------------------------------------\n");
 
