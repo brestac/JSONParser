@@ -106,11 +106,15 @@ constexpr bool cursor_scan_ranges(Cursor &cur, char (&ranges)[RN][2], size_t max
 
 // --- scan_chars : avance tant que les caractères sont dans l'ensemble ---
 template <typename Cursor, size_t ChN>
-bool cursor_scan_chars(Cursor &cur, const char (&chars)[ChN], bool consume = true) {
+constexpr bool cursor_scan_chars(Cursor &cur, const char (&chars)[ChN], bool consume = true) {
   bool found = false;
-
+  size_t it = 0;
   while(true) {
-    CHECK_LOOP(MAX_ITERATIONS, false);
+    if (++it > JSON::MAX_ITERATIONS) {
+      JSON_DEBUG_ERROR("Too many iterations\n");
+      return false;
+    }
+    
     if (!cursor_scan_chars_once(cur, chars, consume))
       break;
     found = true;
@@ -120,7 +124,7 @@ bool cursor_scan_chars(Cursor &cur, const char (&chars)[ChN], bool consume = tru
 }
 // --- scan_chars_once : teste un seul caractère contre un ensemble ---
 template <typename Cursor, size_t ChN>
-bool cursor_scan_chars_once(Cursor &cur, const char (&chars)[ChN], bool consume = true) {
+constexpr bool cursor_scan_chars_once(Cursor &cur, const char (&chars)[ChN], bool consume = true) {
   int got = cur.peek();
   if (got < 0)
     return false;

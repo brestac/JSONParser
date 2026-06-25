@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <tuple>
 
 // include for ntohs
 #ifdef ARDUINO_ARCH_ESP8266 // TODO: check for other platforms
