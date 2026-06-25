@@ -1341,7 +1341,7 @@ void test_parse_big_struct() {
   }
 
   uint64_t elapsed = now() - start;
-  check(true, "Parsing time: %.1f µs\n", elapsed / 10000UL);
+  check(true, "Parsing time: %.1f µs\n", (float)elapsed / 10000.0F);
   check(r.error == 0, "parse");
   check(b.f01 == true, "f01 == true");
   check(b.f02 == -12, "f02 == -12");
