@@ -18,11 +18,11 @@ constexpr uint32_t operator""_hash(const char* str, size_t len) {
 //   parse_int_constexpr — remplace strtol (non constexpr)
 // ---------------------------------------------------------------------------
 
-constexpr int8_t parse_int_constexpr(const char* str) {
-  int8_t result = 0;
+constexpr int16_t parse_int_constexpr(const char* str) {
+  int16_t result = 0;
   size_t n = 0;
   while (*str >= '0' && *str <= '9' && ++n < JSON::MAX_KEY_LENGTH) {
-    result = static_cast<int8_t>(result * 10 + (*str - '0'));
+    result = static_cast<int16_t>(result * 10 + (*str - '0'));
     ++str;
   }
   return result;
@@ -34,7 +34,7 @@ constexpr int8_t parse_int_constexpr(const char* str) {
 // ---------------------------------------------------------------------------
 
 template <size_t N>
-constexpr std::pair<std::string_view, int8_t>
+constexpr std::pair<std::string_view, int16_t>
 get_json_key_and_index(const char (&raw_key)[N]) {
   for (size_t i = 0; i < N; ++i) {
     if (raw_key[i] == '[') {
@@ -97,7 +97,7 @@ struct MultidimensionalArrayIndex {
   }
 
   void push(int16_t index = 0) {
-    if (_depth >= N) return;
+    if (_depth >= N - 1) return;
     _index[++_depth] = index;
   }
 
@@ -144,7 +144,7 @@ struct MultidimensionalArrayIndex {
 
 struct JSONKey {
   std::string_view _key;
-  int8_t           _index;
+  int16_t          _index;
   uint32_t         _hash;
   MultidimensionalArrayIndex<10> _array_index;
 
@@ -195,8 +195,8 @@ struct JSONKey {
     _hash = hash32(_key);
   }
 
-  int8_t getIndex()       const { return _index; }
-  void setIndex(int8_t i)        { _index = i; }
+  int16_t getIndex()       const { return _index; }
+  void setIndex(int16_t i)       { _index = i; }
 
   int16_t getArrayIndex(int8_t depth)  const { return _array_index.getIndex(depth); }
 

@@ -3,6 +3,7 @@ compile = "make -s"
 run = "./main"
 entrypoint = "main.cpp"
 hidden = ["main", "**/*.o", "**/*.d", ".ccls-cache", "Makefile"]
+modules = ["python-3.11"]
 
 [nix]
 channel = "stable-24_05"
