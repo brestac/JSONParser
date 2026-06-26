@@ -6,3 +6,4 @@ build/
 src/Stream.h
 *.xcodeproj
 *.trace
+env.h

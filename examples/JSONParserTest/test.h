@@ -740,6 +740,7 @@ void test_parse_geojson_big_with_limited_geometry_from_stream(Stream* stream) {
 
   fc.toJSON(Serial);
   Serial.println("");
+  Serial.printf("Parsing took %.1fs", float(pr.elapsed) / 1000000.0F);
 }
 
 void test_parse_geojson_big_with_limited_geometry_from_file() {
