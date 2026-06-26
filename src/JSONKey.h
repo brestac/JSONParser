@@ -106,11 +106,15 @@ struct MultidimensionalArrayIndex {
     return _index[--_depth];
   }
 
+  void reset() {
+    _depth = 0;
+  }
+
   uint8_t getDepth() const {
     return _depth;
   }
 
-  int16_t getIndex(int8_t depth) const {
+  constexpr int16_t getIndex(int8_t depth) const {
     
     if (depth < 0) {
       depth = _depth + depth;
@@ -129,12 +133,6 @@ struct MultidimensionalArrayIndex {
     if (_depth < N) {
       //DEBUG_PRINTF("setIndex %d at depth %d\n", index, _depth);
       _index[_depth] = index;
-    }
-  }
-
-  void print() const {
-    for (uint8_t i = 0; i <= _depth; i++) {
-      DEBUG_PRINTF("%d ", getIndex(i));
     }
   }
 };
@@ -213,7 +211,7 @@ struct JSONKey {
     uint8_t len = _array_index.getDepth() + 1;
     size_t offset = 0;
     for(uint8_t i = 0; i < len; i++) {
-      offset += snprintf(array_index_buf + offset, sizeof(array_index_buf), "%d ", _array_index.getIndex(i));
+      offset += snprintf(array_index_buf + offset, sizeof(array_index_buf) - offset, "%d ", _array_index.getIndex(i));
     }
 
     array_index_buf[offset] = '\0';

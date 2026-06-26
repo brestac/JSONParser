@@ -26,8 +26,8 @@
 #include "../examples/JSONParserTest/test.h"
 
 int main() {
-  run_tests();
+  bool all_passed = run_tests();
   std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
   std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
-  return 0;
+  return all_passed ? 0 : 1;
 }
