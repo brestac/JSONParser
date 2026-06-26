@@ -18,11 +18,11 @@ constexpr uint32_t operator""_hash(const char* str, size_t len) {
 //   parse_int_constexpr — remplace strtol (non constexpr)
 // ---------------------------------------------------------------------------
 
-constexpr int parse_int_constexpr(const char* str) {
-  int result = 0;
-  size_t iteration = 0;
-  while (*str >= '0' && *str <= '9' && ++iteration < JSON::MAX_ITERATIONS) {
-    result = result * 10 + (*str - '0');
+constexpr int8_t parse_int_constexpr(const char* str) {
+  int8_t result = 0;
+  size_t n = 0;
+  while (*str >= '0' && *str <= '9' && ++n < JSON::MAX_KEY_LENGTH) {
+    result = static_cast<int8_t>(result * 10 + (*str - '0'));
     ++str;
   }
   return result;
@@ -34,16 +34,17 @@ constexpr int parse_int_constexpr(const char* str) {
 // ---------------------------------------------------------------------------
 
 template <size_t N>
-constexpr std::pair<std::string_view, int> get_json_key_and_index(
-    const char (&raw_key)[N]) {
+constexpr std::pair<std::string_view, int8_t>
+get_json_key_and_index(const char (&raw_key)[N]) {
   for (size_t i = 0; i < N; ++i) {
     if (raw_key[i] == '[') {
-      return { std::string_view(raw_key, i),
-               parse_int_constexpr(raw_key + i + 1) };
+      return {std::string_view(raw_key, i),
+              parse_int_constexpr(raw_key + i + 1)};
     }
-    if (raw_key[i] == '\0') break;
+    if (raw_key[i] == '\0')
+      break;
   }
-  return { std::string_view(raw_key, N - 1), -1 };
+  return {std::string_view(raw_key, N - 1), -1};
 }
 
 // Helpers pour extraire clé et index séparément (utilisés dans la
@@ -83,21 +84,76 @@ constexpr bool are_generic_keys(const Key& key, Value&, Rest&&... rest) {
 }
 
 // ---------------------------------------------------------------------------
+//   MultidimensionalArrayIndex
+// ---------------------------------------------------------------------------
+
+template<uint8_t N>
+struct MultidimensionalArrayIndex {
+  mutable int16_t _index[N];
+  uint8_t _depth;
+
+  constexpr MultidimensionalArrayIndex() : _index{0}, _depth(0) {
+    JSON_DEBUG_COLOR(COLOR_RED, "MultidimensionalArrayIndex created\n");
+  }
+
+  void push(int16_t index = 0) {
+    if (_depth >= N) return;
+    _index[++_depth] = index;
+  }
+
+  int16_t pop() {
+    if (_depth == 0) return -1;
+    return _index[--_depth];
+  }
+
+  uint8_t getDepth() const {
+    return _depth;
+  }
+
+  int16_t getIndex(int8_t depth) const {
+    
+    if (depth < 0) {
+      depth = _depth + depth;
+    }
+    
+    if (depth > _depth || depth < 0) return -1;
+    
+    return _index[static_cast<uint8_t>(depth)];
+  }
+
+  int16_t getIndex() const {
+    return _index[_depth];
+  }
+
+  void setIndex(int16_t index) {
+    if (_depth < N) {
+      //DEBUG_PRINTF("setIndex %d at depth %d\n", index, _depth);
+      _index[_depth] = index;
+    }
+  }
+
+  void print() const {
+    for (uint8_t i = 0; i <= _depth; i++) {
+      DEBUG_PRINTF("%d ", getIndex(i));
+    }
+  }
+};
+// ---------------------------------------------------------------------------
 //   JSONKey
 // ---------------------------------------------------------------------------
 
 struct JSONKey {
   std::string_view _key;
-  int              _index;
+  int8_t           _index;
   uint32_t         _hash;
-  int              _array_index;
+  MultidimensionalArrayIndex<10> _array_index;
 
   constexpr JSONKey()
-      : _key(""), _index(-1), _hash(0), _array_index(-1) {}
+      : _key(""), _index(-1), _hash(0), _array_index() {}
 
   explicit constexpr JSONKey(int index)
       : _key(""), _index(index), _hash(static_cast<uint32_t>(index)),
-        _array_index(-1) {}
+        _array_index() {}
 
   // Constructeur depuis littéral — tout calculé à la compilation via
   // la liste d'initialisation (obligatoire en C++17 pour constexpr)
@@ -106,9 +162,11 @@ struct JSONKey {
       : _key(extract_key(key)),
         _index(extract_index(key)),
         _hash(hash32(extract_key(key))),
-        _array_index(-1) {
-    JSON_DEBUG_WARNING("Created key %.*s index=%d from const char [N]\n",
-                       (int)length(), data(), _index);
+        _array_index() {
+    JSON_DEBUG_WARNING("Created key from const char [N] ");
+#if JSON_DEBUG_LEVEL > 0
+    this->print();
+#endif
   }
 
   template <size_t N>
@@ -122,6 +180,10 @@ struct JSONKey {
     return _key == other_sv;
   }
 
+  constexpr int16_t operator[](int8_t index) const {
+    return _array_index.getIndex(index);
+  }
+
   constexpr operator uint32_t()         const { return _hash; }
   constexpr operator std::string_view() const { return _key; }
 
@@ -133,14 +195,29 @@ struct JSONKey {
     _hash = hash32(_key);
   }
 
-  int  getIndex()       const { return _index; }
-  void setIndex(int i)        { _index = i; }
+  int8_t getIndex()       const { return _index; }
+  void setIndex(int8_t i)        { _index = i; }
 
-  int  getArrayIndex()  const { return _array_index; }
-  void setArrayIndex(int i) {
-    _array_index = i;
-    JSON_DEBUG_INFO("JSONKey setArrayIndex %d\n", i);
-  }
+  int16_t getArrayIndex(int8_t depth)  const { return _array_index.getIndex(depth); }
+
+  int16_t getArrayIndex()  const { return _array_index.getIndex(); }
+
+  uint8_t getArrayIndexDepth() const { return _array_index.getDepth(); }
+
+  void setArrayIndex(int16_t i) { _array_index.setIndex(i); }
 
   bool is_indexed() const { return _index >= 0; }
+
+  void print() const {
+    char array_index_buf[64];
+    uint8_t len = _array_index.getDepth() + 1;
+    size_t offset = 0;
+    for(uint8_t i = 0; i < len; i++) {
+      offset += snprintf(array_index_buf + offset, sizeof(array_index_buf), "%d ", _array_index.getIndex(i));
+    }
+
+    array_index_buf[offset] = '\0';
+    
+    DEBUG_PRINTF("JSONKey: %.*s index=%d hash=%u array_index=%s\n", (int)length(), data(), _index, _hash, array_index_buf);
+  }
 };

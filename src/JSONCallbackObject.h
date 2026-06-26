@@ -22,7 +22,7 @@ struct JSONCallbackObject {
     return cursor.write("null");
   }
 
-  JSONCallbackObject(JSONCallback callback, JSONKey key)
+  JSONCallbackObject(JSONCallback callback, JSONKey& key)
       : callback(callback), key(key), stop(false) {
     JSON_DEBUG_INFO("JSONCallbackObject created\n");
   }
@@ -37,8 +37,9 @@ struct JSONCallbackObject {
     }
   }
 
-  void setArrayIndex(int anIndex) {
+  void setArrayIndex(int16_t anIndex) {
     JSON_DEBUG_INFO("JSONCallbackObject setArrayIndex %d\n", anIndex);
+    this->key.print();
     this->key.setArrayIndex(anIndex);
   }
 
@@ -48,4 +49,11 @@ struct JSONCallbackObject {
      this->key.setKey(key);
   }
 
+  void push() {
+    this->key._array_index.push();
+  }
+
+  void pop() {
+    this->key._array_index.pop();
+  }
 };

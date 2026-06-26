@@ -1501,6 +1501,10 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
                              ? container_info<V>::extent
                              : MAX_ARRAY_LENGTH;
 
+  if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<TargetT>>) {
+    arg_value.push();
+  }
+
   while (i < max) {
 
     if (i > MAX_ARRAY_LENGTH) {
@@ -1555,6 +1559,10 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   }
 
   skip_spaces();
+
+  if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<TargetT>>) {
+    arg_value.pop();
+  }
 
   return ParseValueResult::ARRAY_PARSED;
 }
@@ -1628,11 +1636,22 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
   if (!is_object_start()) {
     return ParseValueResult::PARSE_ERROR_OBJECT_NO_START;
   }
+  
   bool key_not_set = _key_buf.get()[0] == '\0' || _key_length == 0;
   const char *name = key_not_set ? "$UNAMED" : _key_buf.get();
+  
   JSON_DEBUG_INFO("Will parse object '%s'\n", name);
   JSON_DEBUG_INFO("Cursor position is now at %zu\n", bytesConsumed());
+
+  if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>) {
+    arg_value.push();
+  }
+
   JSON::ParseResult r = arg_value.fromJSON(name, _cursor);
+
+  if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>) {
+    arg_value.pop();
+  }
 
 #if JSON_DEBUG_LEVEL > 0
   JSON_DEBUG_INFO("In previous JSONParser '%s', parse_object result: ", name);
