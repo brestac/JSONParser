@@ -27,6 +27,12 @@ struct JSONCallbackObject {
     JSON_DEBUG_INFO("JSONCallbackObject created\n");
   }
 
+  template <size_t N>
+  JSONCallbackObject(JSONCallback callback, const char (&keyStr)[N])
+      : callback(callback), key(keyStr), stop(false) {
+    JSON_DEBUG_INFO("JSONCallbackObject created from string\n");
+  }
+
   void run(const JSONValue &value) {
     if (callback) {
       JSON_DEBUG_INFO("JSONCallbackObject running callback with key %.*s _array_index=%d\n", (int)key.length(), key.data(), key.getArrayIndex());
@@ -50,7 +56,7 @@ struct JSONCallbackObject {
   }
 
   void push() {
-    this->key._array_index.push();
+    this->key._array_index.push(this->key.getArrayIndex());
   }
 
   void pop() {
