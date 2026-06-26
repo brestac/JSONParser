@@ -1561,7 +1561,7 @@ void run_printing_tests() {
   test_print_to_file_stream();
 }
 
-void run_tests() {
+bool run_tests() {
   [[maybe_unused]] time_t now = time(nullptr);
   DEBUG_PRINTF("TIME:%s COMPILER:%s", ctime(&now), __VERSION__);
   DEBUG_PRINTF(
@@ -1576,4 +1576,6 @@ void run_tests() {
   DEBUG_PRINTF("Results: %d passed, %d failed\n", passed, failed);
   DEBUG_PRINTF(
       "============================================================\n");
+
+  return failed == 0;
 }
