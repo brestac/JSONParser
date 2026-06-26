@@ -346,6 +346,12 @@ struct GeometryLimited : public JSONObject {
   JSON_SERIALIZE_IMPL(type, coordinates);
 };
 
+struct GeometryMultipoint : public JSONObject {
+  char type[32] = {0};
+  std::vector<std::array<float, 2>> coordinates;
+  JSON_SERIALIZE_IMPL(type, coordinates);
+};
+
 struct Feature : public JSONObject {
   char type[32] = {0};
   Properties properties;
@@ -364,6 +370,13 @@ struct FeatureLimited : public JSONObject {
   char type[32] = {0};
   Properties properties;
   GeometryLimited<R,C> geometry;
+  JSON_SERIALIZE_IMPL(type, properties, geometry);
+};
+
+struct FeatureMultipoint : public JSONObject {
+  char type[32] = {0};
+  Properties properties;
+  GeometryMultipoint geometry;
   JSON_SERIALIZE_IMPL(type, properties, geometry);
 };
 
@@ -459,13 +472,12 @@ void test_parse_array_callback() {
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
 
   JSON::ParseResult pr = JSON::parse(
-      json, [&personnes, p_length](const JSONKey &key, const JSONValue &value,
-                                   bool &stop) {
-        int arrayIndex = key.getArrayIndex();
-        if (arrayIndex >= (int)p_length || arrayIndex < 0)
+      json, [&personnes, p_length](const JSONKey &key, const JSONValue &value, bool &stop) {
+        uint16_t arrayIndex = key.getArrayIndex();
+        if (arrayIndex >= (uint16_t)p_length || arrayIndex < 0)
           return;
-
-        switch (key) {
+      
+      switch (key) {
         case "nom"_hash:
           personnes[arrayIndex].nom = value;
           break;
@@ -719,6 +731,60 @@ void test_parse_geojson_sans_geometry_from_file() {
         (int)fc.type.length(), fc.type.data());
 
   fc.toJSON(Serial, false);
+}
+
+void test_parse_with_callback_geojson_big_from_stream(Stream* stream) {
+  DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET WITH CALLBACK\n");
+  StreamCursor cursor(stream);
+  // arrayIndex depth should be 0 for the geometry array, 1 for the rings, 2 for the coordinates, 3 for the lon/lat
+  // Ok got it. It is FeatureCollection → feature → geometry → coordinates → rings → coordinates → lon/lat
+  //                          0              1           2           3           4           5           6
+  // the depth level is increased by 1 for each array level but not for the object level
+  FeatureMultipoint f;
+  strncpy(f.type, "Feature", sizeof(f.type));
+  strncpy(f.properties.name, "Canada", sizeof(f.properties.name));
+  strncpy(f.geometry.type, "LineString", sizeof(f.geometry.type));
+
+  size_t count = 0;
+  JSON::parse(cursor, [&f, &count](const JSONKey &key, const JSONValue &value, bool &stop) {
+    // print the lat/lon of the first coordinate of any ring of the first feature
+    static float lon = 0.0f;
+    
+    if (key == "coordinates" && key[-3] == 0 && (key[-1] % 10) == 0) {
+      int16_t coord_index = key.getArrayIndex();
+      
+      if (coord_index == 0) {
+        lon = value;
+      } else if (coord_index == 1) {
+        //DEBUG_PRINTF("Ring#%d Coordinate: %f, %f\n", key.getArrayIndex(2), coordinate[0], coordinate[1]);
+        f.geometry.coordinates.push_back({lon, value});
+        if (count++ > 500) stop = true;
+      }      
+    }
+  });
+
+  // Replace the last coordinate with the first one to close the LineString
+  if (f.geometry.coordinates.size() > 0) {
+    f.geometry.coordinates.back() = f.geometry.coordinates.front();
+  }
+
+  check(f.geometry.coordinates.size() > 0, "geometry.coordinates.size() > 0, was %u", f.geometry.coordinates.size());
+  if (f.geometry.coordinates.size() > 0) {
+    check(near(f.geometry.coordinates[0][0], -65.613617f), "coordinates[0][0] == -65.613617f, was %f", f.geometry.coordinates[0][0]);
+    check(near(f.geometry.coordinates[0][1], 43.420273f), "coordinates[0][1] == 43.420273f, was %f", f.geometry.coordinates[0][1]);
+    check(near(f.geometry.coordinates[1][0], -65.56f), "coordinates[1][0] == -65.613617f, was %f", f.geometry.coordinates[1][0]);
+    check(near(f.geometry.coordinates[1][1], 43.499718f), "coordinates[1][1] == 43.420273f, was %f", f.geometry.coordinates[1][1]);
+  }
+}
+
+void test_parse_with_callback_geojson_big_from_file() {
+  File f = LittleFS.open("./canada.json", "r");
+  if (!f) {
+    DEBUG_PRINTF("Failed to open file for reading\n");
+    return;
+  }
+
+  test_parse_with_callback_geojson_big_from_stream(&f);
 }
 
 void test_parse_geojson_big_with_limited_geometry_from_stream(Stream* stream) {
@@ -1477,6 +1543,8 @@ void run_parsing_tests() {
 #ifndef ARDUINO
   test_parse_geojson_big<FeatureCollection>();
   test_parse_geojson_big_with_limited_geometry();
+#else
+  test_parse_with_callback_geojson_big_from_file();
 #endif
 }
 
