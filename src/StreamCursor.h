@@ -42,12 +42,12 @@ public:
       size_t head_pos = _head & MASK;
       size_t contiguous = N - head_pos;          // octets jusqu'à la fin physique
       size_t first = std::min(space, contiguous);
-      size_t n = _stream->readBytes(_buf + head_pos, first);
+      size_t n = readBytes(_buf + head_pos, first);
       _head += n;
   
       if (n == first && first < space) {         // wrap-around
           size_t second = space - first;
-          n = _stream->readBytes(_buf, second);
+          n = readBytes(_buf, second);
           _head += n;
       }
   }
@@ -74,7 +74,13 @@ public:
   }
 
   size_t readBytes(char *buffer, size_t length) {
-    return _stream->readBytes(buffer, length);
+    size_t n = _stream->read((uint8_t*)(buffer), length);
+    
+    if (n < length) {
+      n += _stream->readBytes(buffer, length - n);
+    }
+
+    return n;
   }
 
   // Consomme n octets (les marque comme lus)
