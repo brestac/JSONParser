@@ -473,10 +473,17 @@ void test_parse_array_callback() {
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
 
   JSON::ParseResult pr = JSON::parse(
+<<<<<<< HEAD
     json, [&personnes, p_length](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
       uint16_t arrayIndex = key.getArrayIndex();
       if (arrayIndex >= (uint16_t)p_length || arrayIndex < 0)
         return;
+=======
+      json, [&personnes](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
+        uint16_t arrayIndex = key.getArrayIndex();
+        if (arrayIndex >= 3 || arrayIndex < 0)
+          return;
+>>>>>>> 4d1ac31 (Update common test)
 
       switch (key) {
         case "nom"_hash:
@@ -1213,12 +1220,17 @@ void test_print_geojson_to_buffer() {
 
   char buf[1024] = { 0 };
   fc.toJSON(buf);
+<<<<<<< HEAD
   const char *expected =
     "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\","
     "\"properties\":{\"name\":\"feature_0\"},\"geometry\":{\"type\":"
     "\"Polygon\",\"coordinates\":[[[1,2],[3,4],[5,6],[7,8]]]}}]}";
   check(strcmp(buf, expected) == 0, "toJSON output should be \n%s\n, got \n%s",
         expected, buf);
+=======
+  const char *expected = "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"feature_0\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[1,2],[3,4],[5,6],[7,8]]]}}]}";
+  check(strcmp(buf, expected) == 0, "toJSON output, should be \n%s\n, got \n%s", expected, buf);
+>>>>>>> 4d1ac31 (Update common test)
 }
 
 void test_print_to_stream_string() {
