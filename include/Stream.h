@@ -34,7 +34,7 @@ public:
   virtual void setTimeout(size_t timeout) { _timeout = timeout; }
   virtual size_t getTimeout() { return _timeout; }
 
-  size_t readBytes(char *buffer, size_t length);
+  size_t readBytes(uint8_t *buffer, size_t length);
   size_t read(uint8_t* buffer, size_t maxLen);
 };
 
@@ -73,14 +73,14 @@ int Stream::timedPeek() {
 // returns the number of characters placed in the buffer
 // the buffer is NOT null terminated.
 //
-size_t Stream::readBytes(char *buffer, size_t length) {
+size_t Stream::readBytes(uint8_t *buffer, size_t length) {
 
   size_t count = 0;
   while (count < length) {
     int c = timedRead();
     if (c < 0)
       break;
-    *buffer++ = (char)c;
+    *buffer++ = c;
     count++;
   }
   return count;

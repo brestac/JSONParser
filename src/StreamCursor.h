@@ -59,7 +59,7 @@ public:
       refill();
     if (offset >= available())
       return -1;
-    return static_cast<unsigned char>(_buf[(_tail + offset) & MASK]);
+    return _buf[(_tail + offset) & MASK];
   }
 
   // Lit et consomme un octet. Retourne -1 si vide.
@@ -70,11 +70,11 @@ public:
       refill();
     if (available() == 0)
       return -1; // vrai timeout/EOF
-    return static_cast<unsigned char>(_buf[_tail++ & MASK]);
+    return _buf[_tail++ & MASK];
   }
 
-  size_t readBytes(char *buffer, size_t length) {
-    size_t n = _stream->read((uint8_t*)(buffer), length);
+  size_t readBytes(uint8_t *buffer, size_t length) {
+    size_t n = _stream->read(buffer, length);
     
     if (n < length) {
       n += _stream->readBytes(buffer + n, length - n);
@@ -90,7 +90,7 @@ private:
   static constexpr size_t MASK = N - 1;
 
   Stream *_stream;
-  char _buf[N];
+  uint8_t _buf[N];
   size_t _head; // indice d'écriture absolu
   size_t _tail; // indice de lecture absolu
 };
@@ -146,7 +146,7 @@ public:
     return c;
   }
 
-  size_t readBytes(char *buffer, size_t length) {
+  size_t readBytes(uint8_t *buffer, size_t length) {
     return _ring.readBytes(buffer, length);
   }
 
