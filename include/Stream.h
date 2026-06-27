@@ -35,6 +35,7 @@ public:
   virtual size_t getTimeout() { return _timeout; }
 
   size_t readBytes(char *buffer, size_t length);
+  size_t read(uint8_t* buffer, size_t maxLen);
 };
 
 // private method to read stream with timeout
@@ -83,4 +84,17 @@ size_t Stream::readBytes(char *buffer, size_t length) {
     count++;
   }
   return count;
+}
+
+size_t Stream::read(uint8_t* buffer, size_t maxLen)
+{
+    size_t nbread = 0;
+    while (nbread < maxLen && available())
+    {
+        int c = read();
+        if (c == -1)
+            break;
+        buffer[nbread++] = c;
+    }
+    return nbread;
 }
