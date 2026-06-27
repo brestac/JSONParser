@@ -6,20 +6,22 @@ override CXXFLAGS += -g -Wall -Werror -Werror=unused-variable -Wno-format-securi
 SRC_HEADERS   = $(wildcard src/*.h)
 TEST_HEADERS  = $(wildcard tests/*.h)
 HEADERS       = $(SRC_HEADERS) $(TEST_HEADERS)
+RESOURCES 		= $(wildcard examples/JSONParserTest/*.*json)
 
 desktop-test: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
-	cp -n tests/canada.json build/canada.json && $(CXX) $(CXXFLAGS) -O2 -std=gnu++17 -I. tests/desktop.cpp -o build/desktop-test
+	$(CXX) $(CXXFLAGS) -O2 -std=gnu++17 -I. tests/desktop.cpp -o build/desktop-test
+	cp -n $(RESOURCES) build/
 
 desktop-test-arduino: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
 	g++ $(CXXFLAGS) -Wno-unknown-pragmas -Os -std=gnu++17 -g -fno-rtti -falign-functions=4 -ffunction-sections -fdata-sections -fno-exceptions -I. tests/desktop.cpp -o build/desktop-test-arduino
-	cp -n tests/canada.json build/canada.json
+	cp -n $(RESOURCES) build/
 
 desktop-test-debug: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
 	NIX_HARDENING_ENABLE= $(CXX) $(CXXFLAGS) -O0 -std=gnu++17 -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments -Wno-variadic-macros -Wno-vla-extension -ferror-limit=50 -I. tests/desktop.cpp -o build/desktop-test-debug
-	cp -n tests/canada.json build/canada.json
+	cp -n $(RESOURCES) build/
 
 xcode:
 	mkdir -p build/xcode
