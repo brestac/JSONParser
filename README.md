@@ -24,7 +24,7 @@
 ## Parse with a callback
 ```c++
   Person persons[2];
-  JSON::parse("[{\"name\":\"Jean\",age:65}, {\"name\":\"Amélie\", age:27}, {\"name\":\"Bob\", age:36}]", [] (JSONKey& key, JSONValue& value, bool& stop) {
+  JSON::parse("[{\"name\":\"Jean\",age:65}, {\"name\":\"Amélie\", age:27}, {\"name\":\"Bob\", age:36}]", [] (JSONKey& key, JSONValue& value, JSON::SKIP& skip) {
     switch (key) {
       case "name"_hash : std::printf("Parsed name:%.*s", (int)value.length(), value.data());
         break;
@@ -34,7 +34,7 @@
 
     // We stop after parsing the second object
     if (key.getArrayIndex() >= 1) {
-      stop = true;
+      skip = JSON::SKIP::STOP;
     }
   }
 ```
@@ -43,7 +43,8 @@
 ```c++
   Person person{"William", 32};
   JSON::ParseResult res = person.fromJSON("{\"age\":22,\"unknown\":55, \"name\":0}");
-  res.print(); // {"length":8,"nParsed":3,"nMatched":2,"nConverted":1,"nUpdated":1,"error":"NO_ERROR","elapsed":10,"stopped":false}
+  res.print();
+  // {"length":8,"nParsed":3,"nMatched":2,"nConverted":1,"nUpdated":1,"error":"NO_ERROR","elapsed":10,"stopped":false}
 ```
 
 ## Features
