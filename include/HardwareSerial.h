@@ -70,7 +70,7 @@ public:
     size_t len = snprintf(buffer, sizeof(buffer), format, std::forward<Args>(args)...);
     return write(buffer, len);
   }
-
+ 
   template<size_t N>
   size_t printf(const char (&buffer)[N]) {
     return write(buffer, N - 1);
