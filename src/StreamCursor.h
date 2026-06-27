@@ -77,7 +77,7 @@ public:
     size_t n = _stream->read((uint8_t*)(buffer), length);
     
     if (n < length) {
-      n += _stream->readBytes(buffer, length - n);
+      n += _stream->readBytes(buffer + n, length - n);
     }
 
     return n;
