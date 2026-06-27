@@ -25,9 +25,8 @@ desktop-test-debug: tests/desktop.cpp $(HEADERS)
 
 xcode:
 	mkdir -p build/xcode
-	cd build/xcode && cmake -G Xcode \\
-		-DCMAKE_C_COMPILER="$(shell xcrun -find cc 2>/dev/null || echo /usr/bin/clang)" \\
-		-DCMAKE_CXX_COMPILER="$(shell xcrun -find c++ 2>/dev/null || echo /usr/bin/clang++)" \\
+	cd build/xcode && cmake -G Xcode \
+		-DCMAKE_CXX_COMPILER="$(shell xcrun -find c++ 2>/dev/null || echo /usr/bin/clang++)" \
 		../..
 
 clean:

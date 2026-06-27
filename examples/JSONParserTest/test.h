@@ -464,17 +464,16 @@ void test_parse_array_callback() {
   DEBUG_PRINTF(
       "------------------------------------------------------------\n");
 
-  size_t p_length = 3;
-  Personne personnes[p_length];
+  Personne personnes[3];
 
   // age of personnes[0] is Infinity — not a valid number, stays 0
   const char *json = "[{\"nom\":\"Bob\",\"age\":Infinity},{\"nom\":\"Alice\","
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
 
   JSON::ParseResult pr = JSON::parse(
-      json, [&personnes, p_length](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
+      json, [&personnes](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
         uint16_t arrayIndex = key.getArrayIndex();
-        if (arrayIndex >= (uint16_t)p_length || arrayIndex < 0)
+        if (arrayIndex >= 3 || arrayIndex < 0)
           return;
       
       switch (key) {
