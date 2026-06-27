@@ -418,7 +418,7 @@ void test_parse_callback() {
   int liste_idx = 0;
   JSON::ParseResult pr = JSON::parse(
       json, [&p, &liste_idx](const JSONKey &key, const JSONValue &value,
-                             bool & /*stop*/) {
+                             JSON::SKIP & /*stop*/) {
         if (key == "ville") {
           p.ville = value;
         } else if (key == "age") {
@@ -472,7 +472,7 @@ void test_parse_array_callback() {
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
 
   JSON::ParseResult pr = JSON::parse(
-      json, [&personnes, p_length](const JSONKey &key, const JSONValue &value, bool &stop) {
+      json, [&personnes, p_length](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
         uint16_t arrayIndex = key.getArrayIndex();
         if (arrayIndex >= (uint16_t)p_length || arrayIndex < 0)
           return;
@@ -488,7 +488,7 @@ void test_parse_array_callback() {
           break;
         }
         if (arrayIndex == 1 && key == "age")
-          stop = true;
+          skip = JSON::SKIP::STOP;
       });
   check(pr.error == false, "parse");
   check(personnes[0].nom == std::string_view("Bob"), "personnes[0].nom == Bob");
@@ -746,11 +746,11 @@ void test_parse_with_callback_geojson_big_from_stream(Stream* stream) {
   strncpy(f.geometry.type, "LineString", sizeof(f.geometry.type));
 
   size_t count = 0;
-  JSON::parse(cursor, [&f, &count](const JSONKey &key, const JSONValue &value, bool &stop) {
+  JSON::parse(cursor, [&f, &count](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
     // print the lat/lon of the first coordinate of any ring of the first feature
     static float lon = 0.0f;
     
-    if (key == "coordinates" && key[-3] == 0 && (key[-1] % 10) == 0) {
+    if (key == "coordinates" && key[-3] == 0 && (key[-1] % 60) == 0) {
       int16_t coord_index = key.getArrayIndex();
       
       if (coord_index == 0) {
@@ -758,8 +758,13 @@ void test_parse_with_callback_geojson_big_from_stream(Stream* stream) {
       } else if (coord_index == 1) {
         //DEBUG_PRINTF("Ring#%d Coordinate: %f, %f\n", key.getArrayIndex(2), coordinate[0], coordinate[1]);
         f.geometry.coordinates.push_back({lon, value});
-        if (count++ > 500) stop = true;
+        if (count++ > 500) skip = JSON::SKIP::STOP;
+        //if (key[-1] >= 10) skip = JSON::SKIP::END;
       }      
+    }
+
+    if (key == "coordinates" && key[-3] > 0) {
+      skip = JSON::SKIP::STOP;
     }
   });
 
@@ -775,10 +780,12 @@ void test_parse_with_callback_geojson_big_from_stream(Stream* stream) {
     check(near(f.geometry.coordinates[1][0], -65.56f), "coordinates[1][0] == -65.613617f, was %f", f.geometry.coordinates[1][0]);
     check(near(f.geometry.coordinates[1][1], 43.499718f), "coordinates[1][1] == 43.420273f, was %f", f.geometry.coordinates[1][1]);
   }
+
+  f.toJSON(Serial);
 }
 
 void test_parse_with_callback_geojson_big_from_file() {
-  File f = LittleFS.open("./canada.json", "r");
+  File f = LittleFS.open("./fr.json", "r");
   if (!f) {
     DEBUG_PRINTF("Failed to open file for reading\n");
     return;

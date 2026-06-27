@@ -34,7 +34,8 @@ public:
     COMMA = 4,
     END = 5,
     ERROR = 6,
-    STOPPED = 7
+    STOPPED = 7,
+    SKIP = 8
   };
 
   // ── Constructeur PointerCursor ─
@@ -1277,7 +1278,11 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
         }
         break;
       }
-
+    case SKIP:
+      JSON_DEBUG_INFO("JSONParserBase: skip\n");
+      skip_to_object_end();
+      _state = END;
+      break;
     default:
       return;
     }
@@ -1389,8 +1394,16 @@ ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::assign_callback_object(
     const PV &pv, JSONCallbackObject &cb) {
   cb.run(pv);
-  if (cb.stop) {
-    _state = STOPPED;
+
+  switch (cb.skip) {
+    case JSON::SKIP::END:
+      _state = SKIP;
+      break;
+    case JSON::SKIP::STOP:
+      _state = STOPPED;
+      break;
+    default:
+      break;
   }
 
   return ParseValueResult::VALUE_UPDATED;
@@ -1525,6 +1538,8 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
 
     if (_state == STOPPED) {
       return ParseValueResult::ARRAY_PARSED;
+    } else if (_state == SKIP) {
+      return skip_to_array_end<V>();
     }
 
     if (!result.parsed()) {
