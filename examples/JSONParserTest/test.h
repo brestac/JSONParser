@@ -735,6 +735,11 @@ void test_parse_geojson_sans_geometry_from_file() {
 
 void test_parse_with_callback_geojson_big_from_stream(Stream* stream) {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET WITH CALLBACK\n");
+  if (stream == nullptr) {
+    check(false, "The stream should not be nullptr. Check WiFi credentials and that server is running");
+    return;
+  }
+
   StreamCursor cursor(stream);
   // arrayIndex depth should be 0 for the geometry array, 1 for the rings, 2 for the coordinates, 3 for the lon/lat
   // Ok got it. It is FeatureCollection → feature → geometry → coordinates → rings → coordinates → lon/lat
@@ -746,11 +751,13 @@ void test_parse_with_callback_geojson_big_from_stream(Stream* stream) {
   strncpy(f.geometry.type, "LineString", sizeof(f.geometry.type));
 
   size_t count = 0;
-  JSON::parse(cursor, [&f, &count](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
+  JSON::ParseResult pr = JSON::parse(cursor, [&f, &count](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
     // print the lat/lon of the first coordinate of any ring of the first feature
     static float lon = 0.0f;
-    
-    if (key == "coordinates" && key[-3] == 0 && (key[-1] % 60) == 0) {
+    int8_t POLYGON_INDEX = key[-3];
+    int8_t COORDINATE_INDEX = key[-1];
+
+    if (key == "coordinates" && POLYGON_INDEX == 0 && (COORDINATE_INDEX % 30) == 0) {
       int16_t coord_index = key.getArrayIndex();
       
       if (coord_index == 0) {
@@ -763,7 +770,7 @@ void test_parse_with_callback_geojson_big_from_stream(Stream* stream) {
       }      
     }
 
-    if (key == "coordinates" && key[-3] > 0) {
+    if (key == "coordinates" && POLYGON_INDEX > 0) {
       skip = JSON::SKIP::STOP;
     }
   });
@@ -782,6 +789,8 @@ void test_parse_with_callback_geojson_big_from_stream(Stream* stream) {
   }
 
   f.toJSON(Serial);
+  Serial.println("");
+  Serial.printf("Parsing took %.1fs\n", float(pr.elapsed) / 1000000.0F);
 }
 
 void test_parse_with_callback_geojson_big_from_file() {
@@ -796,6 +805,10 @@ void test_parse_with_callback_geojson_big_from_file() {
 
 void test_parse_geojson_big_with_limited_geometry_from_stream(Stream* stream) {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET\n");
+  if (stream == nullptr) {
+    check(false, "The stream should not be nullptr. Check WiFi credentials and that server is running");
+    return;
+  }
 
   FeatureCollectionLimited<1, 10, 1> fc;
   JSON::ParseResult pr = fc.fromJSON(stream);
@@ -813,7 +826,7 @@ void test_parse_geojson_big_with_limited_geometry_from_stream(Stream* stream) {
 
   fc.toJSON(Serial);
   Serial.println("");
-  Serial.printf("Parsing took %.1fs", float(pr.elapsed) / 1000000.0F);
+  Serial.printf("Parsing took %.1fs\n", float(pr.elapsed) / 1000000.0F);
 }
 
 void test_parse_geojson_big_with_limited_geometry_from_file() {
@@ -967,9 +980,9 @@ void test_parse_from_char_buffer() {
 // Test 1 – fromJSON via StreamString
 // ----------------------------------------------------------------
 
-void test_parse_from_stream() {
+void test_parse_from_stream_string() {
   DEBUG_PRINTF("\n--- Test: fromJSON via StreamString ---\n");
-
+ 
   const char *json = "{\"id\":42,\"temperature\":23.5,\"active\":true}";
 
   StreamString stream(json);
@@ -1534,7 +1547,7 @@ void run_parsing_tests() {
   test_parse_embedded_object();
   test_parse_embedded_object_from_stream();
   test_parse_from_char_buffer();
-  test_parse_from_stream();
+  test_parse_from_stream_string();
   test_partial_parse();
   test_parse_geojson_small();
   test_parse_geojson_from_file();
