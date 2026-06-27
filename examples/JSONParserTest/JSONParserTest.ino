@@ -28,15 +28,15 @@ void setup() {
   free_heap = ESP.getFreeHeap();
   free_stack = ESP.getFreeContStack();
 
-  run_tests();
+  //run_tests();
   
-  get_stream("http://192.168.1.2:10000/fr.json", [](WiFiClient* stream){
-    test_parse_with_callback_geojson_big_from_stream(stream);
-  });
-
-  // get_stream("http://192.168.1.2:10000/canada.json", [](WiFiClient* stream){
-  //   test_parse_geojson_big_with_limited_geometry_from_stream(stream);
+  // get_stream("http://192.168.1.2:10000/fr.json", [](WiFiClient* stream){
+  //   test_parse_with_callback_geojson_big_from_stream(stream);
   // });
+
+  get_stream("http://192.168.1.2:10000/canada.json", [](WiFiClient* stream){
+    test_parse_geojson_big_with_limited_geometry_from_stream(stream);
+  });
 
   // constexpr size_t N = 60;
   // FeatureCollectionLimited<1, N, 1> fc;
