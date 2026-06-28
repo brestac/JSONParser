@@ -745,7 +745,7 @@ void test_parse_with_callback_geojson_big_from_stream(Stream *stream) {
   strncpy(f.geometry.type, "LineString", sizeof(f.geometry.type));
 
   size_t count = 0;
-  JSON::parse(cursor, [&f, &count](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
+  JSON::ParseResult pr = JSON::parse(cursor, [&f, &count](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
     // print the lat/lon of the first coordinate of any ring of the first feature
     static float lon = 0.0f;
 
@@ -794,6 +794,7 @@ void test_parse_with_callback_geojson_big_from_stream(Stream *stream) {
   }
 
   f.toJSON(Serial);
+  Serial.printf("Parsing took %.02fs\n", (float)pr.elapsed / 1000000.0f);
 }
 
 void test_parse_with_callback_geojson_big_from_file() {
