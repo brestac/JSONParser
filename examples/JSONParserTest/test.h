@@ -465,25 +465,17 @@ void test_parse_array_callback() {
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
 
-  size_t p_length = 3;
-  Personne personnes[p_length];
+  Personne personnes[3];
 
   // age of personnes[0] is Infinity — not a valid number, stays 0
   const char *json = "[{\"nom\":\"Bob\",\"age\":Infinity},{\"nom\":\"Alice\","
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
 
   JSON::ParseResult pr = JSON::parse(
-<<<<<<< HEAD
-    json, [&personnes, p_length](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
-      uint16_t arrayIndex = key.getArrayIndex();
-      if (arrayIndex >= (uint16_t)p_length || arrayIndex < 0)
-        return;
-=======
       json, [&personnes](const JSONKey &key, const JSONValue &value, JSON::SKIP &skip) {
         uint16_t arrayIndex = key.getArrayIndex();
         if (arrayIndex >= 3 || arrayIndex < 0)
           return;
->>>>>>> 4d1ac31 (Update common test)
 
       switch (key) {
         case "nom"_hash:
@@ -689,7 +681,7 @@ void test_parse_geojson_small() {
   JSON::ParseResult pr = fc.fromJSON(stream);
 
   check(pr.error == 0, "parse");
-  check(fc.type == "FeatureCollection", "type == FeatureCollection was %.*s",
+  check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s",
         (int)fc.type.length(), fc.type.data());
   check(fc.features.size() == 1, "1 feature, was %u", fc.features.size());
 
@@ -697,26 +689,26 @@ void test_parse_geojson_small() {
     check(strcmp(fc.features[0].type, "Feature") == 0,
           "feature.type == Feature, was %s", fc.features[0].type);
     check(strcmp(fc.features[0].properties.name, "Canada") == 0,
-          "properties.name == Canada was %s", fc.features[0].properties.name);
+          "properties.name == Canada, was %s", fc.features[0].properties.name);
     check(strcmp(fc.features[0].geometry.type, "Polygon") == 0,
-          "geometry.type == Polygon was %s", fc.features[0].geometry.type);
-    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings was %u",
+          "geometry.type == Polygon, was %s", fc.features[0].geometry.type);
+    check(fc.features[0].geometry.coordinates.size() == 3, "3 rings, was %u",
           fc.features[0].geometry.coordinates.size());
     if (fc.features[0].geometry.coordinates.size() >= 2) {
       check(fc.features[0].geometry.coordinates[0].size() == 5,
-            "ring[0] has 5 points was %u",
+            "ring[0] has 5 points, was %u",
             fc.features[0].geometry.coordinates[0].size());
       check(fc.features[0].geometry.coordinates[1].size() == 5,
-            "ring[1] has 5 points was %u",
+            "ring[1] has 5 points, was %u",
             fc.features[0].geometry.coordinates[1].size());
       // Spot-check first coordinate of ring[0]: [-140.99778, 41.675105]
       check(near(fc.features[0].geometry.coordinates[0][0][0], -140.99778f,
                  0.001f),
-            "ring[0][0].lon ≈ -140.998 was %f",
+            "ring[0][0].lon ≈ -140.998, was %f",
             fc.features[0].geometry.coordinates[0][0][0]);
       check(near(fc.features[0].geometry.coordinates[0][0][1], 41.675105f,
                  0.001f),
-            "ring[0][0].lat ≈ 41.675 was %f",
+            "ring[0][0].lat ≈ 41.675, was %f",
             fc.features[0].geometry.coordinates[0][0][1]);
     }
   }
@@ -742,11 +734,6 @@ void test_parse_geojson_sans_geometry_from_file() {
 
 void test_parse_with_callback_geojson_big_from_stream(Stream *stream) {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET WITH CALLBACK\n");
-  if (stream == nullptr) {
-    check(false, "The stream should not be nullptr. Check WiFi credentials and that server is running");
-    return;
-  }
-
   StreamCursor cursor(stream);
   // arrayIndex depth should be 0 for the geometry array, 1 for the rings, 2 for the coordinates, 3 for the lon/lat
   // Ok got it. It is FeatureCollection → feature → geometry → coordinates → rings → coordinates → lon/lat
@@ -807,8 +794,7 @@ void test_parse_with_callback_geojson_big_from_stream(Stream *stream) {
   }
 
   f.toJSON(Serial);
-  Serial.println("");
-  Serial.printf("Parsing took %.1fs\n", float(pr.elapsed) / 1000000.0F);
+  Serial.printf("Parsing took %.02fs\n", (float)pr.elapsed / 1000000.0f);
 }
 
 void test_parse_with_callback_geojson_big_from_file() {
@@ -823,10 +809,6 @@ void test_parse_with_callback_geojson_big_from_file() {
 
 void test_parse_geojson_big_with_limited_geometry_from_stream(Stream *stream) {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET\n");
-  if (stream == nullptr) {
-    check(false, "The stream should not be nullptr. Check WiFi credentials and that server is running");
-    return;
-  }
 
   FeatureCollectionLimited<1, 10, 1> fc;
   JSON::ParseResult pr = fc.fromJSON(stream);
@@ -844,7 +826,6 @@ void test_parse_geojson_big_with_limited_geometry_from_stream(Stream *stream) {
 
   fc.toJSON(Serial);
   Serial.println("");
-  Serial.printf("Parsing took %.1fs\n", float(pr.elapsed) / 1000000.0F);
 }
 
 void test_parse_geojson_big_with_limited_geometry_from_file() {
@@ -941,17 +922,18 @@ void test_parse_geojson_big() {
     check(strcmp(fc.features[0].type, "Feature") == 0,
           "feature.type == Feature, was %s", fc.features[0].type);
     check(strcmp(fc.features[0].properties.name, "Canada") == 0,
-          "properties.name == Canada was %s", fc.features[0].properties.name);
-    check(strcmp(fc.features[0].geometry.type, "Polygon") == 0, "geometry.type == Polygon, was %s", fc.features[0].geometry.type);
+          "properties.name == Canada, was %s", fc.features[0].properties.name);
+    check(strcmp(fc.features[0].geometry.type, "Polygon") == 0,
+          "geometry.type == Polygon, was %s", fc.features[0].geometry.type);
     check(fc.features[0].geometry.coordinates.size() == (limited ? 10 : 480), "%u rings, was %u", (limited ? 10 : 480), fc.features[0].geometry.coordinates.size());
     if (fc.features[0].geometry.coordinates.size() >= 2) {
       check(fc.features[0].geometry.coordinates[0].size() == (limited ? 1 : 14), "ring[0] has %u points, was %u", (limited ? 1 : 14), fc.features[0].geometry.coordinates[0].size());
       check(fc.features[0].geometry.coordinates[1].size() == (limited ? 1 : 33), "ring[1] has %u points, was %u", (limited ? 1 : 33), fc.features[0].geometry.coordinates[1].size());
       // Spot-check first coordinate of ring[0]: [-140.99778, 41.675105]
       check(
-        near(fc.features[0].geometry.coordinates[0][0][0], -65.614f, 0.001f),
-        "ring[0][0].lon ≈ -65.614 was %.3f",
-        fc.features[0].geometry.coordinates[0][0][0]);
+          near(fc.features[0].geometry.coordinates[0][0][0], -65.614f, 0.001f),
+          "ring[0][0].lon ≈ -65.614, was %.3f",
+          fc.features[0].geometry.coordinates[0][0][0]);
     }
   }
 
@@ -998,7 +980,7 @@ void test_parse_from_char_buffer() {
 // Test 1 – fromJSON via StreamString
 // ----------------------------------------------------------------
 
-void test_parse_from_stream_string() {
+void test_parse_from_stream() {
   DEBUG_PRINTF("\n--- Test: fromJSON via StreamString ---\n");
 
   const char *json = "{\"id\":42,\"temperature\":23.5,\"active\":true}";
@@ -1220,17 +1202,8 @@ void test_print_geojson_to_buffer() {
 
   char buf[1024] = { 0 };
   fc.toJSON(buf);
-<<<<<<< HEAD
-  const char *expected =
-    "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\","
-    "\"properties\":{\"name\":\"feature_0\"},\"geometry\":{\"type\":"
-    "\"Polygon\",\"coordinates\":[[[1,2],[3,4],[5,6],[7,8]]]}}]}";
-  check(strcmp(buf, expected) == 0, "toJSON output should be \n%s\n, got \n%s",
-        expected, buf);
-=======
   const char *expected = "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"feature_0\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[1,2],[3,4],[5,6],[7,8]]]}}]}";
   check(strcmp(buf, expected) == 0, "toJSON output, should be \n%s\n, got \n%s", expected, buf);
->>>>>>> 4d1ac31 (Update common test)
 }
 
 void test_print_to_stream_string() {
@@ -1246,7 +1219,7 @@ void test_print_to_stream_string() {
   const char *expected =
     "{\"name\":\"name\",\"names\":[\"a\",\"b\",\"\"],\"numbers\":[12,10000]}";
   check(strcmp(stream.c_str(), expected) == 0,
-        "toJSON output should be %s, got %s", expected, stream.c_str());
+        "toJSON output, should be %s, got %s", expected, stream.c_str());
 }
 
 void test_print_hex_to_stream_string() {
@@ -1261,7 +1234,7 @@ void test_print_hex_to_stream_string() {
   s.toJSON(stream);
   const char *expected = "{\"hex\":\"AABBCCDD\"}";
   check(strcmp(stream.c_str(), expected) == 0,
-        "toJSON output should be %s, got %s", expected, stream.c_str());
+        "toJSON output, should be %s, got %s", expected, stream.c_str());
 }
 
 // ----------------------------------------------------------------
@@ -1288,7 +1261,7 @@ void test_roundtrip() {
   check(result.error == 0, "parse");
   check(copy.id == 72, "id == 72");
   check(copy.active == true, "active == true");
-  check(near(copy.temperature, 19.8f), "temperature ≈ 19.8 and was %f",
+  check(near(copy.temperature, 19.8f), "temperature ≈ 19.8, was %f",
         copy.temperature);
 }
 
@@ -1567,7 +1540,7 @@ void run_parsing_tests() {
   test_parse_embedded_object();
   test_parse_embedded_object_from_stream();
   test_parse_from_char_buffer();
-  test_parse_from_stream_string();
+  test_parse_from_stream();
   test_partial_parse();
   test_parse_geojson_small();
   test_parse_geojson_from_file();
