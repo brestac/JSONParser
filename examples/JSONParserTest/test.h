@@ -810,7 +810,7 @@ void test_parse_with_callback_geojson_big_from_file() {
 }
 
 void test_parse_geojson_big_with_limited_geometry_from_stream(Stream *stream) {
-  DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET\n");
+  DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET FROM STREAM\n");
 
   FeatureCollectionLimited10Rings fc;
   JSON::ParseResult pr = fc.fromJSON(stream);
@@ -828,6 +828,7 @@ void test_parse_geojson_big_with_limited_geometry_from_stream(Stream *stream) {
 
   fc.toJSON(Serial);
   Serial.println("");
+  Serial.printf("Parsing took %.2fs\n", (float)pr.elapsed / 1000000.0F);
 }
 
 void test_parse_geojson_big_with_limited_geometry_from_file() {
