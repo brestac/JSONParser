@@ -372,6 +372,9 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_comma() {
 template <typename Cursor, bool UseMask, typename TargetT>
 size_t
 JSONParserBase<Cursor, UseMask, TargetT>::scan_digits(size_t max_length) {
+#if defined(__clang__)
+  __builtin_assume(max_length <= JSON::MAX_VALUE_LENGTH);
+#endif
   return cursor_scan_ranges(_cursor, JSON_DIGIT_CHARACTERS_RANGES, max_length, true);
 }
 

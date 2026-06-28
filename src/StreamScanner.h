@@ -10,6 +10,9 @@ NAMESPACE_JSON_BEGIN
 
 // --- scan_char ---
 template <typename Cursor> bool cursor_scan_char(Cursor &cur, char c, bool consume = true) {
+#if defined(__clang__)
+  __builtin_assume(c > 0);
+#endif
   int got = cur.peek();
   if (got < 0 || static_cast<char>(got) != c)
     return false;
@@ -34,6 +37,10 @@ bool cursor_scan_keyword(Cursor &cur, const char (&keyword)[KwN], bool consume =
 // --- scan_until : avance jusqu'au délimiteur (non inclus par défaut) ---
 template <typename Cursor>
 bool cursor_scan_until(Cursor &cur, char delim, size_t maxLen = 0, bool consume = true, bool consumeDelim = false) {
+#if defined(__clang__)
+  __builtin_assume(maxLen <= MAX_JSON_LENGTH);
+  __builtin_assume(delim > 0);
+#endif
   size_t i = 0;
   while (true) {
     CHECK_LOOP(MAX_ITERATIONS, false);
