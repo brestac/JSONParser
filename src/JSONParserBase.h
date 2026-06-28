@@ -4,6 +4,7 @@
 
 #include <limits>
 
+#include "fast_float.h"
 #include "ParseDispatchTable.h"
 #include "StaticString.h"
 #include "types.h"
@@ -17,7 +18,17 @@
 
 using namespace std;
 using namespace JSON;
-struct Parser {};
+
+template<bool Condition = false>
+struct IncludeFastFloat {};
+
+template<>
+struct IncludeFastFloat<true> {
+  #include "fast_float.h"
+};
+
+IncludeFastFloat<USE_FAST_FLOAT> _;
+
 // ============================================================
 //  JSONParserBase<Cursor>
 //  Toute la logique du parser, paramétrée uniquement par le
@@ -554,7 +565,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
   if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
     start = const_cast<char *>(_cursor.ptr());
   } else {
-    static char tmp[64];
+    static char tmp[32];
     size_t len = _cursor.peekToken(tmp, sizeof(tmp) - 1);
     if (len == 0)
       return ParseValueResult::PARSE_ERROR_NUMERIC;
@@ -564,37 +575,51 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
   }
 
   Type parsed_value;
-  char *end;
 
-  if constexpr (std::is_same_v<Type, double>) {
-    parsed_value = std::strtod(start, &end);
-    JSON_DEBUG_INFO("JSONParserBase::parse_numeric double %f\n", parsed_value);
-  } else if constexpr (std::is_same_v<Type, int32_t>) {
-    parsed_value = (int)std::strtol(start, &end, 10);
-    JSON_DEBUG_INFO("JSONParserBase::parse_numeric integer %d\n", parsed_value);
-  } else if constexpr (std::is_same_v<Type, int64_t>) {
-    parsed_value = std::strtoll(start, &end, 10);
-    JSON_DEBUG_INFO("JSONParserBase::parse_numeric int64 %lld\n",
-                    (long long)parsed_value);
-  } else if constexpr (std::is_same_v<Type, uint64_t>) {
-    parsed_value = std::strtoull(start, &end, 10);
-    JSON_DEBUG_INFO("JSONParserBase::parse_numeric uint64 %llu\n",
-                    (unsigned long long)parsed_value);
+  if constexpr (USE_FAST_FLOAT) {
+    fast_float::parse_options options{fast_float::chars_format::json_or_infnan};
+    fast_float::from_chars_result result = fast_float::from_chars_advanced(start, start + 32, parsed_value, options);
+    if (result.ec != std::errc()) {
+      return ParseValueResult::PARSE_ERROR_NUMERIC;
+    }
+
+    size_t consumed = result.ptr - start;
+    _cursor.advance(consumed);
+  } else {
+     char *end;
+
+    if constexpr (std::is_same_v<Type, double>) {
+      parsed_value = std::strtod(start, &end);
+      JSON_DEBUG_INFO("JSONParserBase::parse_numeric double %f\n", parsed_value);
+    } else if constexpr (std::is_same_v<Type, int32_t>) {
+      parsed_value = (int)std::strtol(start, &end, 10);
+      JSON_DEBUG_INFO("JSONParserBase::parse_numeric integer %d\n", parsed_value);
+    } else if constexpr (std::is_same_v<Type, int64_t>) {
+      parsed_value = std::strtoll(start, &end, 10);
+      JSON_DEBUG_INFO("JSONParserBase::parse_numeric int64 %lld\n",
+                      (long long)parsed_value);
+    } else if constexpr (std::is_same_v<Type, uint64_t>) {
+      parsed_value = std::strtoull(start, &end, 10);
+      JSON_DEBUG_INFO("JSONParserBase::parse_numeric uint64 %llu\n",
+                      (unsigned long long)parsed_value);
+    }
+
+    //check if parsed_value have been parsed as Infinity
+    if (parsed_value == std::numeric_limits<Type>::infinity()) {
+      return parse_infinity(arg_value);
+    } else if (isnan(parsed_value)) {
+      return parse_nan(arg_value);
+    }
+
+    size_t consumed = static_cast<size_t>(end - start);
+
+    if (consumed == 0)
+      return ParseValueResult::PARSE_ERROR_NUMERIC;
+
+    _cursor.advance(consumed);
   }
 
-  // check if parsed_value have been parsed as Infinity
-  if (parsed_value == std::numeric_limits<Type>::infinity()) {
-    return parse_infinity(arg_value);
-  }
-
-  size_t consumed = static_cast<size_t>(end - start);
-
-  if (consumed == 0)
-    return ParseValueResult::PARSE_ERROR_NUMERIC;
-
-  _cursor.advance(consumed);
-
-  if constexpr (std::is_integral_v<Type>) {
+  if constexpr (std::is_integral_v<Type> && ALLOW_FLOATING_POINT_INTEGERS) {
     if (cursor_scan_char(_cursor, '.', true)) {
       JSON_DEBUG_WARNING("JSONParserBase::parse_numeric integer: found extra "
                          "digits after '.'\n");
