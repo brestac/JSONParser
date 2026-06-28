@@ -401,6 +401,8 @@ struct FeatureCollectionLimited : public JSONObject {
   JSON_SERIALIZE_IMPL(type, features);
 };
 
+using FeatureCollectionLimited10Rings = FeatureCollectionLimited<1, 10, 1>;
+
 // ----------------------------------------------------------------
 // test_parse_callback
 // ----------------------------------------------------------------
@@ -810,7 +812,7 @@ void test_parse_with_callback_geojson_big_from_file() {
 void test_parse_geojson_big_with_limited_geometry_from_stream(Stream *stream) {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET\n");
 
-  FeatureCollectionLimited<1, 10, 1> fc;
+  FeatureCollectionLimited10Rings fc;
   JSON::ParseResult pr = fc.fromJSON(stream);
 
   check(pr.error == 0, "parse error == NO_ERROR, was %s %s %zu", errorToString(pr.error), errorToString(pr.parseError), pr.length);
@@ -899,7 +901,9 @@ char *read_file(const char *filename) {
 template<typename T>
 void test_parse_geojson_big() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING BIG FILE\n");
-  if constexpr (std::is_same_v<std::remove_extent_t<T>, std::remove_extent_t<FeatureCollectionLimited<0, 0, 0>>>) {
+  constexpr bool limited = std::is_same_v<T, FeatureCollectionLimited10Rings>;
+
+  if constexpr (limited) {
     DEBUG_PRINTF("TESTING FEATURECOLLECTIONLIMITED\n");
   }
   DEBUG_PRINTF(
@@ -908,8 +912,12 @@ void test_parse_geojson_big() {
   char *json = read_file("./canada.json");
   T fc;
 
-  constexpr bool limited = std::is_same_v<T, FeatureCollectionLimited<1, 10, 1>>;
-
+  // La ligne précédente ne marche pas !! remove_extent_t transforme int[N] en int mais pas Type<N> en Type !!
+  // Il faut utiliser std::remove_all_extents_t pour les types composites.
+  // J'ai essayé avec std::remove_all_extents_t mais ça ne marche pas non plus.
+  // Je ne comprends pas pourquoi.
+  // Question: comment transformer Type<N> en Type ?
+  // Réponse: il faut utiliser std::remove_extent_t<T> pour les types simples et std::remove_all_extents_t<T> pour les types composites.
   uint64_t start = now();
   JSON::ParseResult pr = fc.fromJSON(json);
   [[maybe_unused]] uint64_t elapsed1 = now() - start;
@@ -934,6 +942,14 @@ void test_parse_geojson_big() {
           near(fc.features[0].geometry.coordinates[0][0][0], -65.614f, 0.001f),
           "ring[0][0].lon ≈ -65.614, was %.3f",
           fc.features[0].geometry.coordinates[0][0][0]);
+      if constexpr (!limited) {
+        // check the last coordinate of the last ring of feature[0] from file canada.json
+        size_t coordinates_size = fc.features[0].geometry.coordinates.size();
+        size_t last_ring_size = fc.features[0].geometry.coordinates[coordinates_size - 1].size();
+        float lon = fc.features[0].geometry.coordinates[coordinates_size - 1][last_ring_size - 1][0];
+        // -70.111937999999952
+        check(near(lon, -70.111938f), "ring[%zu][%zu].lon ≈ -70.111938, was %.3f", coordinates_size - 1, last_ring_size - 1, lon);
+      }
     }
   }
 
@@ -941,18 +957,22 @@ void test_parse_geojson_big() {
   rapidjson::Document d;
   start = now();
   d.Parse(json);
-  [[maybe_unused]] uint64_t elapsed2 = now() - start;
+  uint64_t elapsed2 = now() - start;
   free(json);
 
   float factor = (float)elapsed1 / (float)elapsed2;
   bool faster = elapsed1 < elapsed2;
+  if (factor !=0 && faster) {
+    factor = 1.0f / factor;
+  }
+  
   DEBUG_PRINTF("JSONParser Parsing time: %lu µs\n", elapsed1);
   DEBUG_PRINTF("RapidJSON Parsing time: %lu µs\n", elapsed2);
-  DEBUG_PRINTF("JSONParser is %.1f times %s than RapidJSON\n", faster ? "faster" : "slower", faster ? 1.0f / factor : factor);
+  DEBUG_PRINTF("JSONParser is %.2f times %s than RapidJSON\n", faster ? "faster" : "slower", factor);
 }
 
 void test_parse_geojson_big_with_limited_geometry() {
-  test_parse_geojson_big<FeatureCollectionLimited<1, 10, 1>>();
+  test_parse_geojson_big<FeatureCollectionLimited10Rings>();
 }
 
 #endif

@@ -55,28 +55,36 @@ public:
   // Effectue un refill si nécessaire.
   // Retourne -1 si la donnée n'est pas disponible (timeout / fin de flux).
   int peek(size_t offset = 0) {
-    if (offset >= available())
+    if (offset >= available()){
       refill();
-    if (offset >= available())
+    }
+    
+    if (offset >= available()){
       return -1;
+    }
+    
     return _buf[(_tail + offset) & MASK];
   }
 
   // Lit et consomme un octet. Retourne -1 si vide.
   int read() {
-    if (!_stream)
-      return -1;
-    if (available() == 0)
+    if (available() == 0) {
       refill();
-    if (available() == 0)
+    }
+    
+    if (available() == 0) {
       return -1; // vrai timeout/EOF
+    }
+
     return _buf[_tail++ & MASK];
   }
 
   size_t readBytes(uint8_t *buffer, size_t length) {
+    if (length == 0) return 0;
+
     size_t n = _stream->read(buffer, length);
     
-    if (n < length) {
+    if (n < length && _stream->inputCanTimeout()) {
       n += _stream->readBytes(buffer + n, length - n);
     }
 
