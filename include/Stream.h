@@ -22,6 +22,7 @@ public:
   virtual size_t write(uint8_t) = 0;
   virtual size_t write(const uint8_t *buffer, size_t size) = 0;
   virtual void flush() {}
+  virtual bool inputCanTimeout() { return true; }
   virtual bool outputCanTimeout() { return true; }
   virtual int availableForWrite() { return 0; }
 

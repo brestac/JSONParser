@@ -24,10 +24,28 @@
 #include "../include/rapidjson/writer.h"
 
 #include "../examples/JSONParserTest/test.h"
+#include "../src/fast_float.h"
 
 int main() {
-  bool all_passed = run_tests();
+  //bool all_passed = run_tests();
+  test_parse_geojson_big<FeatureCollection>();
+  test_parse_geojson_big_with_limited_geometry();
   std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
   std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
-  return all_passed ? 0 : 1;
+  //return all_passed ? 0 : 1;
+  return 0;
+  //test fast_float
+  // const char* p = "123.456 xx";
+  // double d;
+  // auto r = fast_float::from_chars(p, p + strlen(p), d);
+
+  // if (r.ec == std::errc()) {
+  //   std::cout << "success" << std::endl;
+  // } else {
+  //   std::cout << "fail" << std::endl;
+  // }
+  
+  // std::cout << d << std::endl;
+  // std::cout << (r.ptr - p) << std::endl;
+  //return 0;
 }

@@ -42,6 +42,7 @@ public:
   }
   void flush() override {}
   bool outputCanTimeout() override { return false; }
+  bool inputCanTimeout() override { return false; }
   int availableForWrite() override { return INT_MAX; }
   size_t write(uint8_t c) override {
     size_t written = fputc(c, _file);
