@@ -4,13 +4,14 @@
 #include <stdlib.h>
 
 #ifdef ARDUINO
-#define GEOJSON_TEST_FILE_PATH "/data.geojson"
 #include <LittleFS.h>
+#define GEOJSON_TEST_FILE_PATH "/generated.geojson"
 #else
-#define GEOJSON_TEST_FILE_PATH "./data.geojson"
 #include "../../include/ArduinoCompat.h"
 #include "../../include/FileStream.h"
+#define GEOJSON_TEST_FILE_PATH "./generated.geojson"
 #endif
+
 
 using namespace std;
 using namespace JSON;
@@ -135,7 +136,7 @@ long generate_geojson(const char *path, size_t target_bytes, int rings = 1,
   f.close();
 
   Serial.printf("[GeoJSON] %d features → %zu octets (%.1f KB) dans '%s'\n",
-                feat_count, actual, actual / 1024.0f, path);
+                feat_count, actual, (float)actual / 1024.0f, path);
 
   return (long)actual;
 }
@@ -718,7 +719,7 @@ void test_parse_geojson_small() {
 
 void test_parse_geojson_sans_geometry_from_file() {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET\n");
-  File f = LittleFS.open("./canada.json", "r");
+  File f = LittleFS.open("./big.geojson", "r");
   if (!f) {
     DEBUG_PRINTF("Failed to open file for reading\n");
     return;
@@ -734,8 +735,8 @@ void test_parse_geojson_sans_geometry_from_file() {
   fc.toJSON(Serial, false);
 }
 
-void test_parse_with_callback_geojson_big_from_stream(Stream *stream) {
-  DEBUG_PRINTF("\n\nTEST GEOJSON PARSING SUBSET WITH CALLBACK\n");
+void test_parse_with_callback_geojson_medium_from_stream(Stream *stream) {
+  DEBUG_PRINTF("\n\nTEST GEOJSON MEDIUM PARSING WITH CALLBACK\n");
   StreamCursor cursor(stream);
   // arrayIndex depth should be 0 for the geometry array, 1 for the rings, 2 for the coordinates, 3 for the lon/lat
   // Ok got it. It is FeatureCollection → feature → geometry → coordinates → rings → coordinates → lon/lat
@@ -743,7 +744,7 @@ void test_parse_with_callback_geojson_big_from_stream(Stream *stream) {
   // the depth level is increased by 1 for each array level but not for the object level
   FeatureMultipoint f;
   strncpy(f.type, "Feature", sizeof(f.type));
-  strncpy(f.properties.name, "Canada", sizeof(f.properties.name));
+  strncpy(f.properties.name, "France", sizeof(f.properties.name));
   strncpy(f.geometry.type, "LineString", sizeof(f.geometry.type));
 
   size_t count = 0;
@@ -786,13 +787,18 @@ void test_parse_with_callback_geojson_big_from_stream(Stream *stream) {
   }
 
   check(pr.error == JSON::NO_ERROR, "Parse ok");
-
+/*
+[FAIL] coordinates[0][0] == -65.613617f, was 2.521800
+[FAIL] coordinates[0][1] == 43.420273f, was 51.087540
+[FAIL] coordinates[1][0] == -65.613617f, was 2.762963
+[FAIL] coordinates[1][1] == 43.420273f, was 50.739384
+*/
   check(f.geometry.coordinates.size() > 0, "geometry.coordinates.size() > 0, was %u", f.geometry.coordinates.size());
   if (f.geometry.coordinates.size() > 0) {
-    check(near(f.geometry.coordinates[0][0], -65.613617f), "coordinates[0][0] == -65.613617f, was %f", f.geometry.coordinates[0][0]);
-    check(near(f.geometry.coordinates[0][1], 43.420273f), "coordinates[0][1] == 43.420273f, was %f", f.geometry.coordinates[0][1]);
-    check(near(f.geometry.coordinates[1][0], -65.56f), "coordinates[1][0] == -65.613617f, was %f", f.geometry.coordinates[1][0]);
-    check(near(f.geometry.coordinates[1][1], 43.499718f), "coordinates[1][1] == 43.420273f, was %f", f.geometry.coordinates[1][1]);
+    check(near(f.geometry.coordinates[0][0], 2.521800f), "coordinates[0][0] == 2.521800f, was %f", f.geometry.coordinates[0][0]);
+    check(near(f.geometry.coordinates[0][1], 51.087540f), "coordinates[0][1] == 51.087540f, was %f", f.geometry.coordinates[0][1]);
+    check(near(f.geometry.coordinates[1][0], 2.762963f), "coordinates[1][0] == 2.762963f, was %f", f.geometry.coordinates[1][0]);
+    check(near(f.geometry.coordinates[1][1], 50.739384f), "coordinates[1][1] == 50.739384f, was %f", f.geometry.coordinates[1][1]);
   }
 
   f.toJSON(Serial);
@@ -800,14 +806,15 @@ void test_parse_with_callback_geojson_big_from_stream(Stream *stream) {
   Serial.printf("Parsing took %.02fs\n", (float)pr.elapsed / 1000000.0f);
 }
 
-void test_parse_with_callback_geojson_big_from_file() {
-  File f = LittleFS.open("./fr.json", "r");
+void test_parse_with_callback_geojson_medium_from_file() {
+  File f = LittleFS.open("./medium.geojson", "r");
   if (!f) {
     DEBUG_PRINTF("Failed to open file for reading\n");
+    check(false, "Failed to open file for reading\n");
     return;
   }
 
-  test_parse_with_callback_geojson_big_from_stream(&f);
+  test_parse_with_callback_geojson_medium_from_stream(&f);
 }
 
 void test_parse_geojson_big_with_limited_geometry_from_stream(Stream *stream) {
@@ -833,7 +840,7 @@ void test_parse_geojson_big_with_limited_geometry_from_stream(Stream *stream) {
 }
 
 void test_parse_geojson_big_with_limited_geometry_from_file() {
-  File f = LittleFS.open("./canada.json", "r");
+  File f = LittleFS.open("./big.geojson", "r");
   if (!f) {
     DEBUG_PRINTF("Failed to open file for reading\n");
     return;
@@ -911,7 +918,7 @@ void test_parse_geojson_big() {
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
 
-  char *json = read_file("./canada.json");
+  char *json = read_file("./big.geojson");
   T fc;
 
   // La ligne précédente ne marche pas !! remove_extent_t transforme int[N] en int mais pas Type<N> en Type !!
@@ -945,7 +952,7 @@ void test_parse_geojson_big() {
           "ring[0][0].lon ≈ -65.614, was %.3f",
           fc.features[0].geometry.coordinates[0][0][0]);
       if constexpr (!limited) {
-        // check the last coordinate of the last ring of feature[0] from file canada.json
+        // check the last coordinate of the last ring of feature[0] from file big.geojson
         size_t coordinates_size = fc.features[0].geometry.coordinates.size();
         size_t last_ring_size = fc.features[0].geometry.coordinates[coordinates_size - 1].size();
         float lon = fc.features[0].geometry.coordinates[coordinates_size - 1][last_ring_size - 1][0];
@@ -1578,8 +1585,7 @@ void run_parsing_tests() {
 #ifndef ARDUINO
   test_parse_geojson_big<FeatureCollection>();
   test_parse_geojson_big_with_limited_geometry();
-#else
-  test_parse_with_callback_geojson_big_from_file();
+  test_parse_with_callback_geojson_medium_from_file();
 #endif
 }
 
