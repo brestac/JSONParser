@@ -1,4 +1,5 @@
 #define JSON_DEBUG_LEVEL 0
+#define JSON_DEBUG_MEM 1
 
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
@@ -30,13 +31,13 @@ void setup() {
 
   //run_tests();
   
-  // get_stream("http://192.168.1.2:10000/fr.json", [](WiFiClient* stream){
-  //   test_parse_with_callback_geojson_big_from_stream(stream);
-  // });
-
-  get_stream("http://192.168.1.2:10000/canada.json", [](WiFiClient* stream){
-    test_parse_geojson_big_with_limited_geometry_from_stream(stream);
+  get_stream("http://192.168.1.2:10000/medium.geojson", [](WiFiClient* stream){
+    test_parse_with_callback_geojson_medium_from_stream(stream);
   });
+
+  // get_stream("http://192.168.1.2:10000/big.geojson", [](WiFiClient* stream){
+  //   test_parse_geojson_big_with_limited_geometry_from_stream(stream);
+  // });
 
   // constexpr size_t N = 60;
   // FeatureCollectionLimited<1, N, 1> fc;
@@ -67,7 +68,9 @@ void loop() {
   if (printed == false) {
     Serial.printf("Free heap: %u => %u\n", free_heap, ESP.getFreeHeap());
     Serial.printf("Free stack: %u => %u\n", free_stack, ESP.getFreeContStack());
+#ifdef JSON_DEBUG_MEM
     Serial.printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
+#endif
     printed = true;
   }
 
