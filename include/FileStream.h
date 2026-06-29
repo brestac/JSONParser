@@ -60,7 +60,11 @@ public:
     return current_pos < 0 ? 0 : (int)(_size - current_pos);
   }
   int read() override { return fgetc(_file); }
-  int peek() override { return fgetc(_file); }
+  int peek() override {
+    int c = fgetc(_file);
+    if (c != EOF) ungetc(c, _file);
+    return c;
+  }
   bool eof() const { return feof(_file); }
   size_t bytesConsumed() const { return ftell(_file); }
   size_t size() { return _size; }

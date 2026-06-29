@@ -109,7 +109,6 @@ public:
       s_pool_size = 0;
       s_pool_offset = 0;
       n_values = 0;
-     
 #ifdef JSON_DEBUG_MEM
 #ifdef __GXX_RTTI
       JSON_DEBUG_COLOR(COLOR_RED, "Pool<%s> détruit\n", typeid(T).name());
@@ -117,10 +116,12 @@ public:
       if (GLOBAL_STRING_POOL_SIZE == 0) {
         JSON_DEBUG_COLOR(COLOR_RED, "All pools destroyed\n");
       }
-    } else {
-      JSON_DEBUG_COLOR(COLOR_RED, "Pool déjà détruit\n");
-    }
 #endif
+    } else {
+#ifdef JSON_DEBUG_MEM
+      JSON_DEBUG_COLOR(COLOR_RED, "Pool déjà détruit\n");
+#endif
+    }
   }
 /*
   static bool write(unsigned char c) {
@@ -235,17 +236,11 @@ public:
   }
 
 private:
-  static char *s_string_pool;  // pointeur heap, nullptr jusqu'au premier appel
-  static size_t s_pool_size;   // taille actuellement allouée
-  static size_t s_pool_offset; // offset courant dans le pool
-  static size_t n_values;      // nombre de valeurs stockées
+  inline static char *s_string_pool = nullptr; // pointeur heap, nullptr jusqu'au premier appel
+  inline static size_t s_pool_size = 0;        // taille actuellement allouée
+  inline static size_t s_pool_offset = 0;      // offset courant dans le pool
+  inline static size_t n_values = 0;           // nombre de valeurs stockées
   // static Entries s_entries[];
 };
-
-template <typename T, size_t N> char *StaticString<T, N>::s_string_pool = nullptr;
-template <typename T, size_t N> size_t StaticString<T, N>::s_pool_offset = 0;
-template <typename T, size_t N> size_t StaticString<T, N>::s_pool_size = 0;
-template <typename T, size_t N> size_t StaticString<T, N>::n_values = 0;
-// template <typename T, size_t N> typename StaticString<T, N>::Entries StaticString<T, N>::s_entries[N];
 
 NAMESPACE_JSON_END
