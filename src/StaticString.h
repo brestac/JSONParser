@@ -12,7 +12,7 @@
 
 NAMESPACE_JSON_BEGIN
 
-static std::array<void (*)(), 10> s_pool_deleters = {nullptr};
+static std::array<void (*)(), 20> s_pool_deleters = {nullptr};
 static size_t s_pool_count = 0;
 
 static void clear_all() {
@@ -21,6 +21,9 @@ static void clear_all() {
         auto fn = s_pool_deleters[i];
         if (fn) fn();
     }
+
+    s_pool_count = 0;
+    s_pool_deleters.fill(nullptr);
 }
 
 template <typename T, size_t N = 0> class StaticString {
@@ -106,15 +109,18 @@ public:
       s_pool_size = 0;
       s_pool_offset = 0;
       n_values = 0;
-      JSON_DEBUG_COLOR(COLOR_RED, "Pool<%s> détruit\n", typeid(T).name());
+     
 #ifdef JSON_DEBUG_MEM
+#ifdef __GXX_RTTI
+      JSON_DEBUG_COLOR(COLOR_RED, "Pool<%s> détruit\n", typeid(T).name());
+#endif
       if (GLOBAL_STRING_POOL_SIZE == 0) {
         JSON_DEBUG_COLOR(COLOR_RED, "All pools destroyed\n");
       }
-#endif
     } else {
       JSON_DEBUG_COLOR(COLOR_RED, "Pool déjà détruit\n");
     }
+#endif
   }
 /*
   static bool write(unsigned char c) {
