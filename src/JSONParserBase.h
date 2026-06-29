@@ -54,9 +54,8 @@ public:
       : _cursor(cursor), _state(IDLE), _automask(false), _keyMask(0),
         _nParsed(0), _nMatched(0), _nConverted(0), _nUpdated(0),
         _is_top_level_array(false) /*, _nArgs(0)*/,
-        _lastError(ParserError::NO_ERROR), _lastParseError(0), _key_length(0),
-        _key_buf(new char[JSON::MAX_KEY_LENGTH + 1]{}),
-        _val_buf(new char[JSON::MAX_VALUE_LENGTH + 1]{}) {
+        _lastError(ParserError::NO_ERROR), _lastParseError(0), 
+        _key_length(0), _key_buf(_s_key_buf), _val_buf(_s_val_buf) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "JSONParserBase(pointer) '%.*s' created\n",
                      (int)strlen(name), name);
 #if JSON_DEBUG_LEVEL > 0
@@ -177,9 +176,10 @@ private:
   char _name[12];
 #endif
   uint8_t _key_length;
-  std::unique_ptr<char[]> _key_buf;
-  std::unique_ptr<char[]> _val_buf;
-
+  char* _key_buf;
+  char* _val_buf;
+  static char _s_key_buf[MAX_KEY_LENGTH + 1];
+  static char _s_val_buf[MAX_VALUE_LENGTH + 1];
   void reset();
   // ── Primitives de lecture via curseur ──────────────────────
   // Ces méthodes encapsulent tous les accès au curseur.
@@ -271,6 +271,12 @@ private:
   std::string_view get_state_name();
 };
 
+template <typename Cursor, bool UseMask, typename TargetT>
+char JSONParserBase<Cursor, UseMask, TargetT>::_s_key_buf[JSON::MAX_KEY_LENGTH + 1] = {};
+
+template <typename Cursor, bool UseMask, typename TargetT>
+char JSONParserBase<Cursor, UseMask, TargetT>::_s_val_buf[JSON::MAX_VALUE_LENGTH + 1] = {};
+
 // ============================================================
 //  Implémentation des méthodes
 // ============================================================
@@ -298,8 +304,6 @@ void JSONParserBase<Cursor, UseMask, TargetT>::reset() {
   _name[0] = '\0';
 #endif
   _key_length = 0;
-  _key_buf.get()[0] = '\0';
-  _val_buf[0] = '\0';
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -316,7 +320,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::set_state(ParserState s) {
 
 template <typename Cursor, bool UseMask, typename TargetT>
 void JSONParserBase<Cursor, UseMask, TargetT>::_reset_key() {
-  _key_buf.get()[0] = '\0';
+  _key_buf[0] = '\0';
   _key_length = 0;
 }
 
@@ -347,7 +351,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_key() {
     if (!valid)
       break;
 
-    _key_buf.get()[n++] = ch;
+    _key_buf[n++] = ch;
   }
 
   if (n == 0) {
@@ -364,7 +368,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_key() {
   _key_length = n;
 
   JSON_DEBUG_INFO("JSONParserBase::parse_key '%.*s'\n", (int)_key_length,
-                  _key_buf.get());
+                  _key_buf);
   return true;
 }
 
@@ -1035,7 +1039,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_value(JSONCallbackObject &cb) {
   JSON_DEBUG_WARNING(
       "JSONParserBase<Cursor, UseMask, TargetT>::parse_value with callback\n");
 
-  cb.setKey(_key_buf.get(), _key_length);
+  cb.setKey(_key_buf, _key_length);
 
   if (_is_top_level_array) {
     JSON_DEBUG_INFO("JSONParserBase<Cursor, UseMask, TargetT>::parse_value top "
@@ -1069,7 +1073,7 @@ std::enable_if_t<(std::tuple_size<TupleT>::value > 1), ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::parse_value(TableT &table,
                                                       TupleT &args) {
   constexpr size_t NPairs = std::tuple_size<TupleT>::value / 2;
-  const std::string_view parsed_key(_key_buf.get(), _key_length);
+  const std::string_view parsed_key(_key_buf, _key_length);
   const StaticEntry *entry = table.find(hash32(parsed_key));
 
   if (!entry) {
@@ -1686,8 +1690,8 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
     return ParseValueResult::PARSE_ERROR_OBJECT_NO_START;
   }
   
-  bool key_not_set = _key_buf.get()[0] == '\0' || _key_length == 0;
-  const char *name = key_not_set ? "$UNAMED" : _key_buf.get();
+  bool key_not_set = _key_buf[0] == '\0' || _key_length == 0;
+  const char *name = key_not_set ? "$UNAMED" : _key_buf;
   
   JSON_DEBUG_INFO("Will parse object '%s'\n", name);
   JSON_DEBUG_INFO("Cursor position is now at %zu\n", bytesConsumed());
@@ -1786,7 +1790,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::print_state(
                     bytesConsumed(), iteration, this, color,
                     (int)(11 + strlen(_name) + col_pos + 1), '^',
                     get_state_name().data(), error, errorValueType,
-                    (int)_key_length, _key_buf.get());
+                    (int)_key_length, _key_buf);
 
     free(output);
   }
