@@ -27,15 +27,13 @@
 #include "../src/fast_float.h"
 
 int main() {
-  //bool all_passed = run_tests();
-  test_parse_geojson_big<FeatureCollection>();
-  test_parse_geojson_big_with_limited_geometry();
+  bool all_passed = run_tests();
 #ifdef JSON_DEBUG_MEM
   std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
   std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
 #endif
-  //return all_passed ? 0 : 1;
-  return 0;
+  return all_passed ? 0 : 1;
+  // return 0;
   //test fast_float
   // const char* p = "123.456 xx";
   // double d;
