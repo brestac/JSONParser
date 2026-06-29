@@ -276,7 +276,7 @@ template <typename Cursor, bool UseMask, typename TargetT>
 bool JSONParserBase<Cursor, UseMask, TargetT>::skip_spaces() {
   return cursor_scan_chars(_cursor, JSON_SPACE_CHARACTERS, true);
 }
-  
+
 template <typename Cursor, bool UseMask, typename TargetT>
 void JSONParserBase<Cursor, UseMask, TargetT>::reset() {
   // _cursor is passed from parser to parser and should not be reset
@@ -947,7 +947,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
   if constexpr (container_info<V>::is_container && is_basic_value<typename container_info<V>::base_type>) {
     return skip_to_array_end_fast<V>();
   }
-  
+
   // We are in the middle of an array after the comma, we need to skip to the
   // end of the array We use skip_value to skip the each value until we find the
   // end of the array;
@@ -1679,10 +1679,10 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
   if (!is_object_start()) {
     return ParseValueResult::PARSE_ERROR_OBJECT_NO_START;
   }
-  
+
   bool key_not_set = _key_buf.get()[0] == '\0' || _key_length == 0;
   const char *name = key_not_set ? "$UNAMED" : _key_buf.get();
-  
+
   JSON_DEBUG_INFO("Will parse object '%s'\n", name);
   JSON_DEBUG_INFO("Cursor position is now at %zu\n", bytesConsumed());
 
@@ -1729,10 +1729,10 @@ ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_any(V arg_value) {
   ParseValueResult result = ParseValueResult::NO_RESULT;
 
-  result = parse_string(arg_value);
+  result = parse_numeric(arg_value);
   if (result.parsed())
     return result;
-  result = parse_numeric(arg_value);
+  result = parse_string(arg_value);
   if (result.parsed())
     return result;
   result = parse_bool(arg_value);

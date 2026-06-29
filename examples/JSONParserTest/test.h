@@ -796,6 +796,7 @@ void test_parse_with_callback_geojson_big_from_stream(Stream *stream) {
   }
 
   f.toJSON(Serial);
+  Serial.println("");
   Serial.printf("Parsing took %.02fs\n", (float)pr.elapsed / 1000000.0f);
 }
 
