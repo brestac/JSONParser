@@ -77,7 +77,9 @@ public:
         register_if_needed();
       }
       s_string_pool = p;
+#ifdef JSON_DEBUG_MEM
       GLOBAL_STRING_POOL_SIZE += new_size - s_pool_size;
+#endif
       s_pool_size = new_size;
     } else {
       JSON_DEBUG_COLOR(COLOR_RED, "Realloc échoué pour %zu octets\n", new_size);
@@ -97,15 +99,19 @@ public:
   static void clear() {
     if (s_string_pool != nullptr) {
       free(s_string_pool);
+#ifdef JSON_DEBUG_MEM
       GLOBAL_STRING_POOL_SIZE -= s_pool_size;
+#endif
       s_string_pool = nullptr;
       s_pool_size = 0;
       s_pool_offset = 0;
       n_values = 0;
       JSON_DEBUG_COLOR(COLOR_RED, "Pool<%s> détruit\n", typeid(T).name());
+#ifdef JSON_DEBUG_MEM
       if (GLOBAL_STRING_POOL_SIZE == 0) {
         JSON_DEBUG_COLOR(COLOR_RED, "All pools destroyed\n");
       }
+#endif
     } else {
       JSON_DEBUG_COLOR(COLOR_RED, "Pool déjà détruit\n");
     }

@@ -72,7 +72,9 @@ public:
     reset();
     _cursor.depth--;
     JSON_DEBUG_WARNING("destroyed\n");
+#ifdef JSON_DEBUG_MEM
     GLOBAL_PARSER_SIZE -= sizeof(*this);
+#endif
   }
 
   // ── API publique (identique à JSONParser) ─────────────────
@@ -122,7 +124,7 @@ public:
   template <typename PV, typename V>
   ParseValueResult assign_infinity_to_integral(PV &pv, V &v);
 
-  template <class From, class To> constexpr To clamp_to_max(From v);
+  template <class From, class To> constexpr To clamp_to_min_max(From v);
 
   template <typename V> ParseValueResult parse_into_value(V &arg_value);
 
@@ -1347,11 +1349,15 @@ template <typename PV, typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::assign_integral_to_integral(PV &pv,
                                                                       V &v) {
-  V new_value = clamp_to_max<PV, V>(pv);
-  if (v != new_value) {
-    v = new_value;
+  if constexpr (ALLOW_INTEGER_OVERFLOW) {
+    pv = clamp_to_min_max<PV, V>(pv);
+  }
+  
+  if (v != pv) {
+    v = pv;
     return ParseValueResult::VALUE_UPDATED;
   }
+  
   return ParseValueResult::NO_RESULT;
 }
 
@@ -1494,7 +1500,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::assign_parsed_value_to_value(PV &pv,
 
 template <typename Cursor, bool UseMask, typename TargetT>
 template <class From, class To>
-constexpr To JSONParserBase<Cursor, UseMask, TargetT>::clamp_to_max(From v) {
+constexpr To JSONParserBase<Cursor, UseMask, TargetT>::clamp_to_min_max(From v) {
   if constexpr (std::is_signed_v<From> && std::is_unsigned_v<To>) {
     if (v < 0)
       return 0;

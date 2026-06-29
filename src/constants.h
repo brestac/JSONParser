@@ -10,9 +10,11 @@
 
 NAMESPACE_JSON_BEGIN
 
+#ifdef JSON_DEBUG_MEM
 static size_t GLOBAL_PARSER_SIZE = 0;
 static size_t MAX_GLOBAL_PARSER_SIZE = 0;
 static size_t GLOBAL_STRING_POOL_SIZE = 0;
+#endif
 
 constexpr uint16_t YIELD_EVERY = 128;
 constexpr size_t STREAM_BUFFER_SIZE = 1 << 7;     // 128 octets
@@ -33,8 +35,11 @@ constexpr size_t MAX_ARRAY_LENGTH = 1 << 16;      // 65536 valeurs
 constexpr size_t MAX_KEY_VALUE_COUNT = 32;        // Maximum autorisé par la macro
 constexpr size_t DEBUG_COLUMN_WIDTH = 80;
 constexpr uint8_t VERSION = 1;
+
+// Options
 constexpr bool ALLOW_FLOATING_POINT_INTEGERS = true;
 constexpr bool USE_FAST_FLOAT = true;
+constexpr bool ALLOW_INTEGER_OVERFLOW = true;
 
 inline bool PRINT_BUFFER_AS_HEX = false;
 inline size_t MAX_PRINTF_BUFFER_SIZE = 4096;
