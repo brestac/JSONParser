@@ -66,6 +66,16 @@ if (++iteration > MAX) {                                                       \
 #define COLOR_BG_BLUE 44
 #define COLOR_BG_WHITE 47
 
+#if defined(ARDUINO) && defined(JSON_DEBUG_MEM)
+#define LOG_STACK(label) \
+  size_t stack_remaining = ESP.getFreeContStack();\
+  if (stack_remaining < GLOBAL_CONTEXT_STACK_SIZE) {\
+    DEBUG_PRINTF("parse_into_value target=%s key=%.*s depth=%d stack remaining: %u\n", typeid(TargetT).name(), _key_length, _key_buf, _cursor.depth(), stack_remaining);\
+  }
+#else
+#define LOG_STACK(label)
+#endif
+
 #ifdef ARDUINO
 #define PRINTF_COLOR(n, fmt, ...) DEBUG_PRINTF(fmt, ##__VA_ARGS__)
 #else

@@ -1123,10 +1123,8 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_value(V &arg_value) {
   JSON_DEBUG_TYPES(
       "JSONParserBase<Cursor, UseMask, TargetT>::parse_into_value %s\n",
       arg_value);
-#if defined(ARDUINO) && defined(JSON_DEBUG_MEM)
-  DEBUG_PRINTF("parse_into_value stack remaining: %u\n",
-               ESP.getFreeContStack());
-#endif
+  LOG_STACK("parse_into_value");
+
   if constexpr (std::is_same_v<remove_cvref_t<V>, JSONCallbackObject>) {
     return parse_any(arg_value);
   } else if constexpr (std::is_same_v<V, bool>) {
@@ -1555,9 +1553,8 @@ enable_if_t<container_info<V>::is_container ||
             ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_array\n");
-#if defined(ARDUINO) && defined(JSON_DEBUG_MEM)
-  DEBUG_PRINTF("parse_array stack remaining: %u\n", ESP.getFreeContStack());
-#endif
+  LOG_STACK("parse_array");
+
   if (!is_array_start()) {
     return ParseValueResult::PARSE_ERROR_ARRAY_NO_START;
   }
@@ -1703,9 +1700,8 @@ template <typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
   JSON_DEBUG_TYPES("JSONParser::parse_object into %s\n", arg_value);
-#if defined(ARDUINO) && defined(JSON_DEBUG_MEM)
-  DEBUG_PRINTF("parse_object stack remaining: %u\n", ESP.getFreeContStack());
-#endif
+  LOG_STACK("parse_object");
+
   if (!is_object_start()) {
     return ParseValueResult::PARSE_ERROR_OBJECT_NO_START;
   }

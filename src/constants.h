@@ -14,6 +14,7 @@ NAMESPACE_JSON_BEGIN
 static size_t GLOBAL_PARSER_SIZE = 0;
 static size_t MAX_GLOBAL_PARSER_SIZE = 0;
 static size_t GLOBAL_STRING_POOL_SIZE = 0;
+static size_t GLOBAL_CONTEXT_STACK_SIZE = UINT16_MAX;
 #endif
 
 constexpr uint16_t YIELD_EVERY = 128;
