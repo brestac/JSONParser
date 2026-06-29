@@ -4,9 +4,9 @@
 
 #include <limits>
 
-#include "fast_float.h"
 #include "ParseDispatchTable.h"
 #include "StaticString.h"
+#include "fast_float.h"
 #include "types.h"
 #include "utils.h"
 #ifdef __GXX_RTTI
@@ -19,12 +19,10 @@
 using namespace std;
 using namespace JSON;
 
-template<bool Condition = false>
-struct IncludeFastFloat {};
+template <bool Condition = false> struct IncludeFastFloat {};
 
-template<>
-struct IncludeFastFloat<true> {
-  #include "fast_float.h"
+template <> struct IncludeFastFloat<true> {
+#include "fast_float.h"
 };
 
 IncludeFastFloat<USE_FAST_FLOAT> _;
@@ -54,8 +52,8 @@ public:
       : _cursor(cursor), _state(IDLE), _automask(false), _keyMask(0),
         _nParsed(0), _nMatched(0), _nConverted(0), _nUpdated(0),
         _is_top_level_array(false) /*, _nArgs(0)*/,
-        _lastError(ParserError::NO_ERROR), _lastParseError(0), 
-        _key_length(0), _key_buf(_s_key_buf), _val_buf(_s_val_buf) {
+        _lastError(ParserError::NO_ERROR), _lastParseError(0),
+        /*_key_length(0),*/ _key_buf(_s_key_buf), _val_buf(_s_val_buf) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "JSONParserBase(pointer) '%.*s' created\n",
                      (int)strlen(name), name);
 #if JSON_DEBUG_LEVEL > 0
@@ -175,9 +173,9 @@ private:
 #if JSON_DEBUG_LEVEL > 0
   char _name[12];
 #endif
-  uint8_t _key_length;
-  char* _key_buf;
-  char* _val_buf;
+  static uint8_t _key_length;
+  char *_key_buf;
+  char *_val_buf;
   static char _s_key_buf[MAX_KEY_LENGTH + 1];
   static char _s_val_buf[MAX_VALUE_LENGTH + 1];
   void reset();
@@ -272,10 +270,15 @@ private:
 };
 
 template <typename Cursor, bool UseMask, typename TargetT>
-char JSONParserBase<Cursor, UseMask, TargetT>::_s_key_buf[JSON::MAX_KEY_LENGTH + 1] = {};
+uint8_t JSONParserBase<Cursor, UseMask, TargetT>::_key_length = 0;
 
 template <typename Cursor, bool UseMask, typename TargetT>
-char JSONParserBase<Cursor, UseMask, TargetT>::_s_val_buf[JSON::MAX_VALUE_LENGTH + 1] = {};
+char JSONParserBase<Cursor, UseMask, TargetT>::_s_key_buf[JSON::MAX_KEY_LENGTH +
+                                                          1] = {};
+
+template <typename Cursor, bool UseMask, typename TargetT>
+char JSONParserBase<Cursor, UseMask,
+                    TargetT>::_s_val_buf[JSON::MAX_VALUE_LENGTH + 1] = {};
 
 // ============================================================
 //  Implémentation des méthodes
@@ -392,7 +395,8 @@ JSONParserBase<Cursor, UseMask, TargetT>::scan_digits(size_t max_length) {
 #if defined(__clang__)
   __builtin_assume(max_length <= JSON::MAX_VALUE_LENGTH);
 #endif
-  return cursor_scan_ranges(_cursor, JSON_DIGIT_CHARACTERS_RANGES, max_length, true);
+  return cursor_scan_ranges(_cursor, JSON_DIGIT_CHARACTERS_RANGES, max_length,
+                            true);
 }
 
 template <typename Cursor, typename TargetT, typename TargetV>
@@ -584,7 +588,8 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
 
   if constexpr (USE_FAST_FLOAT) {
     fast_float::parse_options options{fast_float::chars_format::json_or_infnan};
-    fast_float::from_chars_result result = fast_float::from_chars_advanced(start, start + 32, parsed_value, options);
+    fast_float::from_chars_result result = fast_float::from_chars_advanced(
+        start, start + 32, parsed_value, options);
     if (result.ec != std::errc()) {
       return ParseValueResult::PARSE_ERROR_NUMERIC;
     }
@@ -592,14 +597,16 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
     size_t consumed = result.ptr - start;
     _cursor.advance(consumed);
   } else {
-     char *end;
+    char *end;
 
     if constexpr (std::is_same_v<Type, double>) {
       parsed_value = std::strtod(start, &end);
-      JSON_DEBUG_INFO("JSONParserBase::parse_numeric double %f\n", parsed_value);
+      JSON_DEBUG_INFO("JSONParserBase::parse_numeric double %f\n",
+                      parsed_value);
     } else if constexpr (std::is_same_v<Type, int32_t>) {
       parsed_value = (int)std::strtol(start, &end, 10);
-      JSON_DEBUG_INFO("JSONParserBase::parse_numeric integer %d\n", parsed_value);
+      JSON_DEBUG_INFO("JSONParserBase::parse_numeric integer %d\n",
+                      parsed_value);
     } else if constexpr (std::is_same_v<Type, int64_t>) {
       parsed_value = std::strtoll(start, &end, 10);
       JSON_DEBUG_INFO("JSONParserBase::parse_numeric int64 %lld\n",
@@ -610,7 +617,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
                       (unsigned long long)parsed_value);
     }
 
-    //check if parsed_value have been parsed as Infinity
+    // check if parsed_value have been parsed as Infinity
     if (parsed_value == std::numeric_limits<Type>::infinity()) {
       return parse_infinity(arg_value);
     } else if (isnan(parsed_value)) {
@@ -948,9 +955,11 @@ ParseValueResult JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
   // JSON_DEBUG_INFO("is container %d ", container_info<V>::is_container);
   // JSON_DEBUG_INFO("dimensions %d ", container_info<V>::dimensions);
   // JSON_DEBUG_INFO("is basic value %d ", is_basic_value<V>);
-  // JSON_DEBUG_INFO("is array of basic values %d\n", is_array_of_basic_values<V>);
+  // JSON_DEBUG_INFO("is array of basic values %d\n",
+  // is_array_of_basic_values<V>);
 
-  if constexpr (container_info<V>::is_container && is_basic_value<typename container_info<V>::base_type>) {
+  if constexpr (container_info<V>::is_container &&
+                is_basic_value<typename container_info<V>::base_type>) {
     return skip_to_array_end_fast<V>();
   }
 
@@ -989,7 +998,9 @@ ParseValueResult JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
 }
 
 // Skip to end of multidimensional arrays with basic leaf value (e.g. a value we
-// know it does not contain brackets) like [1,2,3,4] or [[1.1,2.2], [1.1,2.2], [1.1,2.2]] or [[[1.1,2.2], [1.1,2.2], [1.1,2.2]], [[1.1,2.2], [1.1,2.2], [1.1,2.2]]]
+// know it does not contain brackets) like [1,2,3,4] or [[1.1,2.2], [1.1,2.2],
+// [1.1,2.2]] or [[[1.1,2.2], [1.1,2.2], [1.1,2.2]], [[1.1,2.2], [1.1,2.2],
+// [1.1,2.2]]]
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename V>
 ParseValueResult
@@ -1112,6 +1123,10 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_value(V &arg_value) {
   JSON_DEBUG_TYPES(
       "JSONParserBase<Cursor, UseMask, TargetT>::parse_into_value %s\n",
       arg_value);
+#if defined(ARDUINO) && defined(JSON_DEBUG_MEM)
+  DEBUG_PRINTF("parse_into_value stack remaining: %u\n",
+               ESP.getFreeContStack());
+#endif
   if constexpr (std::is_same_v<remove_cvref_t<V>, JSONCallbackObject>) {
     return parse_any(arg_value);
   } else if constexpr (std::is_same_v<V, bool>) {
@@ -1356,12 +1371,12 @@ JSONParserBase<Cursor, UseMask, TargetT>::assign_integral_to_integral(PV &pv,
   if constexpr (ALLOW_INTEGER_OVERFLOW) {
     pv = clamp_to_min_max<PV, V>(pv);
   }
-  
+
   if (v != pv) {
     v = pv;
     return ParseValueResult::VALUE_UPDATED;
   }
-  
+
   return ParseValueResult::NO_RESULT;
 }
 
@@ -1434,14 +1449,14 @@ JSONParserBase<Cursor, UseMask, TargetT>::assign_callback_object(
   cb.run(pv);
 
   switch (cb.skip) {
-    case JSON::SKIP::END:
-      _state = SKIP;
-      break;
-    case JSON::SKIP::STOP:
-      _state = STOPPED;
-      break;
-    default:
-      break;
+  case JSON::SKIP::END:
+    _state = SKIP;
+    break;
+  case JSON::SKIP::STOP:
+    _state = STOPPED;
+    break;
+  default:
+    break;
   }
 
   return ParseValueResult::VALUE_UPDATED;
@@ -1504,7 +1519,8 @@ JSONParserBase<Cursor, UseMask, TargetT>::assign_parsed_value_to_value(PV &pv,
 
 template <typename Cursor, bool UseMask, typename TargetT>
 template <class From, class To>
-constexpr To JSONParserBase<Cursor, UseMask, TargetT>::clamp_to_min_max(From v) {
+constexpr To
+JSONParserBase<Cursor, UseMask, TargetT>::clamp_to_min_max(From v) {
   if constexpr (std::is_signed_v<From> && std::is_unsigned_v<To>) {
     if (v < 0)
       return 0;
@@ -1539,7 +1555,9 @@ enable_if_t<container_info<V>::is_container ||
             ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_array\n");
-
+#if defined(ARDUINO) && defined(JSON_DEBUG_MEM)
+  DEBUG_PRINTF("parse_array stack remaining: %u\n", ESP.getFreeContStack());
+#endif
   if (!is_array_start()) {
     return ParseValueResult::PARSE_ERROR_ARRAY_NO_START;
   }
@@ -1685,14 +1703,16 @@ template <typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
   JSON_DEBUG_TYPES("JSONParser::parse_object into %s\n", arg_value);
-
+#if defined(ARDUINO) && defined(JSON_DEBUG_MEM)
+  DEBUG_PRINTF("parse_object stack remaining: %u\n", ESP.getFreeContStack());
+#endif
   if (!is_object_start()) {
     return ParseValueResult::PARSE_ERROR_OBJECT_NO_START;
   }
-  
+
   bool key_not_set = _key_buf[0] == '\0' || _key_length == 0;
   const char *name = key_not_set ? "$UNAMED" : _key_buf;
-  
+
   JSON_DEBUG_INFO("Will parse object '%s'\n", name);
   JSON_DEBUG_INFO("Cursor position is now at %zu\n", bytesConsumed());
 
