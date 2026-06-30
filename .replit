@@ -113,6 +113,15 @@ author = 564070
 task = "shell.exec"
 args = "make desktop-test-arduino && cd build && ./desktop-test-arduino"
 
+[[workflows.workflow]]
+name = "Desktop test faster"
+mode = "sequential"
+author = 564070
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "make desktop-test-faster && cd build && ./desktop-test-faster"
+
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 60000
