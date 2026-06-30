@@ -916,8 +916,11 @@ void test_parse_geojson_big() {
   }
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
-
+#ifdef JSON_STRICT_MODE
+  char *json = read_file("./big_no_spaces.geojson");
+#else
   char *json = read_file("./big.geojson");
+#endif
   T fc;
   uint64_t total_elapsed = 0;
   JSON::ParseResult pr;

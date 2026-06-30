@@ -381,7 +381,7 @@ bool JSONParserBase<Cursor, UseMask, TargetT>::parse_key() {
 // ── parse_colon ───────────────────────────────────────────────
 template <typename Cursor, bool UseMask, typename TargetT>
 bool JSONParserBase<Cursor, UseMask, TargetT>::parse_colon() {
-  skip_spaces();
+  SKIP_SPACES();
   return cursor_scan_char(_cursor, JSON_COLON_CHARACTER, true);
 }
 
@@ -930,7 +930,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_object_end() {
       if (is_object_end()) {
         break;
       } else {
-        skip_spaces();
+        SKIP_SPACES();
 
         if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) {
           JSON_DEBUG_ERROR("JSONParserBase::skip_to_object_end: no comma\n");
@@ -968,7 +968,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
   // We are in the middle of an array after the comma, we need to skip to the
   // end of the array We use skip_value to skip the each value until we find the
   // end of the array;
-  skip_spaces();
+  SKIP_SPACES();
 
   while (true) {
     CHECK_LOOP(MAX_ITERATIONS, ParseValueResult::PARSE_ERROR_OVERFLOW);
@@ -982,7 +982,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end() {
         break;
       } else {
         // skip the comma
-        skip_spaces();
+        SKIP_SPACES();
 
         if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) {
           JSON_DEBUG_ERROR("JSONParserBase::skip_to_array_end: no comma\n");
@@ -1014,7 +1014,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end_fast() {
   // We are in the middle of an array after the comma, we need to skip to the
   // end of the array We just go to the end of the array assuming none of the
   // values contains ']'.
-  skip_spaces();
+  SKIP_SPACES();
 
   while (brackets_counter > 0) {
     CHECK_LOOP(MAX_ITERATIONS, ParseValueResult::PARSE_ERROR_OVERFLOW);
@@ -1040,7 +1040,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end_fast() {
     }
   }
 
-  skip_spaces();
+  SKIP_SPACES();
 
   return ParseValueResult::ARRAY_PARSED;
 }
@@ -1202,7 +1202,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
 #endif
     switch (_state) {
     case IDLE:
-      skip_spaces();
+      SKIP_SPACES();
 
       if (is_array_start()) {
         _is_top_level_array = true;
@@ -1220,7 +1220,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
       break;
 
     case KEY:
-      skip_spaces();
+      SKIP_SPACES();
       if (is_object_end()) {
         _state = END;
         continue;
@@ -1245,7 +1245,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
 
     case VALUE: {
 
-      skip_spaces();
+      SKIP_SPACES();
       if (is_object_end()) {
         _state = END;
         continue;
@@ -1283,7 +1283,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
     }
 
     case COMMA:
-      skip_spaces();
+      SKIP_SPACES();
       if (is_object_end()) {
         _state = END;
         break;
@@ -1368,10 +1368,11 @@ template <typename PV, typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::assign_integral_to_integral(PV &pv,
                                                                       V &v) {
+#ifndef JSON_STRICT_MODE
   if constexpr (ALLOW_INTEGER_OVERFLOW) {
     pv = clamp_to_min_max<PV, V>(pv);
   }
-
+#endif
   if (v != pv) {
     v = pv;
     return ParseValueResult::VALUE_UPDATED;
@@ -1582,7 +1583,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
       return ParseValueResult::PARSE_ERROR_OVERFLOW;
     }
 
-    skip_spaces();
+    SKIP_SPACES();
     ParseValueResult result;
 
     if constexpr (std::is_same_v<UnknownValueType, remove_cvref_t<V>>) {
@@ -1603,7 +1604,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
       return result;
     }
 
-    skip_spaces();
+    SKIP_SPACES();
 
     if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) {
       JSON_DEBUG_WARNING("JSONParserBase::parse_array: no comma at index %zu, "
@@ -1628,7 +1629,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
     }
   }
 
-  skip_spaces();
+  SKIP_SPACES();
 
   if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<TargetT>>) {
     arg_value.pop();
