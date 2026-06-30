@@ -12,9 +12,9 @@
 //   JSONValue
 // ---------------------------------------------------------------------------
 
-template <class T> using base_array_type = remove_cvref_t<std::remove_extent_t<remove_cvref_t<T>>>;
+template <class T> using base_array_type = remove_cv_ref_t<std::remove_extent_t<remove_cv_ref_t<T>>>;
 
-template <class T> constexpr bool is_array_value = std::is_array_v<remove_cvref_t<T>>;
+template <class T> constexpr bool is_array_value = std::is_array_v<remove_cv_ref_t<T>>;
 
 template <class T> constexpr bool is_unsigned_value = std::is_unsigned_v<base_array_type<T>>;
 

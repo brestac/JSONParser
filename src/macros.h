@@ -71,7 +71,7 @@ if (++iteration > MAX) {                                                       \
   uint32_t stack_remaining = ESP.getFreeContStack();\
   if (stack_remaining < GLOBAL_CONTEXT_STACK_SIZE) {\
     DEBUG_PRINTF(label" stack: %zu ", stack_remaining);\
-    if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>) {\
+    if constexpr (std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>>) {\
       arg_value.key.print();\
     }\
     GLOBAL_CONTEXT_STACK_SIZE = stack_remaining;\
@@ -274,14 +274,14 @@ if (++iteration > MAX) {                                                       \
   }                                                                            \
   JSON::ParseResult fromJSON(const char *_json_name_,                          \
                              const PointerCursorReader &cursor) override {     \
-    using _SelfT = remove_cvref_t<decltype(*this)>;                            \
+    using _SelfT = remove_cv_ref_t<decltype(*this)>;                            \
     return JSON::_parse_impl<true, const PointerCursorReader, _SelfT>(         \
         _json_name_, this->updated, cursor, MACRO(__VA_ARGS__));               \
   }                                                                            \
-  JSON::ParseResult fromJSON(const char *_json_name_, StreamCursor &cursor)    \
+  JSON::ParseResult fromJSON(const char *_json_name_, StreamCursorReader &cursor)    \
       override {                                                               \
-    using _SelfT = remove_cvref_t<decltype(*this)>;                            \
-    return JSON::_parse_impl<true, StreamCursor, _SelfT>(                      \
+    using _SelfT = remove_cv_ref_t<decltype(*this)>;                            \
+    return JSON::_parse_impl<true, StreamCursorReader, _SelfT>(                      \
         _json_name_, this->updated, cursor, MACRO(__VA_ARGS__));               \
   }
 #define TO_JSON_OVERRIDE(...)                                                  \
@@ -293,7 +293,7 @@ if (++iteration > MAX) {                                                       \
     uint32_t mask = updates ? this->updated : 0;                               \
     return JSON::_print(mask, output, MACRO(__VA_ARGS__));                     \
   }                                                                            \
-  size_t toJSON(StreamCursor &output, bool updates = false) override {         \
+  size_t toJSON(StreamCursorWriter &output, bool updates = false) override {         \
     uint32_t mask = updates ? this->updated : 0;                               \
     return JSON::_print(mask, output, MACRO(__VA_ARGS__));                     \
   }

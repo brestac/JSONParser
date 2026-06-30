@@ -114,7 +114,9 @@ private:
 //                   size_t write(const char*)
 //                   size_t printf(const char* format, ...)
 // ============================================================
+enum StreamCursorType : uint8_t { READER = 0, WRITER = 1 };
 
+template <StreamCursorType T>
 class StreamCursor {
 public:
   StreamCursor(Stream *stream)
@@ -127,181 +129,34 @@ public:
   ~StreamCursor() { JSON_DEBUG_WARNING("StreamCursor destroyed\n"); }
 
   // --------------------------------------------------------
-  // Méthodes de LECTURE (existantes, inchangées)
+  // Méthodes de LECTURE
   // --------------------------------------------------------
+  int peek(size_t offset = 0);
+  size_t peekToken(char *out, size_t maxLen);
+  void advance(size_t n = 1);
+  int read();
+  size_t readBytes(uint8_t *buffer, size_t length);
 
-  // Caractère courant sans avancer (-1 = fin de flux)
-  int peek(size_t offset = 0) {
-    int c = _ring.peek(offset);
-    if (c < 0)
-      _eof = true;
-    return c;
-  }
+// --------------------------------------------------------
+// Méthodes d'ÉCRITURE
+// --------------------------------------------------------
+  size_t write(uint8_t c);
+  size_t write(const uint8_t *buffer, size_t size);
+  template <size_t N> size_t write(const char (&str)[N]);
+  size_t write(const char *str);
+  template <typename... Args> size_t printf(const char *format, Args &&...args);
+  bool outputCanTimeout();
+  int availableForWrite();
+  size_t bytesWritten() const;
 
-  // Avance d'un cran
-  void advance(size_t n = 1) {
-    _ring.consume(n);
-    _consumed += n;
-  }
-
-  // Lit et avance d'un cran
-  int read() {
-    int c = _ring.read();
-    if (c >= 0)
-      _consumed++;
-    else
-      _eof = true;
-    return c;
-  }
-
-  size_t readBytes(uint8_t *buffer, size_t length) {
-    return _ring.readBytes(buffer, length);
-  }
-
+// --------------------------------------------------------
+// Méthodes communes
+// --------------------------------------------------------
   bool eof() const { return _eof; }
-
-  // Nombre total d'octets consommés depuis la création du curseur
   size_t bytesConsumed() const { return _consumed; }
-
-  // Extrait au plus maxLen octets dans out[] en s'arrêtant sur un
-  // délimiteur JSON. Ne consomme PAS les octets (lecture seule via peek).
-  // Retourne le nombre d'octets copiés.
-  size_t peekToken(char *out, size_t maxLen) {
-    static const char delimiters[] = {',',  '}',  ']',  ' ',
-                                      '\t', '\n', '\r', '\0'};
-    size_t n = 0;
-    while (n < maxLen) {
-      CHECK_LOOP(MAX_ITERATIONS, 0);
-      int c = _ring.peek(n);
-      if (c < 0)
-        break;
-      char ch = static_cast<char>(c);
-      bool isDelim = false;
-      for (char d : delimiters) {
-        if (ch == d) {
-          isDelim = true;
-          break;
-        }
-      }
-      if (isDelim)
-        break;
-      out[n++] = ch;
-    }
-    if (n < maxLen)
-      out[n] = '\0';
-    return n;
-  }
-
-  // --------------------------------------------------------
-  // Méthodes d'ÉCRITURE
-  // Satisfont le concept is_cursor_writer_v de JSONPrinter.h
-  // --------------------------------------------------------
-
-  /*
-  print.h overload
-  virtual size_t write(uint8_t) = 0;
-  virtual size_t write(const uint8_t *buffer, size_t size);
-  virtual void flush() { }
-  virtual bool outputCanTimeout () { return true; }
-  virtual int availableForWrite() { return 0; }
-  */
-  int availableForWrite() { return _stream->availableForWrite(); }
-
-  size_t write(uint8_t c) {
-    // JSON_DEBUG_WARNING("\nStreamCursor::write n=1\n");
-    int available = availableForWrite();
-    if (available <= 0)
-      return 0;
-
-    flush();
-    size_t n = _stream->write(c);
-    _written += n;
-
-    return n;
-  }
-
-  size_t write(const uint8_t *buffer, size_t size) {
-
-    size_t len = static_cast<size_t>(availableForWrite());
-
-    if (len > size)
-      len = size;
-
-    if (len == 0)
-      return 0;
-
-    flush();
-    // DEBUG_PRINTF("\nStreamCursor::write n=%zu\n", (size_t)len);
-
-    size_t n = _stream->write(buffer, len);
-    _written += n;
-
-    return n;
-  }
-  // Écrit une chaîne null-terminée dans le stream.
-  // Retourne le nombre d'octets écrits.
-  template <size_t N> size_t write(const char (&str)[N]) {
-    return write((const uint8_t *)str, N);
-  }
-
-  size_t write(const char *str) {
-    return write((const uint8_t *)str, strlen(str));
-  }
-
-  // Écrit une chaîne formatée (printf-style) dans le stream.
-  // Utilise un buffer de pile de 64 octets ; alloue dynamiquement
-  // si la chaîne formatée est plus longue.
-  // Retourne le nombre d'octets écrits.
-
-  template <typename... Args>
-  size_t printf(const char *format, Args &&...args) {
-    char buf[STREAM_BUFFER_SIZE];
-
-    // snprintf écrit au plus sizeof(buf)-1 caractères
-    int needed =
-        snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
-    if (needed < 0)
-      return 0;
-
-    int available = availableForWrite();
-    size_t to_write = static_cast<size_t>(needed);
-
-    if (to_write >= sizeof(buf)) {
-      // Le buffer était trop petit : allocation dynamique
-      char *heap = static_cast<char *>(malloc(to_write + 1));
-      if (!heap)
-        return 0;
-      snprintf(heap, to_write + 1, format, std::forward<Args>(args)...);
-      if (available >= 0 && to_write > static_cast<size_t>(available)) {
-        to_write = static_cast<size_t>(available);
-      }
-
-      size_t n = write(reinterpret_cast<const uint8_t *>(heap), to_write);
-      free(heap);
-      _written += n;
-
-      return n;
-    }
-
-    // Tout tient dans le buffer de pile
-    if (available >= 0 && to_write > static_cast<size_t>(available)) {
-      to_write = static_cast<size_t>(available);
-    }
-
-    size_t n = write(reinterpret_cast<const uint8_t *>(buf), to_write);
-    _written += n;
-
-    return n;
-  }
-
   void flush() { _stream->flush(); }
 
-  bool outputCanTimeout() { return _stream->outputCanTimeout(); }
-
-  // Nombre total d'octets écrits depuis la création du curseur
-  size_t bytesWritten() const { return _written; }
-
-  int8_t depth = -1;
+  mutable int8_t depth = -1;
 
 private:
   RingBuffer<JSON::RING_BUFFER_SIZE> _ring;
@@ -310,5 +165,163 @@ private:
   size_t _written;
   bool _eof;
 };
+
+using StreamCursorReader = StreamCursor<StreamCursorType::READER>;
+using StreamCursorWriter = StreamCursor<StreamCursorType::WRITER>;
+// --------------------------------------------------------
+// IMPLEMENTATION DES Méthodes de Lecture
+// --------------------------------------------------------
+
+// Caractère courant sans avancer (-1 = fin de flux)
+template<> int StreamCursorReader::peek(size_t offset) {
+  int c = _ring.peek(offset);
+  if (c < 0)
+    _eof = true;
+  return c;
+}
+
+// Avance d'un cran
+template<> void StreamCursorReader::advance(size_t n) {
+  _ring.consume(n);
+  _consumed += n;
+}
+
+// Lit et avance d'un cran
+template<> int StreamCursorReader::read() {
+  int c = _ring.read();
+  if (c >= 0)
+    _consumed++;
+  else
+    _eof = true;
+  return c;
+}
+
+template<> size_t StreamCursorReader::readBytes(uint8_t *buffer, size_t length) {
+  return _ring.readBytes(buffer, length);
+}
+
+// Extrait au plus maxLen octets dans out[] en s'arrêtant sur un
+// délimiteur JSON. Ne consomme PAS les octets (lecture seule via peek).
+// Retourne le nombre d'octets copiés.
+template<> size_t StreamCursorReader::peekToken(char *out, size_t maxLen) {
+  size_t n = 0;
+  while (n < maxLen) {
+    CHECK_LOOP(MAX_ITERATIONS, 0);
+    int c = _ring.peek(n);
+    if (c < 0)
+      break;
+    char ch = static_cast<char>(c);
+    bool isDelim = false;
+    for (char d : JSON_DELIMITERS) {
+      if (ch == d) {
+        isDelim = true;
+        break;
+      }
+    }
+    if (isDelim)
+      break;
+    out[n++] = ch;
+  }
+  if (n < maxLen)
+    out[n] = '\0';
+  return n;
+}
+
+// --------------------------------------------------------
+// IMPLEMENTATION DES Méthodes d'écriture
+// --------------------------------------------------------
+template<> int StreamCursorWriter::availableForWrite() { return _stream->availableForWrite(); }
+
+template<> size_t StreamCursorWriter::write(uint8_t c) {
+  // JSON_DEBUG_WARNING("\nStreamCursor::write n=1\n");
+  int available = availableForWrite();
+  if (available <= 0)
+    return 0;
+
+  flush();
+  size_t n = _stream->write(c);
+  _written += n;
+
+  return n;
+}
+
+template<> size_t StreamCursorWriter::write(const uint8_t *buffer, size_t size) {
+
+  size_t len = static_cast<size_t>(availableForWrite());
+
+  if (len > size)
+    len = size;
+
+  if (len == 0)
+    return 0;
+
+  flush();
+  // DEBUG_PRINTF("\nStreamCursor::write n=%zu\n", (size_t)len);
+
+  size_t n = _stream->write(buffer, len);
+  _written += n;
+
+  return n;
+}
+// Écrit une chaîne null-terminée dans le stream.
+// Retourne le nombre d'octets écrits.
+template<> template <size_t N> size_t StreamCursorWriter::write(const char (&str)[N]) {
+  return write((const uint8_t *)str, N);
+}
+
+template<> size_t StreamCursorWriter::write(const char *str) {
+  return write((const uint8_t *)str, strlen(str));
+}
+
+// Écrit une chaîne formatée (printf-style) dans le stream.
+// Utilise un buffer de pile de 64 octets ; alloue dynamiquement
+// si la chaîne formatée est plus longue.
+// Retourne le nombre d'octets écrits.
+
+template<> template <typename... Args>
+size_t StreamCursorWriter::printf(const char *format, Args &&...args) {
+  char buf[STREAM_BUFFER_SIZE];
+
+  // snprintf écrit au plus sizeof(buf)-1 caractères
+  int needed =
+      snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+  if (needed < 0)
+    return 0;
+
+  int available = availableForWrite();
+  size_t to_write = static_cast<size_t>(needed);
+
+  if (to_write >= sizeof(buf)) {
+    // Le buffer était trop petit : allocation dynamique
+    char *heap = static_cast<char *>(malloc(to_write + 1));
+    if (!heap)
+      return 0;
+    snprintf(heap, to_write + 1, format, std::forward<Args>(args)...);
+    if (available >= 0 && to_write > static_cast<size_t>(available)) {
+      to_write = static_cast<size_t>(available);
+    }
+
+    size_t n = write(reinterpret_cast<const uint8_t *>(heap), to_write);
+    free(heap);
+    _written += n;
+
+    return n;
+  }
+
+  // Tout tient dans le buffer de pile
+  if (available >= 0 && to_write > static_cast<size_t>(available)) {
+    to_write = static_cast<size_t>(available);
+  }
+
+  size_t n = write(reinterpret_cast<const uint8_t *>(buf), to_write);
+  _written += n;
+
+  return n;
+}
+
+template<> bool StreamCursorWriter::outputCanTimeout() { return _stream->outputCanTimeout(); }
+
+// Nombre total d'octets écrits depuis la création du curseur
+template<> size_t StreamCursorWriter::bytesWritten() const { return _written; }
 
 NAMESPACE_JSON_END

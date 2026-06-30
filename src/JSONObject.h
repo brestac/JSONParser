@@ -44,11 +44,11 @@ public:
   ////////////////////////////////////////////////////////////////////////////////
 
   virtual JSON::ParseResult fromJSON(const char* /*name*/, const PointerCursorReader & /*cursor*/) {
-    return ParseResult();
+    return JSON::ParseResult();
   }
 
-  virtual JSON::ParseResult fromJSON(const char* /*name*/, StreamCursor & /*cursor*/) {
-    return ParseResult();
+  virtual JSON::ParseResult fromJSON(const char* /*name*/, StreamCursorReader & /*cursor*/) {
+    return JSON::ParseResult();
   }
 
   template <size_t N>
@@ -65,19 +65,19 @@ public:
   }
 
   template <typename T>
-  std::enable_if_t<is_stream_v<T>, ParseResult>
+  std::enable_if_t<is_stream_v<T>, JSON::ParseResult>
   fromJSON(const char* name, T& input) {
-    StreamCursor cursor(input);
+    StreamCursorReader cursor(input);
     return fromJSON(name, cursor);
   }
 
   template <typename T>
-  ParseResult fromJSON(T& input) {
+  JSON::ParseResult fromJSON(T& input) {
     return fromJSON("$ROOT", input);
   }
 
   template <typename T>
-  std::enable_if_t<is_stream_v<T*>, ParseResult>
+  std::enable_if_t<is_stream_v<T*>, JSON::ParseResult>
   fromJSON(T* input) {
     return fromJSON("$ROOT", *input);
   }
@@ -89,12 +89,12 @@ public:
     return cursor.write("{}");
   }
 
-  virtual size_t toJSON(StreamCursor & cursor, bool /*updates*/ = false) {
+  virtual size_t toJSON(StreamCursorWriter & cursor, bool /*updates*/ = false) {
     return cursor.write("{}");
   }
 
   template <typename T> std::enable_if_t<is_stream_v<T>, size_t> toJSON(T& output, bool updates = false) {
-    StreamCursor cursor(output);
+    StreamCursorWriter cursor(output);
     return toJSON(cursor, updates);
   }
 

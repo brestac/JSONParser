@@ -19,7 +19,7 @@ using enable_if_args_valid =
 
 template <typename T>
 using enable_if_cursor =
-    std::enable_if_t<is_cursor_reader_v<remove_cvref_t<T>>, ParseResult>;
+    std::enable_if_t<is_cursor_reader_v<remove_cv_ref_t<T>>, ParseResult>;
 
 template <typename T>
 using enable_if_pointer_reader_compatible =
@@ -51,7 +51,7 @@ ParseResult _parse_impl(const char *name, uint32_t &mask, Cursor &cursor,
     MAX_GLOBAL_PARSER_SIZE = GLOBAL_PARSER_SIZE;
   }
 #endif
-  if constexpr (std::is_same<remove_cvref_t<Cursor>, StreamCursor>::value &&
+  if constexpr (std::is_same<remove_cv_ref_t<Cursor>, StreamCursorReader>::value &&
                 (sizeof...(Args) > 1)) {
     constexpr size_t n_sv = count_string_view_args_v<Args...>;
     StaticString<TargetT>::ensure_pool_size(n_sv);
@@ -108,7 +108,7 @@ ParseResult parse(uint32_t &mask, const PointerCursorReader &cursor,
 }
 
 template <typename... Args>
-ParseResult parse(uint32_t &mask, StreamCursor &stream, Args &&...args) {
+ParseResult parse(uint32_t &mask, StreamCursorReader &stream, Args &&...args) {
   return _parse("$ROOT", mask, stream, std::forward<Args>(args)...);
 }
 
@@ -127,7 +127,7 @@ ParseResult parse(uint32_t &mask, const char (&input)[N], Args &&...args) {
 
 template <typename T, typename... Args>
 enable_if_stream_compatible<T> parse(uint32_t &mask, T &input, Args &&...args) {
-  StreamCursor stream(input);
+  StreamCursorReader stream(input);
   return _parse("$ROOT", mask, stream, std::forward<Args>(args)...);
 }
 
@@ -135,7 +135,7 @@ enable_if_stream_compatible<T> parse(uint32_t &mask, T &input, Args &&...args) {
 //  parse — callback
 ////////////////////////////////////////////////////////////
 
-ParseResult parse(StreamCursor &cursor, const JSONCallback &cb) {
+ParseResult parse(StreamCursorReader &cursor, const JSONCallback &cb) {
   JSONCallbackObject cb_obj(cb, "$ROOT_KEY");
   return _parse("$CALLBACK", cursor, cb_obj);
 }
@@ -157,7 +157,7 @@ parse(uint32_t &mask, const PointerCursorReader &cursor, T &jsonObjects) {
 NAMESPACE_JSON_END
 
 JSON::ParseResult UnknownValueType::fromJSON(const char *name,
-                                             JSON::StreamCursor &cursor) {
+                                             JSON::StreamCursorReader &cursor) {
   static UnknownValueType dummy;
   return JSON::_parse(name, cursor, dummy);
 }
@@ -176,6 +176,6 @@ JSONCallbackObject::fromJSON(const char *name,
 }
 
 JSON::ParseResult JSONCallbackObject::fromJSON(const char *name,
-                                               JSON::StreamCursor &cursor) {
+                                               JSON::StreamCursorReader &cursor) {
   return JSON::_parse(name, cursor, *this);
 }
