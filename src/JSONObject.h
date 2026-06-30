@@ -60,7 +60,7 @@ public:
 
   JSON::ParseResult fromJSON(const char* name, const char* input) {
     JSON_DEBUG_WARNING("JSONObject::fromJSON(const char* input)\n");
-    const PointerCursorReader cursor(input, str_length(input, MAX_POINTER_CURSOR_SIZE));
+    const PointerCursorReader cursor(input, str_length(input, MAX_JSON_LENGTH));
     return fromJSON(name, cursor);
   }
 
