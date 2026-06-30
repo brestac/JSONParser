@@ -35,8 +35,8 @@ public:
   }
 
   constexpr PointerCursor(const char* buffer)
-      : _pos(buffer), _start(buffer), _end(buffer + str_length(buffer, MAX_POINTER_CURSOR_SIZE)) {
-      JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader created with const char* buffer %p deducted size %zu\n", buffer, str_length(buffer, MAX_POINTER_CURSOR_SIZE));
+      : _pos(buffer), _start(buffer), _end(buffer + str_length(buffer, MAX_JSON_LENGTH)) {
+      JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader created with const char* buffer %p deducted size %zu\n", buffer, str_length(buffer, MAX_JSON_LENGTH));
   }
 
   template <size_t N>
@@ -122,7 +122,7 @@ public:
     return i;
   }
 
-  size_t write(const char* buf) const { return write(buf, str_length(buf, MAX_POINTER_CURSOR_SIZE)); }
+  size_t write(const char* buf) const { return write(buf, str_length(buf, MAX_JSON_LENGTH)); }
 
   template <size_t N> size_t write(const char (&buf)[N]) const {
     return write(buf, N - 1);

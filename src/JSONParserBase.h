@@ -268,7 +268,9 @@ private:
   size_t scan_digits(size_t max_length = 0);
 
   void set_state(ParserState s);
+#if JSON_DEBUG_LEVEL > 0
   void print_state(size_t iteration);
+#endif
   std::string_view get_state_name();
 };
 
@@ -1777,7 +1779,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_any(V arg_value) {
 
   return ParseValueResult::NO_RESULT;
 }
-
+#if JSON_DEBUG_LEVEL > 0
 template <typename Cursor, bool UseMask, typename TargetT>
 void JSONParserBase<Cursor, UseMask, TargetT>::print_state(
     [[maybe_unused]] size_t iteration) {
@@ -1814,7 +1816,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::print_state(
     free(output);
   }
 }
-
+#endif
 template <typename Cursor, bool UseMask, typename TargetT>
 std::string_view JSONParserBase<Cursor, UseMask, TargetT>::get_state_name() {
   switch (_state) {

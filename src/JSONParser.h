@@ -115,7 +115,7 @@ ParseResult parse(uint32_t &mask, StreamCursor &stream, Args &&...args) {
 template <typename... Args>
 ParseResult parse(uint32_t &mask, const char *input, Args &&...args) {
   const PointerCursorReader cursor(input,
-                                   str_length(input, MAX_POINTER_CURSOR_SIZE));
+                                   str_length(input, MAX_JSON_LENGTH));
   return _parse("$ROOT", mask, cursor, std::forward<Args>(args)...);
 }
 
