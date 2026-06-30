@@ -80,6 +80,13 @@ if (++iteration > MAX) {                                                       \
 #define LOG_STACK(label)
 #endif
 
+#ifndef JSON_STRICT_MODE
+  #define SKIP_SPACES() skip_spaces()
+#else
+  #define SKIP_SPACES()
+#endif
+
+
 #ifdef ARDUINO
 #define PRINTF_COLOR(n, fmt, ...) DEBUG_PRINTF(fmt, ##__VA_ARGS__)
 #else
