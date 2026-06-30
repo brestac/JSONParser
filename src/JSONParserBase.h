@@ -19,13 +19,16 @@
 using namespace std;
 using namespace JSON;
 
-template <bool Condition = false> struct IncludeFastFloat {};
+template <bool Condition = false> struct IncludeFastFloat {
+  fast_float::parse_options options = nullptr;
+};
 
 template <> struct IncludeFastFloat<true> {
 #include "fast_float.h"
+  fast_float::parse_options options{fast_float::chars_format::json_or_infnan};
 };
 
-IncludeFastFloat<USE_FAST_FLOAT> _;
+IncludeFastFloat<USE_FAST_FLOAT> fastFloat;
 
 // ============================================================
 //  JSONParserBase<Cursor>
@@ -587,9 +590,8 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
   Type parsed_value;
 
   if constexpr (USE_FAST_FLOAT) {
-    fast_float::parse_options options{fast_float::chars_format::json_or_infnan};
     fast_float::from_chars_result result = fast_float::from_chars_advanced(
-        start, start + 32, parsed_value, options);
+        start, start + 32, parsed_value, FastFloat.options);
     if (result.ec != std::errc()) {
       return ParseValueResult::PARSE_ERROR_NUMERIC;
     }
