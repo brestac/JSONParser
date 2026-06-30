@@ -9,9 +9,6 @@
 #include "./test.h"
 #include "./get_stream.h"
 
-static uint32_t free_heap = 0U;
-static uint32_t free_stack = 0U;
-
 void setup() {
   Serial.begin(115200);
   Serial.println();
@@ -26,13 +23,18 @@ void setup() {
 
   LittleFS.begin();
 
-  free_heap = ESP.getFreeHeap();
-  free_stack = ESP.getFreeContStack();
-
   //run_tests();
-  
+  Serial.printf("sizeof FeatureMultipoint: %u\n", sizeof(FeatureMultipoint));
+  Serial.printf("sizeof GeometryMultipoint: %u\n", sizeof(GeometryMultipoint));
+
   get_stream("http://192.168.1.2:10000/medium.geojson", [](WiFiClient* stream){
+    Serial.printf("Stack before: %u\n", ESP.getFreeContStack());
+    JSON::GLOBAL_CONTEXT_STACK_SIZE = ESP.getFreeContStack();
     test_parse_with_callback_geojson_medium_from_stream(stream);
+    Serial.printf("Stack watermark: %u\n", ESP.getFreeContStack());
+#ifdef JSON_DEBUG_MEM
+    Serial.printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
+#endif
   });
 
   // get_stream("http://192.168.1.2:10000/big.geojson", [](WiFiClient* stream){
@@ -64,15 +66,5 @@ void setup() {
 }
 
 void loop() {
-  static bool printed = false;
-  if (printed == false) {
-    Serial.printf("Free heap: %u => %u\n", free_heap, ESP.getFreeHeap());
-    Serial.printf("Free stack: %u => %u\n", free_stack, ESP.getFreeContStack());
-#ifdef JSON_DEBUG_MEM
-    Serial.printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
-#endif
-    printed = true;
-  }
-
   delay(10);
 }
