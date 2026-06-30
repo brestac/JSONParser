@@ -587,7 +587,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
     start = tmp;
   }
 
-  Type parsed_value;
+  static Type parsed_value;
 
   if constexpr (USE_FAST_FLOAT) {
     fast_float::from_chars_result result = fast_float::from_chars_advanced(
