@@ -752,7 +752,7 @@ void test_parse_with_callback_geojson_medium_from_stream(Stream *stream) {
     // print the lat/lon of the first coordinate of any ring of the first feature
     static float lon = 0.0f;
 
-    if (!(key == "coordinates")) {
+    if (key != "coordinates") {
       return;
     }
 

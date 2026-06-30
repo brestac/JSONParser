@@ -177,6 +177,17 @@ struct JSONKey {
   constexpr bool operator==(const std::string_view& other_sv) const {
     return _key == other_sv;
   }
+  
+  template <size_t N>
+  bool operator!=(const char (&key)[N]) const {
+    return std::strncmp(key, _key.data(), N - 1) != 0;
+  }
+  
+  bool operator!=(const JSONKey& other) const { return _hash != other._hash; }
+  
+  constexpr bool operator!=(const std::string_view& other_sv) const {
+    return _key != other_sv;
+  }
 
   constexpr int16_t operator[](int8_t index) const {
     return _array_index.getIndex(index);
