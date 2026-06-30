@@ -20,7 +20,7 @@ using namespace std;
 using namespace JSON;
 
 template <bool Condition = false> struct IncludeFastFloat {
-  fast_float::parse_options options = nullptr;
+  fast_float::parse_options options;
 };
 
 template <> struct IncludeFastFloat<true> {
@@ -591,7 +591,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
 
   if constexpr (USE_FAST_FLOAT) {
     fast_float::from_chars_result result = fast_float::from_chars_advanced(
-        start, start + 32, parsed_value, FastFloat.options);
+        start, start + 32, parsed_value, fastFloat.options);
     if (result.ec != std::errc()) {
       return ParseValueResult::PARSE_ERROR_NUMERIC;
     }
@@ -1125,7 +1125,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_value(V &arg_value) {
   JSON_DEBUG_TYPES(
       "JSONParserBase<Cursor, UseMask, TargetT>::parse_into_value %s\n",
       arg_value);
-  LOG_STACK("parse_into_value");
+  // LOG_STACK("parse_into_value");
 
   if constexpr (std::is_same_v<remove_cvref_t<V>, JSONCallbackObject>) {
     return parse_any(arg_value);

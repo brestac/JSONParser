@@ -920,16 +920,24 @@ void test_parse_geojson_big() {
 
   char *json = read_file("./big.geojson");
   T fc;
-
-  // La ligne précédente ne marche pas !! remove_extent_t transforme int[N] en int mais pas Type<N> en Type !!
-  // Il faut utiliser std::remove_all_extents_t pour les types composites.
-  // J'ai essayé avec std::remove_all_extents_t mais ça ne marche pas non plus.
-  // Je ne comprends pas pourquoi.
-  // Question: comment transformer Type<N> en Type ?
-  // Réponse: il faut utiliser std::remove_extent_t<T> pour les types simples et std::remove_all_extents_t<T> pour les types composites.
-  uint64_t start = now();
-  JSON::ParseResult pr = fc.fromJSON(json);
-  [[maybe_unused]] uint64_t elapsed1 = now() - start;
+  uint64_t total_elapsed = 0;
+  JSON::ParseResult pr;
+  #ifdef ARDUINO
+    uint8_t TEST_ITERATIONS = 1U;
+  #else
+    uint8_t TEST_ITERATIONS = 100U;
+  #endif
+  
+  uint8_t counter = TEST_ITERATIONS;
+  while(counter--) {
+    fc = T();
+    uint64_t start = now();
+    pr = fc.fromJSON(json);
+    total_elapsed += now() - start;
+  }
+ 
+  [[maybe_unused]] double elapsed1 = double(total_elapsed) / double(TEST_ITERATIONS);
+  
   check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error,
         pr.length);
   check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s",
@@ -964,19 +972,23 @@ void test_parse_geojson_big() {
 
   // RAPIDJSON
   rapidjson::Document d;
-  start = now();
-  d.Parse(json);
-  uint64_t elapsed2 = now() - start;
+  uint64_t start = now();
+  counter = TEST_ITERATIONS;
+  while(counter--) {
+    d.Parse(json);
+  }
+
+  double elapsed2 = double(now() - start) / double(TEST_ITERATIONS);
   free(json);
 
-  float factor = (float)elapsed1 / (float)elapsed2;
+  double factor = elapsed1 / elapsed2;
   bool faster = elapsed1 < elapsed2;
   if (factor !=0 && faster) {
     factor = 1.0f / factor;
   }
   
-  DEBUG_PRINTF("JSONParser Parsing time: %lu µs\n", elapsed1);
-  DEBUG_PRINTF("RapidJSON Parsing time: %lu µs\n", elapsed2);
+  DEBUG_PRINTF("JSONParser Parsing time: %.0f µs\n", elapsed1);
+  DEBUG_PRINTF("RapidJSON Parsing time: %.0f µs\n", elapsed2);
   DEBUG_PRINTF("JSONParser is %.2f times %s than RapidJSON\n", faster ? "faster" : "slower", factor);
 }
 
