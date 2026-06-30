@@ -737,7 +737,7 @@ void test_parse_geojson_sans_geometry_from_file() {
 
 void test_parse_with_callback_geojson_medium_from_stream(Stream *stream) {
   DEBUG_PRINTF("\n\nTEST GEOJSON MEDIUM PARSING WITH CALLBACK\n");
-  StreamCursor cursor(stream);
+  StreamCursorReader cursor(stream);
   // arrayIndex depth should be 0 for the geometry array, 1 for the rings, 2 for the coordinates, 3 for the lon/lat
   // Ok got it. It is FeatureCollection → feature → geometry → coordinates → rings → coordinates → lon/lat
   //                          0              1           2           3           4           5           6
@@ -921,9 +921,6 @@ void test_parse_geojson_big() {
 #else
   char *json = read_file("./big.geojson");
 #endif
-  T fc;
-  uint64_t total_elapsed = 0;
-  JSON::ParseResult pr;
   #ifdef ARDUINO
     uint8_t TEST_ITERATIONS = 1U;
   #else
@@ -931,14 +928,16 @@ void test_parse_geojson_big() {
   #endif
   
   uint8_t counter = TEST_ITERATIONS;
+  T fc;
+  JSON::ParseResult pr;
+  
+  uint64_t start = now();
   while(counter--) {
     fc = T();
-    uint64_t start = now();
     pr = fc.fromJSON(json);
-    total_elapsed += now() - start;
   }
  
-  [[maybe_unused]] double elapsed1 = double(total_elapsed) / double(TEST_ITERATIONS);
+  [[maybe_unused]] double elapsed1 = double(now() - start) / double(TEST_ITERATIONS);
   
   check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error,
         pr.length);
@@ -974,8 +973,9 @@ void test_parse_geojson_big() {
 
   // RAPIDJSON
   rapidjson::Document d;
-  uint64_t start = now();
   counter = TEST_ITERATIONS;
+  start = now();
+
   while(counter--) {
     d.Parse(json);
   }

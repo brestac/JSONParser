@@ -59,7 +59,7 @@ _print(uint32_t mask, Cursor &output, Args &&...args) {
 // ──────────────────────────────────────────
 template <typename T, typename... Args>
 std::enable_if_t<is_stream_v<T>, size_t> print(uint32_t mask, T &stream, Args &&...args) {
-  StreamCursor c(stream);
+  StreamCursorWriter c(stream);
   return _print(mask, c, std::forward<Args>(args)...);
 }
 
@@ -125,7 +125,7 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
 template <typename Cursor, typename T>
 size_t constexpr print_value_to(Cursor &output, T &value) {
 
-  if constexpr (std::is_same_v<remove_cvref_t<T>, bool>) {
+  if constexpr (std::is_same_v<remove_cv_ref_t<T>, bool>) {
     return print_to(output, "%s", value ? "true" : "false");
   } else if constexpr (is_char_array_v<T>) {
     return print_char_array_to(output, value);
@@ -137,21 +137,21 @@ size_t constexpr print_value_to(Cursor &output, T &value) {
     }
   } else if constexpr (is_container_v<T>) {
     return print_array_to(output, value);
-  } else if constexpr (std::is_floating_point_v<remove_cvref_t<T>>) {
+  } else if constexpr (std::is_floating_point_v<remove_cv_ref_t<T>>) {
     return print_to(output, "%.15g", value);
-    // } else if constexpr (std::is_unsigned_v<remove_cvref_t<T>>) {
+    // } else if constexpr (std::is_unsigned_v<remove_cv_ref_t<T>>) {
     //   return print_to(output, "%u", value);
-  } else if constexpr (std::is_integral_v<remove_cvref_t<T>>) {
+  } else if constexpr (std::is_integral_v<remove_cv_ref_t<T>>) {
     return print_to(output, "%lld", (long long)value);
-  } else if constexpr (std::is_same_v<remove_cvref_t<T>, std::string_view>) {
+  } else if constexpr (std::is_same_v<remove_cv_ref_t<T>, std::string_view>) {
     return print_to(output, "\"%.*s\"", (int)value.length(), value.data());
-  } else if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<T>>) {
+  } else if constexpr (std::is_base_of_v<JSONObject, remove_cv_ref_t<T>>) {
     return print_object_pointer_to(output, &value);
   } else if constexpr (std::is_pointer_v<T>) {
     if (value == nullptr) {
       return output.write("null");
     } else {
-      if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<std::remove_pointer_t<T>>>) {
+      if constexpr (std::is_base_of_v<JSONObject, remove_cv_ref_t<std::remove_pointer_t<T>>>) {
         return print_object_pointer_to(output, value);
       } else {
         return print_to(output, "%p", value);

@@ -48,110 +48,34 @@ public:
         is_reader ? "reader" : "writer", buffer, N - 1);
   }
 
-  // Accès direct au pointeur brut (pour strtod/strtol)
-  constexpr T *ptr() const { return _pos; }
+  // --------------------------------------------------------
+  // Méthodes de LECTURE
+  // --------------------------------------------------------
+  bool advance(int n = 1) const;
+  bool go_to(const char* ptr) const;
+  int peek(int offset = 0) const;
+  int read() const;
 
-  size_t available() const { return _end - _pos; }
+// --------------------------------------------------------
+// Méthodes d'ECRITURE
+// --------------------------------------------------------
+  size_t write(char c) const;
+  size_t write(const char* buf, size_t size) const;
+  size_t write(const char* buf) const;
+  template <size_t N> size_t write(const char (&buf)[N]) const;
+  template <size_t N> size_t write(char (&buf)[N]) const;
+  template <typename... Args> std::enable_if_t<(sizeof...(Args) > 0), size_t> printf(const char* format, Args &&...args) const;
 
-  void flush() {}
-
-  // Avance le pointeur de n octets
-  bool advance(int n = 1) const {
-    if (_pos + n < _start) {
-      JSON_DEBUG_WARNING("PointerCursor::advance: underflow\n");
-      _pos = _start;
-    } else if (_pos + n > _end) {
-      JSON_DEBUG_WARNING("PointerCursor::advance: overflow\n");
-      _pos = _end;
-    } else {
-      _pos += n;
-      return true;
-    }
-
-    return false;
-  }
-
-  // Avance jusqu'au pointeur
-  bool go_to(const char* ptr) const {
-    if (ptr >= _start && ptr < _end) {
-      _pos = ptr;
-      return true;
-    }
-
-    return false;
-  }
-  
-  // Caractère courant sans avancer (-1 = fin)
-  int peek(int offset = 0) const {
-    const char* p = _pos + offset;
-    if (p < _start || p >= _end)
-      return -1;
-
-    return static_cast<unsigned char>(*p);
-  }
-
-  // Lit et avance
-  int read() const {
-    if (_pos >= _end)
-      return -1;
-    
-    return static_cast<unsigned char>(*_pos++);
-  }
-
-  // Ecrit et avance
-  size_t write(char c) const {
-    if (_pos >= _end)
-      return 0;
-    *_pos = c;
-    _pos++;
-    return 1;
-  }
-
-  size_t write(const char* buf, size_t size) const {
-    if (_pos >= _end)
-      return 0;
-
-    size_t i = 0;
-    for (; i < size; i++) {
-      *_pos = buf[i];
-      _pos++;
-      if (_pos >= _end)
-        break;
-    }
-
-    return i;
-  }
-
-  size_t write(const char* buf) const { return write(buf, str_length(buf, MAX_JSON_LENGTH)); }
-
-  template <size_t N> size_t write(const char (&buf)[N]) const {
-    return write(buf, N - 1);
-  }
-
-  template <size_t N> size_t write(char (&buf)[N]) const {
-    return write(buf, N - 1);
-  }
-
-  template <typename... Args>
-  std::enable_if_t<(sizeof...(Args) > 0), size_t> printf(const char* format,
-                                                         Args &&...args) const {
-    size_t len =
-        snprintf(_pos, available(), format, std::forward<Args>(args)...);
-    _pos += len;
-    return len;
-  }
-
-  bool eof() const { return _pos >= _end; }
-
-  size_t bytesConsumed() const { return _pos - _start; }
-
-  size_t size() const { return _end - _start; }
-
+// --------------------------------------------------------
+// Méthodes communes
+// --------------------------------------------------------
   T *start() const { return _start; }
-
-  std::string_view get_sv(const char* src, size_t len) const {
-    return std::string_view(src, len);
-  }
+  constexpr T *ptr() const { return _pos; }
+  size_t available() const { return _end - _pos; }
+  void flush() {}
+  bool eof() const { return _pos >= _end; }
+  size_t bytesConsumed() const { return _pos - _start; }
+  size_t size() const { return _end - _start; }
 
   mutable int8_t depth = -1;
 private:
@@ -162,5 +86,98 @@ private:
 
 using PointerCursorReader = PointerCursor<const char>;
 using PointerCursorWriter = PointerCursor<char>;
+
+//-------------------------------------------------------------------//
+//  Spécialisation pour const char* (lecture seule)
+//-------------------------------------------------------------------//
+
+// Avance le pointeur de n octets
+template<> bool PointerCursorReader::advance(int n) const {
+  if (_pos + n < _start) {
+    JSON_DEBUG_WARNING("PointerCursor::advance: underflow\n");
+    _pos = _start;
+  } else if (_pos + n > _end) {
+    JSON_DEBUG_WARNING("PointerCursor::advance: overflow\n");
+    _pos = _end;
+  } else {
+    _pos += n;
+    return true;
+  }
+
+  return false;
+}
+
+// Avance jusqu'au pointeur
+template<> bool PointerCursorReader::go_to(const char* ptr) const {
+  if (ptr >= _start && ptr < _end) {
+    _pos = ptr;
+    return true;
+  }
+
+  return false;
+}
+
+// Caractère courant sans avancer (-1 = fin)
+template<> int PointerCursorReader::peek(int offset) const {
+  const char* p = _pos + offset;
+  if (p < _start || p >= _end)
+    return -1;
+
+  return static_cast<unsigned char>(*p);
+}
+
+// Lit et avance
+template<> int PointerCursorReader::read() const {
+  if (_pos >= _end)
+    return -1;
+
+  return static_cast<unsigned char>(*_pos++);
+}
+
+//-------------------------------------------------------------------//
+//  Spécialisation pour char* (écriture seule)
+//-------------------------------------------------------------------//
+// Ecrit et avance
+template<> size_t PointerCursorWriter::write(char c) const {
+  if (_pos >= _end)
+    return 0;
+  *_pos = c;
+  _pos++;
+  return 1;
+}
+
+template<> size_t PointerCursorWriter::write(const char* buf, size_t size) const {
+  if (_pos >= _end)
+    return 0;
+
+  size_t i = 0;
+  for (; i < size; i++) {
+    *_pos = buf[i];
+    _pos++;
+    if (_pos >= _end)
+      break;
+  }
+
+  return i;
+}
+
+template<> size_t PointerCursorWriter::write(const char* buf) const { return write(buf, str_length(buf, MAX_JSON_LENGTH)); }
+
+template<> template <size_t N> size_t PointerCursorWriter::write(const char (&buf)[N]) const {
+  return write(buf, N - 1);
+}
+
+template<> template <size_t N> size_t PointerCursorWriter::write(char (&buf)[N]) const {
+  return write(buf, N - 1);
+}
+
+template<> template <typename... Args> 
+std::enable_if_t<(sizeof...(Args) > 0), size_t> PointerCursorWriter::printf(const char* format,
+                                                       Args &&...args) const {
+  size_t len =
+      snprintf(_pos, available(), format, std::forward<Args>(args)...);
+  _pos += len;
+  return len;
+}
 
 NAMESPACE_JSON_END

@@ -144,8 +144,8 @@ public:
 
   template <typename V>
   enable_if_t<container_info<V>::is_container ||
-                  std::is_same_v<JSONCallbackObject, remove_cvref_t<V>> ||
-                  std::is_same_v<UnknownValueType, remove_cvref_t<V>>,
+                  std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>> ||
+                  std::is_same_v<UnknownValueType, remove_cv_ref_t<V>>,
               ParseValueResult>
   parse_array(V &arg_value);
 
@@ -413,8 +413,8 @@ static bool needs_pool(bool unescaped) {
   // 1. Quand le string est échappé (unescaped == true) dans tous les cas
   // 2. Quand le curseur est un StreamCursor et que la cible est une string_view
 
-  if constexpr (std::is_same_v<remove_cvref_t<Cursor>, StreamCursor> &&
-                std::is_same_v<remove_cvref_t<TargetV>, std::string_view>) {
+  if constexpr (std::is_same_v<remove_cv_ref_t<Cursor>, StreamCursorReader> &&
+                std::is_same_v<remove_cv_ref_t<TargetV>, std::string_view>) {
     return true;
   } else {
     return unescaped;
@@ -521,7 +521,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_string(V &arg_value) {
       if (!scan_escaped_string<V>(parsed_value))
         return ParseValueResult::PARSE_ERROR_STRING_ESCAPE;
     }
-  } else if constexpr (std::is_same_v<Cursor, StreamCursor>) {
+  } else if constexpr (std::is_same_v<Cursor, StreamCursorReader>) {
     // StreamCursor : pool obligatoire
     if (!scan_escaped_string<V>(parsed_value))
       return ParseValueResult::PARSE_ERROR_STRING_ESCAPE;
@@ -740,10 +740,10 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
   if constexpr (std::is_same_v<V, JSONCallbackObject> ||
                 std::is_same_v<V, UnknownValueType>) {
     return parse_any_numeric(arg_value);
-  } else if constexpr (std::is_floating_point_v<remove_cvref_t<V>>) {
+  } else if constexpr (std::is_floating_point_v<remove_cv_ref_t<V>>) {
     return parse_floating_point(arg_value);
-  } else if constexpr (std::is_integral_v<remove_cvref_t<V>> &&
-                       !std::is_same_v<remove_cvref_t<V>, bool>) {
+  } else if constexpr (std::is_integral_v<remove_cv_ref_t<V>> &&
+                       !std::is_same_v<remove_cv_ref_t<V>, bool>) {
     return parse_integer(arg_value);
   }
 
@@ -1129,7 +1129,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_value(V &arg_value) {
       arg_value);
   // LOG_STACK("parse_into_value");
 
-  if constexpr (std::is_same_v<remove_cvref_t<V>, JSONCallbackObject>) {
+  if constexpr (std::is_same_v<remove_cv_ref_t<V>, JSONCallbackObject>) {
     return parse_any(arg_value);
   } else if constexpr (std::is_same_v<V, bool>) {
     return parse_bool(arg_value);
@@ -1150,9 +1150,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_value(V &arg_value) {
     return parse_array(arg_value);
   } else if constexpr (is_container_v<V>) {
     return parse_array(arg_value);
-  } else if constexpr (std::is_same_v<remove_cvref_t<V>, UnknownValueType>) {
+  } else if constexpr (std::is_same_v<remove_cv_ref_t<V>, UnknownValueType>) {
     return parse_any(arg_value);
-  } else if constexpr (std::is_base_of_v<JSONObject, remove_cvref_t<V>>) {
+  } else if constexpr (std::is_base_of_v<JSONObject, remove_cv_ref_t<V>>) {
     return parse_object(arg_value);
   } else if constexpr (std::is_pointer_v<V>) {
     ParseValueResult result = parse_null(arg_value);
@@ -1271,7 +1271,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
         _lastParseError = r;
       }
 
-      if constexpr (!std::is_same_v<remove_cvref_t<TargetT>,
+      if constexpr (!std::is_same_v<remove_cv_ref_t<TargetT>,
                                     JSONCallbackObject>) {
         if (_nMatched >= NPairs) {
           JSON_DEBUG_WARNING("JSONParserBase::parse: Parser '%s' depth %zu: "
@@ -1313,7 +1313,7 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
       return;
 
     case STOPPED:
-      if constexpr (std::is_same_v<remove_cvref_t<TargetT>,
+      if constexpr (std::is_same_v<remove_cv_ref_t<TargetT>,
                                    JSONCallbackObject>) {
         JSON_DEBUG_INFO("JSONParserBase: stopped by callback\n");
         return;
@@ -1553,8 +1553,8 @@ JSONParserBase<Cursor, UseMask, TargetT>::clamp_to_min_max(From v) {
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename V>
 enable_if_t<container_info<V>::is_container ||
-                std::is_same_v<JSONCallbackObject, remove_cvref_t<V>> ||
-                std::is_same_v<UnknownValueType, remove_cvref_t<V>>,
+                std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>> ||
+                std::is_same_v<UnknownValueType, remove_cv_ref_t<V>>,
             ParseValueResult>
 JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_array\n");
@@ -1572,7 +1572,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
                              ? container_info<V>::extent
                              : MAX_ARRAY_LENGTH;
 
-  if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<TargetT>>) {
+  if constexpr (std::is_same_v<JSONCallbackObject, remove_cv_ref_t<TargetT>>) {
     arg_value.push();
   }
 
@@ -1588,7 +1588,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
     SKIP_SPACES();
     ParseValueResult result;
 
-    if constexpr (std::is_same_v<UnknownValueType, remove_cvref_t<V>>) {
+    if constexpr (std::is_same_v<UnknownValueType, remove_cv_ref_t<V>>) {
       result = skip_value();
     } else {
       result = parse_into_array_at_index(arg_value, i);
@@ -1633,7 +1633,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_array(V &arg_value) {
 
   SKIP_SPACES();
 
-  if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<TargetT>>) {
+  if constexpr (std::is_same_v<JSONCallbackObject, remove_cv_ref_t<TargetT>>) {
     arg_value.pop();
   }
 
@@ -1717,13 +1717,13 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
   JSON_DEBUG_INFO("Will parse object '%s'\n", name);
   JSON_DEBUG_INFO("Cursor position is now at %zu\n", bytesConsumed());
 
-  if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>) {
+  if constexpr (std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>>) {
     arg_value.push();
   }
 
   JSON::ParseResult r = arg_value.fromJSON(name, _cursor);
 
-  if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>) {
+  if constexpr (std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>>) {
     arg_value.pop();
   }
 
@@ -1743,7 +1743,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
     return _lastParseError;
   }
 
-  if constexpr (std::is_same_v<remove_cvref_t<V>, JSONCallbackObject>) {
+  if constexpr (std::is_same_v<remove_cv_ref_t<V>, JSONCallbackObject>) {
     if (r.stopped) {
       JSON_DEBUG_INFO("JSONParser::parse_object parsing stopped\n");
       _state = STOPPED;

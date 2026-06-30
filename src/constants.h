@@ -68,11 +68,15 @@ static constexpr char JSON_FALSE[5] = {'f', 'a', 'l', 's', 'e'};
 static constexpr char JSON_NULL[4] = {'n', 'u', 'l', 'l'};
 static constexpr char JSON_NAN[3] = {'N', 'a', 'N'};
 static constexpr char JSON_INFINITY[8] = {'I', 'n', 'f', 'i', 'n', 'i', 't', 'y'};
-
+static constexpr char JSON_DELIMITERS[8] = {',',  '}',  ']',  ' ', '\t', '\n', '\r', '\0'};
 // ---------------------------------------------------------------------------
 //  équivalent C++17 de std::remove_cvref_t
 // ---------------------------------------------------------------------------
-template <class T> using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+#if __cplusplus <= 201703L
+template <class T> using remove_cv_ref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+#else
+template <class T> using remove_cv_ref_t = std::remove_cvref_t<T>;
+#endif
 
 template <typename... Ts> struct type_list {};
 // ---------------------------------------------------------------------------

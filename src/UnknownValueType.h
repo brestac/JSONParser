@@ -12,12 +12,12 @@ struct UnknownValueType : JSONObject {
   // using JSONObject::toJSON;
 
   UnknownValueType() = default;
-  JSON::ParseResult fromJSON(const char* name, JSON::StreamCursor &cursor);
+  JSON::ParseResult fromJSON(const char* name, JSON::StreamCursorReader &cursor);
   JSON::ParseResult fromJSON(const char* name, const JSON::PointerCursorReader &cursor);
 
   // ─── toJSON
   // ───────────────────────────────────────────────────────────────────────
-  size_t toJSON(JSON::StreamCursor &writer, bool /*updates*/) { return writer.write("null"); }
+  size_t toJSON(JSON::StreamCursorWriter &writer, bool /*updates*/) { return writer.write("null"); }
 
   size_t toJSON(JSON::PointerCursorWriter &writer, bool /*updates*/) { return writer.write("null"); }
 
