@@ -68,9 +68,13 @@ if (++iteration > MAX) {                                                       \
 
 #if defined(ARDUINO) && defined(JSON_DEBUG_MEM)
 #define LOG_STACK(label) \
-  size_t stack_remaining = ESP.getFreeContStack();\
+  uint32_t stack_remaining = ESP.getFreeContStack();\
   if (stack_remaining < GLOBAL_CONTEXT_STACK_SIZE) {\
-    DEBUG_PRINTF("parse_into_value target=%s key=%.*s depth=%d stack remaining: %u\n", typeid(TargetT).name(), _key_length, _key_buf, _cursor.depth(), stack_remaining);\
+    DEBUG_PRINTF(label" stack: %zu ", stack_remaining);\
+    if constexpr (std::is_same_v<JSONCallbackObject, remove_cvref_t<V>>) {\
+      arg_value.key.print();\
+    }\
+    GLOBAL_CONTEXT_STACK_SIZE = stack_remaining;\
   }
 #else
 #define LOG_STACK(label)
