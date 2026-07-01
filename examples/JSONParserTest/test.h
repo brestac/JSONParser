@@ -996,8 +996,7 @@ void test_parse_geojson_big_from_input(U input) {
       factor_vs_rapid_json = 1.0f / factor_vs_rapid_json;
     }
 
-    DEBUG_PRINTF("RapidJSON Parsing time: %.0f µs\n", elapsed_rapid_json);
-    DEBUG_PRINTF("JSONParser is %.2f times %s than RapidJSON\n", faster_than_rapid_json ? "faster" : "slower", factor_vs_rapid_json);
+    DEBUG_PRINTF("RapidJSON Parsing time: %.0fµs. JSONParser is %.2f times %s than RapidJSON\n", elapsed_rapid_json, faster_than_rapid_json ? "faster" : "slower", factor_vs_rapid_json);
   }
 
   // ArduinoJson
@@ -1028,8 +1027,7 @@ void test_parse_geojson_big_from_input(U input) {
     factor_vs_arduino_json = 1.0f / factor_vs_arduino_json;
   }
   
-  DEBUG_PRINTF("ArduinoJSON Parsing time: %.0f µs\n", elapsed_arduino_json);
-  DEBUG_PRINTF("JSONParser is %.2f times %s than ArduinoJSON\n", faster_than_arduino_json ? "faster" : "slower", factor_vs_arduino_json);
+  DEBUG_PRINTF("ArduinoJSON Parsing time: %.0f µs. JSONParser is %.2f times %s than ArduinoJSON\n", elapsed_arduino_json, faster_than_arduino_json ? "faster" : "slower", factor_vs_arduino_json);
 }
 
 template <typename T>
