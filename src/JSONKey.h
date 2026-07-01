@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-#include "StreamScanner.h"
+#include "CursorScanner.h"
 #include "str_length.h"
 #include "utils.h"
 

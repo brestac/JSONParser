@@ -1,6 +1,6 @@
 #pragma once
 
-// StreamScanner.h
+// CursorScanner.h
 
 #include "PointerCursor.h"
 #include "StreamCursor.h"
