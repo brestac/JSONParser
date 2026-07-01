@@ -906,21 +906,18 @@ char *read_file(const char *filename) {
   return buffer;
 }
 
-template<typename T>
-void test_parse_geojson_big() {
+template <typename T, typename U>
+void test_parse_geojson_big_from_input(U input) {
   DEBUG_PRINTF("\n\nTEST GEOJSON PARSING BIG FILE\n");
   constexpr bool limited = std::is_same_v<T, FeatureCollectionLimited10Rings>;
-
+  constexpr bool is_file = std::is_same_v<U, File>;
+  
   if constexpr (limited) {
-    DEBUG_PRINTF("TESTING FEATURECOLLECTIONLIMITED\n");
+    DEBUG_PRINTF("TESTING FEATURE COLLECTION With 10 rings\n");
   }
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
-#ifdef JSON_STRICT_MODE
-  char *json = read_file("./big_no_spaces.geojson");
-#else
-  char *json = read_file("./big.geojson");
-#endif
+
   #ifdef ARDUINO
     uint8_t TEST_ITERATIONS = 1U;
   #else
@@ -934,10 +931,19 @@ void test_parse_geojson_big() {
   uint64_t start = now();
   while(counter--) {
     fc = T();
-    pr = fc.fromJSON(json);
+    pr = fc.fromJSON(input);
+
+    if (pr.error != 0) {
+      check(false, "parse error %u, parsed length=%zu", pr.error, pr.length);
+      break;
+    }
+
+    if constexpr (is_file) {
+      input.seek(0);
+    }
   }
  
-  [[maybe_unused]] double elapsed_me = double(now() - start) / double(TEST_ITERATIONS);
+  double elapsed_me = double(now() - start) / double(TEST_ITERATIONS);
   
   check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error,
         pr.length);
@@ -971,52 +977,85 @@ void test_parse_geojson_big() {
     }
   }
 
-  // RAPIDJSON
-  rapidjson::Document d;
-  counter = TEST_ITERATIONS;
-  start = now();
+  DEBUG_PRINTF("JSONParser Parsing time: %.0f µs\n", elapsed_me);
 
-  while(counter--) {
-    d.Parse(json);
+  // RAPIDJSON
+  if constexpr (std::is_same_v<U, char*>) {
+    rapidjson::Document d;
+    counter = TEST_ITERATIONS;
+    start = now();
+
+    while(counter--) {
+      d.Parse(input);
+    }
+
+    double elapsed_rapid_json = double(now() - start) / double(TEST_ITERATIONS);
+    double factor_vs_rapid_json = elapsed_me / elapsed_rapid_json;
+    bool faster_than_rapid_json = elapsed_me < elapsed_rapid_json;
+    if (factor_vs_rapid_json !=0 && faster_than_rapid_json) {
+      factor_vs_rapid_json = 1.0f / factor_vs_rapid_json;
+    }
+
+    DEBUG_PRINTF("RapidJSON Parsing time: %.0f µs\n", elapsed_rapid_json);
+    DEBUG_PRINTF("JSONParser is %.2f times %s than RapidJSON\n", faster_than_rapid_json ? "faster" : "slower", factor_vs_rapid_json);
   }
 
-  double elapsed_rapid_json = double(now() - start) / double(TEST_ITERATIONS);
-
   // ArduinoJson
+  if constexpr (is_file) {
+    input.seek(0);
+  }
+  
   JsonDocument doc;
   counter = TEST_ITERATIONS;
   start = now();
-
+  
   while(counter--) {
-    deserializeJson(doc, json);
+    DeserializationError error = deserializeJson(doc, input);
+    if (error) {
+      check(false, "deserializeJson() failed: %s", error.c_str());
+      break;
+    }
+    if constexpr (is_file) {
+      input.seek(0);
+    }
   }
 
   double elapsed_arduino_json = double(now() - start) / double(TEST_ITERATIONS);
   
-  double factor_vs_rapid_json = elapsed_me / elapsed_rapid_json;
-  bool faster_than_rapid_json = elapsed_me < elapsed_rapid_json;
-  if (factor_vs_rapid_json !=0 && faster_than_rapid_json) {
-    factor_vs_rapid_json = 1.0f / factor_vs_rapid_json;
-  }
-
   double factor_vs_arduino_json = elapsed_me / elapsed_arduino_json;
   bool faster_than_arduino_json = elapsed_me < elapsed_arduino_json;
   if (factor_vs_arduino_json !=0 && faster_than_arduino_json) {
     factor_vs_arduino_json = 1.0f / factor_vs_arduino_json;
   }
   
-  DEBUG_PRINTF("JSONParser Parsing time: %.0f µs\n", elapsed_me);
-  DEBUG_PRINTF("RapidJSON Parsing time: %.0f µs\n", elapsed_rapid_json);
   DEBUG_PRINTF("ArduinoJSON Parsing time: %.0f µs\n", elapsed_arduino_json);
-  
-  DEBUG_PRINTF("JSONParser is %.2f times %s than RapidJSON\n", faster_than_rapid_json ? "faster" : "slower", factor_vs_rapid_json);
   DEBUG_PRINTF("JSONParser is %.2f times %s than ArduinoJSON\n", faster_than_arduino_json ? "faster" : "slower", factor_vs_arduino_json);
+}
 
+template <typename T>
+void test_parse_geojson_big_from_buffer() {
+  #ifdef JSON_STRICT_MODE
+    char *json = read_file("./big_no_spaces.geojson");
+  #else
+    char *json = read_file("./big.geojson");
+  #endif
+  test_parse_geojson_big_from_input<T>(json);
   free(json);
 }
 
+template <typename T>
+void test_parse_geojson_big_from_file() {
+  #ifdef JSON_STRICT_MODE
+    File f = LittleFS.open("./big_no_spaces.geojson", "r");
+  #else
+    File f = LittleFS.open("./big.geojson", "r");
+  #endif
+  test_parse_geojson_big_from_input<T>(f);
+  //f.close();
+}
+
 void test_parse_geojson_big_with_limited_geometry() {
-  test_parse_geojson_big<FeatureCollectionLimited10Rings>();
+  test_parse_geojson_big_from_buffer<FeatureCollectionLimited10Rings>();
 }
 
 #endif
@@ -1618,7 +1657,8 @@ void run_parsing_tests() {
   test_parse_embedded_object_subset();
   test_parse_geojson_big_with_limited_geometry_from_file();
 #ifndef ARDUINO
-  test_parse_geojson_big<FeatureCollection>();
+  test_parse_geojson_big_from_buffer<FeatureCollection>();
+  test_parse_geojson_big_from_file<FeatureCollection>();
   test_parse_geojson_big_with_limited_geometry();
   test_parse_with_callback_geojson_medium_from_file();
 #endif
