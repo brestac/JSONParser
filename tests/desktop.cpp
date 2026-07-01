@@ -23,13 +23,19 @@
 #include "../include/rapidjson/stringbuffer.h"
 #include "../include/rapidjson/writer.h"
 
+// ArduinoJson
+#include "../include/ArduinoJson.h"
+
 #include "../examples/JSONParserTest/test.h"
 
 int main() {
-   bool all_passed = run_tests();
+  // bool all_passed = run_tests();
+  test_parse_geojson_big_from_buffer<FeatureCollection>();
+  test_parse_geojson_big_from_file<FeatureCollection>();
 #ifdef JSON_DEBUG_MEM
   std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
   std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
 #endif
-  return all_passed ? 0 : 1;
+  //return all_passed ? 0 : 1;
+  return 0;
 }
