@@ -787,12 +787,6 @@ void test_parse_with_callback_geojson_medium_from_stream(Stream *stream) {
   }
 
   check(pr.error == JSON::NO_ERROR, "Parse ok");
-/*
-[FAIL] coordinates[0][0] == -65.613617f, was 2.521800
-[FAIL] coordinates[0][1] == 43.420273f, was 51.087540
-[FAIL] coordinates[1][0] == -65.613617f, was 2.762963
-[FAIL] coordinates[1][1] == 43.420273f, was 50.739384
-*/
   check(f.geometry.coordinates.size() > 0, "geometry.coordinates.size() > 0, was %u", f.geometry.coordinates.size());
   if (f.geometry.coordinates.size() > 0) {
     check(near(f.geometry.coordinates[0][0], 2.521800f), "coordinates[0][0] == 2.521800f, was %f", f.geometry.coordinates[0][0]);
@@ -1000,11 +994,7 @@ void test_parse_geojson_big_from_input(U input) {
     DEBUG_PRINTF("RapidJSON Parsing time: %.0fµs. JSONParser is %.2f times %s than RapidJSON\n", elapsed_rapid_json, faster_than_rapid_json ? "faster" : "slower", factor_vs_rapid_json);
   }
 
-  // ArduinoJson
-  if constexpr (is_file) {
-    input.seek(0);
-  }
-  
+  // ArduinoJson  
   JsonDocument doc;
   counter = TEST_ITERATIONS;
   start = now();
