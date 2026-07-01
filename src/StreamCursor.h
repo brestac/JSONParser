@@ -9,7 +9,7 @@
 #include "../include/Stream.h"
 #endif
 
-#include "StaticString.h"
+#include "StringPool.h"
 #include "constants.h"
 #include "demangled.h"
 #include "macros.h"
@@ -85,7 +85,7 @@ public:
     size_t n = _stream->read(buffer, length);
 
     if (n == length) return n;
-    else if (n < length /*&& _stream->inputCanTimeout()*/) {
+    else if (n < length && _stream->inputCanTimeout()) {
       n += _stream->readBytes(buffer + n, length - n);
     }
 

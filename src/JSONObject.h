@@ -3,7 +3,7 @@
 #include "ParseResult.h"
 #include "PointerCursor.h"
 #include "StreamCursor.h"
-#include "StaticString.h"
+#include "StringPool.h"
 #include "str_length.h"
 #include "types.h"
 
@@ -23,7 +23,7 @@ public:
   virtual ~JSONObject() {
     --instances_counter;
     if (instances_counter == 0) {
-      //JSON_DEBUG_COLOR(COLOR_RED, "No more JSONObject, clear all StaticString<T>\n");
+      //JSON_DEBUG_COLOR(COLOR_RED, "No more JSONObject, clear all StringPool<T>\n");
       clear_all();
     }
   }

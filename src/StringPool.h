@@ -26,22 +26,22 @@ static void clear_all() {
     s_pool_deleters.fill(nullptr);
 }
 
-template <typename T, size_t N = 0> class StaticString {
+template <typename T, size_t N = 0> class StringPool {
   // struct Entries {
   //   uint32_t hash;
   //   size_t offset;
   // };
 
 public:
-  StaticString() = delete;
-  StaticString(const StaticString &) = delete;
-  StaticString &operator=(const StaticString &) = delete;
-  StaticString(StaticString &&) = delete;
-  StaticString &operator=(StaticString &&) = delete;
-  ~StaticString() = delete;
+  StringPool() = delete;
+  StringPool(const StringPool &) = delete;
+  StringPool &operator=(const StringPool &) = delete;
+  StringPool(StringPool &&) = delete;
+  StringPool &operator=(StringPool &&) = delete;
+  ~StringPool() = delete;
 
   static void ensure_pool_size(size_t n) {
-    JSON_DEBUG_COLOR(COLOR_CYAN, "StaticString<%s> ensure_pool_size %zu\n", typeid(T).name(), n);
+    JSON_DEBUG_COLOR(COLOR_CYAN, "StringPool<%s> ensure_pool_size %zu\n", typeid(T).name(), n);
     size_t new_size = s_pool_offset + n * MAX_VALUE_LENGTH;
     _set_pool_size(new_size);
   }
@@ -51,7 +51,7 @@ public:
     
     if (registered) return s_pool_count;
   
-    JSON_DEBUG_COLOR(COLOR_BLUE, "Registering StaticString<%s> #%zu\n", typeid(T).name(), s_pool_count);
+    JSON_DEBUG_COLOR(COLOR_BLUE, "Registering StringPool<%s> #%zu\n", typeid(T).name(), s_pool_count);
 
     if (s_pool_count >= s_pool_deleters.size()) return false;
     s_pool_deleters[s_pool_count] = clear;
@@ -74,7 +74,7 @@ public:
     char *p = static_cast<char *>(realloc(s_string_pool, new_size));
 
     if (p) {
-      JSON_DEBUG_COLOR(COLOR_BLUE, "StaticString<%s,%zu> %s à %zu octets\n", typeid(T).name(), N, (new_size > s_pool_size) ? "agrandi" : "réduit", new_size);
+      JSON_DEBUG_COLOR(COLOR_BLUE, "StringPool<%s,%zu> %s à %zu octets\n", typeid(T).name(), N, (new_size > s_pool_size) ? "agrandi" : "réduit", new_size);
       
       if (pool_exists == false) {
         register_if_needed();
@@ -165,7 +165,7 @@ public:
     if constexpr (N > 0) {
       hash = hash32(str, len);
       if (n_values >= MAX_KEY_VALUE_COUNT) {
-        JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> pool full\n", typeid(T).name());
+        JSON_DEBUG_COLOR(COLOR_RED, "StringPool<%s> pool full\n", typeid(T).name());
         output = EMPTY_STRING;
       }
 
@@ -190,7 +190,7 @@ public:
       s_entries[n_values] = {hash, s_pool_offset};
     }
     
-    JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s,%zu> new entry for hash %u at offset %zu : '%.*s'\n", typeid(T).name(), N, hash, s_pool_offset, (int)len, str );
+    JSON_DEBUG_COLOR(COLOR_RED, "StringPool<%s,%zu> new entry for hash %u at offset %zu : '%.*s'\n", typeid(T).name(), N, hash, s_pool_offset, (int)len, str );
     char *dest = s_string_pool + s_pool_offset;
     strncpy(dest, str, len);
     dest[len] = '\0';
@@ -204,12 +204,12 @@ public:
       if (s_entries[i].hash == hash) {
         JSON_DEBUG_COLOR(
             COLOR_GREEN,
-            "StaticString<%s> found match for hash %u at offset %d\n",
+            "StringPool<%s> found match for hash %u at offset %d\n",
             typeid(T).name(), hash, s_entries[i].offset);
         return static_cast<int>(s_entries[i].offset);
       }
     }
-    JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> no match for hash %u\n",
+    JSON_DEBUG_COLOR(COLOR_RED, "StringPool<%s> no match for hash %u\n",
                      typeid(T).name(), hash);
     return -1;
   }
@@ -224,7 +224,7 @@ public:
 
   static void move_offset(int n) { 
     if (s_pool_offset + n > s_pool_size || s_pool_offset + n < 0) {
-      JSON_DEBUG_COLOR(COLOR_RED, "StaticString<%s> move_offset out of bounds\n", typeid(T).name());
+      JSON_DEBUG_COLOR(COLOR_RED, "StringPool<%s> move_offset out of bounds\n", typeid(T).name());
       return;
     }
 
@@ -232,7 +232,7 @@ public:
   }
 
   static void print() {
-    JSON_DEBUG_COLOR(COLOR_BLACK, "StaticString<%s> pool: %zu octets, offset: %zu, values:%u, " "content: '%.*s'\n", typeid(T).name(), s_pool_size, s_pool_offset, n_values, (int)s_pool_offset, s_string_pool);
+    JSON_DEBUG_COLOR(COLOR_BLACK, "StringPool<%s> pool: %zu octets, offset: %zu, values:%u, " "content: '%.*s'\n", typeid(T).name(), s_pool_size, s_pool_offset, n_values, (int)s_pool_offset, s_string_pool);
   }
 
 private:
