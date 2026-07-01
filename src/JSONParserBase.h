@@ -5,7 +5,7 @@
 #include <limits>
 
 #include "ParseDispatchTable.h"
-#include "StaticString.h"
+#include "StringPool.h"
 #include "fast_float.h"
 #include "types.h"
 #include "utils.h"
@@ -425,7 +425,7 @@ template <typename Cursor, bool UseMask, typename TargetT>
 template <typename V>
 bool JSONParserBase<Cursor, UseMask, TargetT>::scan_escaped_string(
     std::string_view &sv) {
-  using Pool = StaticString<TargetT>;
+  using Pool = StringPool<TargetT>;
 
   bool inEscape = false;
   bool unescaped = false;

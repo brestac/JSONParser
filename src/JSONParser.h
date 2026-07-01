@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "JSONParserBase.h"
-#include "StaticString.h"
+#include "StringPool.h"
 #include "StreamCursor.h"
 #include "macros.h"
 #include "utils.h"
@@ -54,7 +54,7 @@ ParseResult _parse_impl(const char *name, uint32_t &mask, Cursor &cursor,
   if constexpr (std::is_same<remove_cv_ref_t<Cursor>, StreamCursorReader>::value &&
                 (sizeof...(Args) > 1)) {
     constexpr size_t n_sv = count_string_view_args_v<Args...>;
-    StaticString<TargetT>::ensure_pool_size(n_sv);
+    StringPool<TargetT>::ensure_pool_size(n_sv);
   }
 
   if constexpr (UseMask) {
