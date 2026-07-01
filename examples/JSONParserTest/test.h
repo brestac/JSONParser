@@ -938,7 +938,7 @@ void test_parse_geojson_big() {
     pr = fc.fromJSON(json);
   }
  
-  [[maybe_unused]] double elapsed1 = double(now() - start) / double(TEST_ITERATIONS);
+  [[maybe_unused]] double elapsed_me = double(now() - start) / double(TEST_ITERATIONS);
   
   check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error,
         pr.length);
@@ -981,18 +981,39 @@ void test_parse_geojson_big() {
     d.Parse(json);
   }
 
-  double elapsed2 = double(now() - start) / double(TEST_ITERATIONS);
-  free(json);
+  double elapsed_rapid_json = double(now() - start) / double(TEST_ITERATIONS);
 
-  double factor = elapsed1 / elapsed2;
-  bool faster = elapsed1 < elapsed2;
-  if (factor !=0 && faster) {
-    factor = 1.0f / factor;
+  // ArduinoJson
+  JsonDocument doc;
+  counter = TEST_ITERATIONS;
+  start = now();
+
+  while(counter--) {
+    deserializeJson(doc, json);
+  }
+
+  double elapsed_arduino_json = double(now() - start) / double(TEST_ITERATIONS);
+  
+  double factor_vs_rapid_json = elapsed_me / elapsed_rapid_json;
+  bool faster_than_rapid_json = elapsed_me < elapsed_rapid_json;
+  if (factor_vs_rapid_json !=0 && faster_than_rapid_json) {
+    factor_vs_rapid_json = 1.0f / factor_vs_rapid_json;
+  }
+
+  double factor_vs_arduino_json = elapsed_me / elapsed_arduino_json;
+  bool faster_than_arduino_json = elapsed_me < elapsed_arduino_json;
+  if (factor_vs_arduino_json !=0 && faster_than_arduino_json) {
+    factor_vs_arduino_json = 1.0f / factor_vs_arduino_json;
   }
   
-  DEBUG_PRINTF("JSONParser Parsing time: %.0f µs\n", elapsed1);
-  DEBUG_PRINTF("RapidJSON Parsing time: %.0f µs\n", elapsed2);
-  DEBUG_PRINTF("JSONParser is %.2f times %s than RapidJSON\n", faster ? "faster" : "slower", factor);
+  DEBUG_PRINTF("JSONParser Parsing time: %.0f µs\n", elapsed_me);
+  DEBUG_PRINTF("RapidJSON Parsing time: %.0f µs\n", elapsed_rapid_json);
+  DEBUG_PRINTF("ArduinoJSON Parsing time: %.0f µs\n", elapsed_arduino_json);
+  
+  DEBUG_PRINTF("JSONParser is %.2f times %s than RapidJSON\n", faster_than_rapid_json ? "faster" : "slower", factor_vs_rapid_json);
+  DEBUG_PRINTF("JSONParser is %.2f times %s than ArduinoJSON\n", faster_than_arduino_json ? "faster" : "slower", factor_vs_arduino_json);
+
+  free(json);
 }
 
 void test_parse_geojson_big_with_limited_geometry() {
