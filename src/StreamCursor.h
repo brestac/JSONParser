@@ -83,8 +83,9 @@ public:
     if (length == 0) return 0;
 
     size_t n = _stream->read(buffer, length);
-    
-    if (n < length && _stream->inputCanTimeout()) {
+
+    if (n == length) return n;
+    else if (n < length /*&& _stream->inputCanTimeout()*/) {
       n += _stream->readBytes(buffer + n, length - n);
     }
 
