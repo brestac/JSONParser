@@ -1,8 +1,10 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 #include <functional>
+
 #include "./env.h"
 
 static bool connectWifi() {
-  DEBUG_PRINTLN("Connecting as wifi client...");
   if (WiFi.status() == WL_CONNECTED) return true;
 
   // WIFI

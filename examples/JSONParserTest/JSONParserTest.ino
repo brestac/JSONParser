@@ -1,8 +1,6 @@
 #define JSON_DEBUG_LEVEL 0
 #define JSON_DEBUG_MEM 1
 
-#include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
 #include <StreamString.h>
 #include "src/JSONParser.h"
 #include "src/JSONPrinter.h"
