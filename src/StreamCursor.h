@@ -36,20 +36,28 @@ public:
   // Tente de remplir le buffer depuis le stream (appels non-bloquants).
   // Ne lit que les octets immédiatement disponibles.
   void refill() {
-      size_t space = N - available();
-      if (space == 0) return;
-  
-      size_t head_pos = _head & MASK;
-      size_t contiguous = N - head_pos;          // octets jusqu'à la fin physique
-      size_t first = std::min(space, contiguous);
-      size_t n = readBytes(_buf + head_pos, first);
-      _head += n;
-  
-      if (n == first && first < space) {         // wrap-around
-          size_t second = space - first;
-          n = readBytes(_buf, second);
-          _head += n;
-      }
+    size_t space = N - available();
+    if (space == 0) return;
+
+    // Sur WiFiClient, available() peut retourner 0 entre deux paquets
+    // alors que le stream n'est pas terminé. On se limite à ce qui est
+    // réellement disponible, ou 1 si rien n'est dispo (pour déclencher
+    // un timedRead() qui attend le prochain octet).
+    size_t hint = (size_t)_stream->available();
+    if (hint == 0) hint = 1;              // force un readBytes bloquant minimal
+    size_t to_read = std::min(space, hint);
+
+    size_t head_pos = _head & MASK;
+    size_t contiguous = N - head_pos;
+    size_t first = std::min(to_read, contiguous);
+    size_t n = _stream->readBytes(_buf + head_pos, first);
+    _head += n;
+
+    if (n == first && first < to_read) {  // wrap-around
+        size_t second = to_read - first;
+        n = _stream->readBytes(_buf, second);
+        _head += n;
+    }
   }
   // Peek à l'offset i (0 = prochain octet), sans consommer.
   // Effectue un refill si nécessaire.
@@ -58,11 +66,11 @@ public:
     if (offset >= available()){
       refill();
     }
-    
+
     if (offset >= available()){
       return -1;
     }
-    
+
     return _buf[(_tail + offset) & MASK];
   }
 
@@ -71,25 +79,12 @@ public:
     if (available() == 0) {
       refill();
     }
-    
+
     if (available() == 0) {
       return -1; // vrai timeout/EOF
     }
 
     return _buf[_tail++ & MASK];
-  }
-
-  size_t readBytes(uint8_t *buffer, size_t length) {
-    if (length == 0) return 0;
-
-    size_t n = _stream->read(buffer, length);
-
-    if (n == length) return n;
-    else if (n < length && _stream->inputCanTimeout()) {
-      n += _stream->readBytes(buffer + n, length - n);
-    }
-
-    return n;
   }
 
   // Consomme n octets (les marque comme lus)
@@ -136,7 +131,6 @@ public:
   size_t peekToken(char *out, size_t maxLen);
   void advance(size_t n = 1);
   int read();
-  size_t readBytes(uint8_t *buffer, size_t length);
 
 // --------------------------------------------------------
 // Méthodes d'ÉCRITURE
@@ -195,10 +189,6 @@ template<> int StreamCursorReader::read() {
   else
     _eof = true;
   return c;
-}
-
-template<> size_t StreamCursorReader::readBytes(uint8_t *buffer, size_t length) {
-  return _ring.readBytes(buffer, length);
 }
 
 // Extrait au plus maxLen octets dans out[] en s'arrêtant sur un
