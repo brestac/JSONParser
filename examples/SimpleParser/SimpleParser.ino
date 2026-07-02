@@ -42,7 +42,7 @@ void setup() {
   // Simple s;
   // s.fromJSON("{\"flag\":true}");
   //Serial.printf("flag=%s\n", s.flag ? "true" : "false");
-  get_stream("http://192.168.1.2:10000/500B.geojson", [](WiFiClient* stream){
+  get_stream("http://192.168.1.2:10000/100K.geojson", [](WiFiClient* stream){
     Serial.printf("Stack before: %u\n", ESP.getFreeContStack());
     
     uint64_t start = micros();
@@ -57,6 +57,21 @@ void setup() {
     Serial.printf("Parsing took %uus\n", elapsed);
     Serial.printf("Stack watermark: %u\n", ESP.getFreeContStack());
   });
+// Results ESP-01
+// Input size 500B
+// Stack before: 2544
+// Parsing took 7080us
+// Stack watermark: 1800 => -744
+
+// Input size 1K
+// Stack before: 2864
+// Parsing took 12209us
+// Stack watermark: 1800
+
+// Input size 100K
+// Stack before: 2672
+// Parsing took 1099239us
+// Stack watermark: 1800
 }
 
 void loop() {

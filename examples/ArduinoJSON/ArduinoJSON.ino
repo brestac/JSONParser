@@ -7,7 +7,7 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
-  get_stream("http://192.168.1.2:10000/500B.geojson", [](WiFiClient* stream) {
+  get_stream("http://192.168.1.2:10000/100K.geojson", [](WiFiClient* stream) {
     Serial.printf("Stack before: %u\n", ESP.getFreeContStack());
 
     uint64_t start = micros();
@@ -21,10 +21,25 @@ void setup() {
     }
 
     Serial.printf("Parsing took %uus\n", elapsed);
-    serializeJson(doc, Serial);
-    Serial.println("");
+    //serializeJson(doc, Serial);
+    //Serial.println("");
     Serial.printf("Stack watermark: %u\n", ESP.getFreeContStack());
   });
+
+// Results ESP-01
+
+// Input size 500B
+// Stack before: 2864
+// Parsing took 4383us
+// Stack watermark: 2152 -> -712
+
+// Input size 1K
+// Stack before: 2768
+// Parsing took 10298us
+// Stack watermark: 2152
+
+// Input size 100K
+// failed: NoMemory
 }
 
 //
