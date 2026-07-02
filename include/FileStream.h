@@ -60,6 +60,15 @@ public:
     return current_pos < 0 ? 0 : (int)(_size - current_pos);
   }
   int read() override { return fgetc(_file); }
+
+  size_t read(uint8_t* buffer, size_t maxLen) override {
+    return fread(buffer, 1, maxLen, _file);
+  }
+
+  size_t readBytes(uint8_t* buffer, size_t length) override {
+    return fread(buffer, 1, length, _file);
+  }
+
   int peek() override {
     int c = fgetc(_file);
     if (c != EOF) ungetc(c, _file);

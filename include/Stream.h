@@ -29,14 +29,13 @@ public:
   // Reading
   virtual int available() { return 0; }
   virtual int read() { return -1; }
+  virtual size_t readBytes(uint8_t *buffer, size_t length);
   virtual int peek() { return -1; }
 
   // virtual ~Stream();
   virtual void setTimeout(size_t timeout) { _timeout = timeout; }
   virtual size_t getTimeout() { return _timeout; }
-
-  size_t readBytes(uint8_t *buffer, size_t length);
-  size_t read(uint8_t* buffer, size_t maxLen);
+  virtual size_t read(uint8_t* buffer, size_t maxLen);
 };
 
 // private method to read stream with timeout
