@@ -110,8 +110,65 @@ private:
 //                   size_t write(const char*)
 //                   size_t printf(const char* format, ...)
 // ============================================================
+
 enum StreamCursorType : uint8_t { READER = 0, WRITER = 1 };
 
+// Base commune (pas de ring buffer)
+class StreamCursorBase {
+public:
+    StreamCursorBase(Stream* s) : _stream(s), _written(0) {}
+    void flush() { _stream->flush(); }
+    mutable int8_t depth = -1;
+protected:
+    Stream* _stream;
+    size_t  _written;
+};
+
+template<StreamCursorType T>
+class StreamCursor;
+// Spécialisation WRITER : pas de RingBuffer
+template<>
+class StreamCursor<StreamCursorType::WRITER> : public StreamCursorBase {
+public:
+    StreamCursor(Stream* s) : StreamCursorBase(s) {}
+    StreamCursor(Stream& s) : StreamCursor(&s) {}
+    ~StreamCursor() {}
+
+    size_t write(uint8_t c);
+    size_t write(const uint8_t* buf, size_t size);
+    template<size_t N> size_t write(const char (&str)[N]);
+    size_t write(const char* str);
+    template<typename... Args> size_t printf(const char* fmt, Args&&... args);
+    int availableForWrite();
+    bool outputCanTimeout();
+    size_t bytesWritten() const { return _written; }
+    bool eof() const { return false; }
+    size_t bytesConsumed() const { return 0; }
+};
+
+// Spécialisation READER : avec RingBuffer
+template<>
+class StreamCursor<StreamCursorType::READER> : public StreamCursorBase {
+public:
+    StreamCursor(Stream* s)
+        : StreamCursorBase(s), _ring(s), _consumed(0), _eof(false) {}
+    StreamCursor(Stream& s) : StreamCursor(&s) {}
+    ~StreamCursor() {}
+
+    int peek(size_t offset = 0);
+    size_t peekToken(char* out, size_t maxLen);
+    void advance(size_t n = 1);
+    int read();
+    size_t readBytes(uint8_t* buf, size_t len);
+    bool eof() const { return _eof; }
+    size_t bytesConsumed() const { return _consumed; }
+
+private:
+    RingBuffer<JSON::RING_BUFFER_SIZE> _ring;
+    size_t _consumed;
+    bool   _eof;
+};
+/*
 template <StreamCursorType T>
 class StreamCursor {
 public:
@@ -160,7 +217,7 @@ private:
   size_t _written;
   bool _eof;
 };
-
+*/
 using StreamCursorReader = StreamCursor<StreamCursorType::READER>;
 using StreamCursorWriter = StreamCursor<StreamCursorType::WRITER>;
 // --------------------------------------------------------
@@ -168,7 +225,7 @@ using StreamCursorWriter = StreamCursor<StreamCursorType::WRITER>;
 // --------------------------------------------------------
 
 // Caractère courant sans avancer (-1 = fin de flux)
-template<> int StreamCursorReader::peek(size_t offset) {
+int StreamCursorReader::peek(size_t offset) {
   int c = _ring.peek(offset);
   if (c < 0)
     _eof = true;
@@ -176,13 +233,13 @@ template<> int StreamCursorReader::peek(size_t offset) {
 }
 
 // Avance d'un cran
-template<> void StreamCursorReader::advance(size_t n) {
+void StreamCursorReader::advance(size_t n) {
   _ring.consume(n);
   _consumed += n;
 }
 
 // Lit et avance d'un cran
-template<> int StreamCursorReader::read() {
+int StreamCursorReader::read() {
   int c = _ring.read();
   if (c >= 0)
     _consumed++;
@@ -194,7 +251,7 @@ template<> int StreamCursorReader::read() {
 // Extrait au plus maxLen octets dans out[] en s'arrêtant sur un
 // délimiteur JSON. Ne consomme PAS les octets (lecture seule via peek).
 // Retourne le nombre d'octets copiés.
-template<> size_t StreamCursorReader::peekToken(char *out, size_t maxLen) {
+size_t StreamCursorReader::peekToken(char *out, size_t maxLen) {
   size_t n = 0;
   while (n < maxLen) {
     CHECK_LOOP(MAX_ITERATIONS, 0);
@@ -221,9 +278,9 @@ template<> size_t StreamCursorReader::peekToken(char *out, size_t maxLen) {
 // --------------------------------------------------------
 // IMPLEMENTATION DES Méthodes d'écriture
 // --------------------------------------------------------
-template<> int StreamCursorWriter::availableForWrite() { return _stream->availableForWrite(); }
+int StreamCursorWriter::availableForWrite() { return _stream->availableForWrite(); }
 
-template<> size_t StreamCursorWriter::write(uint8_t c) {
+size_t StreamCursorWriter::write(uint8_t c) {
   // JSON_DEBUG_WARNING("\nStreamCursor::write n=1\n");
   int available = availableForWrite();
   if (available <= 0)
@@ -236,7 +293,7 @@ template<> size_t StreamCursorWriter::write(uint8_t c) {
   return n;
 }
 
-template<> size_t StreamCursorWriter::write(const uint8_t *buffer, size_t size) {
+size_t StreamCursorWriter::write(const uint8_t *buffer, size_t size) {
 
   size_t len = static_cast<size_t>(availableForWrite());
 
@@ -256,11 +313,11 @@ template<> size_t StreamCursorWriter::write(const uint8_t *buffer, size_t size) 
 }
 // Écrit une chaîne null-terminée dans le stream.
 // Retourne le nombre d'octets écrits.
-template<> template <size_t N> size_t StreamCursorWriter::write(const char (&str)[N]) {
+template <size_t N> size_t StreamCursorWriter::write(const char (&str)[N]) {
   return write((const uint8_t *)str, N);
 }
 
-template<> size_t StreamCursorWriter::write(const char *str) {
+size_t StreamCursorWriter::write(const char *str) {
   return write((const uint8_t *)str, strlen(str));
 }
 
@@ -269,7 +326,7 @@ template<> size_t StreamCursorWriter::write(const char *str) {
 // si la chaîne formatée est plus longue.
 // Retourne le nombre d'octets écrits.
 
-template<> template <typename... Args>
+template <typename... Args>
 size_t StreamCursorWriter::printf(const char *format, Args &&...args) {
   char buf[STREAM_BUFFER_SIZE];
 
@@ -310,9 +367,6 @@ size_t StreamCursorWriter::printf(const char *format, Args &&...args) {
   return n;
 }
 
-template<> bool StreamCursorWriter::outputCanTimeout() { return _stream->outputCanTimeout(); }
-
-// Nombre total d'octets écrits depuis la création du curseur
-template<> size_t StreamCursorWriter::bytesWritten() const { return _written; }
+bool StreamCursorWriter::outputCanTimeout() { return _stream->outputCanTimeout(); }
 
 NAMESPACE_JSON_END
