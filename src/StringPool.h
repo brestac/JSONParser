@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stddef.h>
-#include <tuple>
 #include <array>
 
 #include "PointerCursor.h"
@@ -26,7 +25,7 @@ static void clear_all() {
     s_pool_deleters.fill(nullptr);
 }
 
-template <typename T, size_t N = 0> class StringPool {
+template <typename T/*, size_t N = 0*/> class StringPool {
   // struct Entries {
   //   uint32_t hash;
   //   size_t offset;
@@ -71,10 +70,10 @@ public:
     }
 
     bool pool_exists = s_string_pool != nullptr;
-    char *p = static_cast<char *>(realloc(s_string_pool, new_size));
+    char *p = static_cast<char *>(realloc(s_string_pool, new_size)); // Problem: realloc will break the string_view references
 
     if (p) {
-      JSON_DEBUG_COLOR(COLOR_BLUE, "StringPool<%s,%zu> %s à %zu octets\n", typeid(T).name(), N, (new_size > s_pool_size) ? "agrandi" : "réduit", new_size);
+      JSON_DEBUG_COLOR(COLOR_BLUE, "StringPool<%s> %s à %zu octets\n", typeid(T).name(), (new_size > s_pool_size) ? "agrandi" : "réduit", new_size);
       
       if (pool_exists == false) {
         register_if_needed();
@@ -123,18 +122,7 @@ public:
 #endif
     }
   }
-/*
-  static bool write(unsigned char c) {
-    if (s_pool_offset >= s_pool_size) {
-      JSON_DEBUG_WARNING("Pool plein\n");
-      return false;
-    }
 
-    s_string_pool[s_pool_offset++] = static_cast<char>(c);
-
-    return true;
-  }
-*/
   // write at position n in the current offset without moving offest
   static bool write_at(unsigned char c, size_t n) {
     if (n >= s_pool_size) {
@@ -147,18 +135,30 @@ public:
 
     return true;
   }
-  // static bool write(const char *str, size_t len) {
-  //   if (s_pool_offset + len >= s_pool_size) {
-  //     JSON_DEBUG_WARNING("Pool plein\n");
-  //     return false;
-  //   }
-
-  //   strncpy(s_string_pool + s_pool_offset, str, len);
-  //   uint32_t hash = hash32(str, len);
-  //   s_entries[++n_values] = {hash, s_pool_offset};
-  //   s_pool_offset += len;
-  // }
 /*
+  static bool write(unsigned char c) {
+    if (s_pool_offset >= s_pool_size) {
+      JSON_DEBUG_WARNING("Pool plein\n");
+      return false;
+    }
+
+    s_string_pool[s_pool_offset++] = static_cast<char>(c);
+
+    return true;
+  }
+
+  static bool write(const char *str, size_t len) {
+    if (s_pool_offset + len >= s_pool_size) {
+      JSON_DEBUG_WARNING("Pool plein\n");
+      return false;
+    }
+
+    strncpy(s_string_pool + s_pool_offset, str, len);
+    uint32_t hash = hash32(str, len);
+    s_entries[++n_values] = {hash, s_pool_offset};
+    s_pool_offset += len;
+  }
+
   static void get_static_buffer(const char *str, size_t len, const char *&output) {
     uint32_t hash = 0;
 

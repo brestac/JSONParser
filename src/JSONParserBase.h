@@ -6,7 +6,6 @@
 
 #include "ParseDispatchTable.h"
 #include "StringPool.h"
-#include "fast_float.h"
 #include "types.h"
 #include "utils.h"
 #ifdef __GXX_RTTI
@@ -14,21 +13,11 @@
 #endif
 #ifndef ARDUINO
 #include "../include/ArduinoCompat.h"
+#include "fast_float.h"
 #endif
 
 using namespace std;
 using namespace JSON;
-
-template <bool Condition = false> struct IncludeFastFloat {
-  fast_float::parse_options options;
-};
-
-template <> struct IncludeFastFloat<true> {
-#include "fast_float.h"
-  fast_float::parse_options options{fast_float::chars_format::json_or_infnan};
-};
-
-IncludeFastFloat<USE_FAST_FLOAT> fastFloat;
 
 // ============================================================
 //  JSONParserBase<Cursor>
@@ -591,16 +580,18 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
 
   static Type parsed_value;
 
-  if constexpr (USE_FAST_FLOAT) {
+#ifndef ARDUINO
+    static fast_float::parse_options options{fast_float::chars_format::json_or_infnan};
+  
     fast_float::from_chars_result result = fast_float::from_chars_advanced(
-        start, start + 32, parsed_value, fastFloat.options);
+        start, start + 32, parsed_value, options);
     if (result.ec != std::errc()) {
       return ParseValueResult::PARSE_ERROR_NUMERIC;
     }
 
     size_t consumed = result.ptr - start;
     _cursor.advance(consumed);
-  } else {
+#else
     char *end;
 
     if constexpr (std::is_same_v<Type, double>) {
@@ -630,11 +621,11 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
 
     size_t consumed = static_cast<size_t>(end - start);
 
-    if (consumed == 0)
+    if (consumed == 0) 
       return ParseValueResult::PARSE_ERROR_NUMERIC;
 
     _cursor.advance(consumed);
-  }
+#endif
 
   if constexpr (std::is_integral_v<Type> && ALLOW_FLOATING_POINT_INTEGERS) {
     if (cursor_scan_char(_cursor, '.', true)) {

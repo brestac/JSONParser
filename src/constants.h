@@ -40,7 +40,6 @@ constexpr uint8_t VERSION = 1;
 #endif
 // Options
 constexpr bool ALLOW_FLOATING_POINT_INTEGERS = true;
-constexpr bool USE_FAST_FLOAT = true;
 constexpr bool ALLOW_INTEGER_OVERFLOW = true;
 
 inline bool PRINT_BUFFER_AS_HEX = false;
