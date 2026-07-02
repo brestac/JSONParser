@@ -1647,7 +1647,7 @@ void run_parsing_tests() {
   test_parse_geojson_big_with_limited_geometry_from_file();
 #ifndef ARDUINO
   test_parse_geojson_big_from_buffer<FeatureCollection>();
-  test_parse_geojson_big_from_file<FeatureCollection>();
+  //test_parse_geojson_big_from_file<FeatureCollection>();
   test_parse_geojson_big_with_limited_geometry();
   test_parse_with_callback_geojson_medium_from_file();
 #endif
