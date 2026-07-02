@@ -5,7 +5,7 @@
 #ifndef ARDUINO
 #include "../include/ArduinoCompat.h"
 #endif
-constexpr uint32_t get_last_bitwise_mask_index(uint32_t mask);
+constexpr int8_t get_last_bitwise_mask_index(uint32_t mask);
 
 // ── Toutes les fonctions internes prennent Cursor par référence ──────────────
 // Cela évite de copier StreamCursor (~280 octets avec RingBuffer<256>) à chaque
@@ -21,7 +21,7 @@ template <typename Cursor, typename... Args>
 size_t print_to(Cursor &output, const char *format, Args &&...args);
 
 template <typename Cursor, typename T, typename... Rest>
-size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
+size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int8_t &last_idx,
                                       Cursor &output, const char *key, T &value,
                                       Rest &&...rest);
 
@@ -85,7 +85,7 @@ print(uint32_t mask, Buffer &&buffer, Args &&...args) {
 // ───────────────────────
 template <typename Cursor>
 inline size_t constexpr print_key_value_pair(uint32_t /*mask*/, size_t /*idx*/,
-                                             int & /*last_idx*/,
+                                             int8_t & /*last_idx*/,
                                              Cursor & /*output*/) {
   return 0;
 }
@@ -93,7 +93,7 @@ inline size_t constexpr print_key_value_pair(uint32_t /*mask*/, size_t /*idx*/,
 // ── Cas récursif
 // ──────────────────────────────────────────────────────────────
 template <typename Cursor, typename T, typename... Rest>
-size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
+size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int8_t &last_idx,
                                       Cursor &output, const char *key, T &value,
                                       Rest &&...rest) {
   size_t len = 0;
@@ -109,7 +109,7 @@ size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int &last_idx,
       if (mask == 0 || idx < (size_t)last_idx) {
         len += output.write(",");
       }
-      if (idx % 16 == 0) {
+      if (idx % YIELD_EVERY == 0) {
         yield();
       }
     }
@@ -216,7 +216,7 @@ size_t constexpr print_array_to(Cursor &output, T &array) {
     if (i < N - 1) {
       len += output.write(",");
     }
-    if (i % 16 == 0) {
+    if (i % YIELD_EVERY == 0) {
       yield();
     }
   }
@@ -254,7 +254,7 @@ template <typename Cursor, typename... Args>
 constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args) {
   static_assert(sizeof...(Args) % 2 == 0, "Le nombre d'arguments doit être pair");
   size_t len = 0;
-  int last_index = get_last_bitwise_mask_index(mask);
+  int8_t last_index = get_last_bitwise_mask_index(mask);
 
   len += output.write("{");
 
@@ -267,11 +267,11 @@ constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args) {
 
 // ── get_last_bitwise_mask_index
 // ───────────────────────────────────────────────
-constexpr uint32_t get_last_bitwise_mask_index(uint32_t mask) {
+constexpr int8_t get_last_bitwise_mask_index(uint32_t mask) {
   if (mask == 0)
     return -1;
 
-  uint32_t index = 0;
+  uint16_t index = 0;
 
   while (mask >>= 1) {
     index++;
