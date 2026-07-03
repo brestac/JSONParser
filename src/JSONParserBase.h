@@ -1711,7 +1711,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
     arg_value.push();
   }
 
-  JSON::ParseResult r = arg_value.fromJSON(name, _cursor, UseMask);
+  JSON::ParseResult r = arg_value.fromJSON(name, _cursor);
 
   if constexpr (std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>>) {
     arg_value.pop();

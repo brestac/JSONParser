@@ -157,25 +157,25 @@ parse(uint32_t &mask, const PointerCursorReader &cursor, T &jsonObjects) {
 NAMESPACE_JSON_END
 
 JSON::ParseResult UnknownValueType::fromJSON(const char *name,
-                                             JSON::StreamCursorReader &cursor, bool updates) {
+                                             JSON::StreamCursorReader &cursor) {
   static UnknownValueType dummy;
   return JSON::_parse(name, cursor, dummy);
 }
 
 JSON::ParseResult
 UnknownValueType::fromJSON(const char *name,
-                           const JSON::PointerCursorReader &cursor, bool updates) {
+                           const JSON::PointerCursorReader &cursor) {
   static UnknownValueType dummy;
   return JSON::_parse(name, cursor, dummy);
 }
 
 JSON::ParseResult
 JSONCallbackObject::fromJSON(const char *name,
-                             const JSON::PointerCursorReader &cursor, bool updates) {
+                             const JSON::PointerCursorReader &cursor) {
   return JSON::_parse(name, cursor, *this);
 }
 
 JSON::ParseResult JSONCallbackObject::fromJSON(const char *name,
-                                               JSON::StreamCursorReader &cursor, bool updates) {
+                                               JSON::StreamCursorReader &cursor) {
   return JSON::_parse(name, cursor, *this);
 }

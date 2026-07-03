@@ -43,43 +43,43 @@ public:
   //  fromJSON
   ////////////////////////////////////////////////////////////////////////////////
 
-  virtual JSON::ParseResult fromJSON(const char* /*name*/, const PointerCursorReader & /*cursor*/, bool updates = JSON::FROM_JSON_USES_UPDATES) {
+  virtual JSON::ParseResult fromJSON(const char* /*name*/, const PointerCursorReader & /*cursor*/) {
     return JSON::ParseResult();
   }
 
-  virtual JSON::ParseResult fromJSON(const char* /*name*/, StreamCursorReader & /*cursor*/, bool updates = JSON::FROM_JSON_USES_UPDATES) {
+  virtual JSON::ParseResult fromJSON(const char* /*name*/, StreamCursorReader & /*cursor*/) {
     return JSON::ParseResult();
   }
 
   template <size_t N>
-  JSON::ParseResult fromJSON(const char* name, const char (&input)[N], bool updates = JSON::FROM_JSON_USES_UPDATES) {
+  JSON::ParseResult fromJSON(const char* name, const char (&input)[N]) {
     JSON_DEBUG_WARNING("JSONObject::fromJSON(const char (&input)[N])\n");
     const PointerCursorReader cursor(input, N - 1);
-    return fromJSON(name, cursor, updates);
+    return fromJSON(name, cursor);
   }
 
-  JSON::ParseResult fromJSON(const char* name, const char* input, bool updates = JSON::FROM_JSON_USES_UPDATES) {
+  JSON::ParseResult fromJSON(const char* name, const char* input) {
     JSON_DEBUG_WARNING("JSONObject::fromJSON(const char* input)\n");
     const PointerCursorReader cursor(input, str_length(input, MAX_JSON_LENGTH));
-    return fromJSON(name, cursor, updates);
+    return fromJSON(name, cursor);
   }
 
   template <typename T>
   std::enable_if_t<is_stream_v<T>, JSON::ParseResult>
-  fromJSON(const char* name, T& input, bool updates = JSON::FROM_JSON_USES_UPDATES) {
+  fromJSON(const char* name, T& input) {
     StreamCursorReader cursor(input);
-    return fromJSON(name, cursor, updates);
+    return fromJSON(name, cursor);
   }
 
   template <typename T>
-  JSON::ParseResult fromJSON(T& input, bool updates = JSON::FROM_JSON_USES_UPDATES) {
-    return fromJSON("$ROOT", input, updates);
+  JSON::ParseResult fromJSON(T& input) {
+    return fromJSON("$ROOT", input);
   }
 
   template <typename T>
   std::enable_if_t<is_stream_v<T*>, JSON::ParseResult>
-  fromJSON(T* input, bool updates = JSON::FROM_JSON_USES_UPDATES) {
-    return fromJSON("$ROOT", *input, updates);
+  fromJSON(T* input) {
+    return fromJSON("$ROOT", *input);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
