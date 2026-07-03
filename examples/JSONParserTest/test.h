@@ -1042,8 +1042,7 @@ void test_parse_geojson_big_from_file() {
   #else
     File f = LittleFS.open("./big.geojson", "r");
   #endif
-  test_parse_geojson_big_from_input<T>(f);
-  //f.close();
+  test_parse_geojson_big_from_input<T>(std::move(f));
 }
 
 #endif
