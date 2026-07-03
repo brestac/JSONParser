@@ -659,6 +659,16 @@ void test_parse_indexed_keys() {
   check(nom == std::string_view("Bob"), "nom == Bob");
   check(age == 40, "age == 40");
   check(mask == 3, "mask == 3 (bits 0 and 1 set), was %llu", mask);
+
+  Personne p;
+  pr = p.fromJSON(json, false);
+  check(pr.error == 0, "parse");
+  check(p.updated == 0, "updated == 0, was %llu", p.updated);
+
+  Personne p2;
+  pr = p2.fromJSON(json, true);
+  check(pr.error == 0, "parse");
+  check(p2.updated == (1<<0|1<<1|1<<3), "updated == 11 (bits 0, 1, 3 set), was %llu", p2.updated);
 }
 
 void test_parse_geojson_small() {
@@ -830,6 +840,7 @@ void test_parse_geojson_big_with_limited_geometry_from_stream(Stream *stream) {
 
   fc.toJSON(Serial);
   Serial.println("");
+  Serial.println("");
 }
 
 void test_parse_geojson_big_with_limited_geometry_from_file() {
@@ -901,14 +912,12 @@ char *read_file(const char *filename) {
 }
 
 template <typename T, typename U>
-void test_parse_geojson_big_from_input(U input) {
-  DEBUG_PRINTF("\n\nTEST GEOJSON PARSING BIG FILE\n");
+void test_parse_geojson_big_from_input(U input, bool updates) {
   constexpr bool limited = std::is_same_v<T, FeatureCollectionLimited10Rings>;
   constexpr bool is_file = std::is_same_v<U, File>;
-  
-  if constexpr (limited) {
-    DEBUG_PRINTF("TESTING FEATURE COLLECTION With 10 rings\n");
-  }
+  DEBUG_PRINTF("\n\n");
+  DEBUG_PRINTF("TESTING FEATURE COLLECTION With %s FROM %s %s\n", limited ? "10 rings" : "all rings", is_file ? "FILE" : "BUFFER", updates ? "WITH UPDATES" : "WITHOUT UPDATES");
+
   DEBUG_PRINTF(
     "------------------------------------------------------------\n");
 
@@ -925,7 +934,7 @@ void test_parse_geojson_big_from_input(U input) {
   uint64_t start = now();
   while(counter--) {
     fc = T();
-    pr = fc.fromJSON(input);
+    pr = fc.fromJSON(input, updates);
 
     if (pr.error != 0) {
       check(false, "parse error %u, parsed length=%zu", pr.error, pr.length);
@@ -1021,29 +1030,24 @@ void test_parse_geojson_big_from_input(U input) {
 }
 
 template <typename T>
-void test_parse_geojson_big_from_buffer() {
+void test_parse_geojson_big_from_buffer(bool updates = true) {
   #ifdef JSON_STRICT_MODE
     char *json = read_file("./big_no_spaces.geojson");
   #else
     char *json = read_file("./big.geojson");
   #endif
-  test_parse_geojson_big_from_input<T>(json);
+  test_parse_geojson_big_from_input<T>(json, updates);
   free(json);
 }
 
 template <typename T>
-void test_parse_geojson_big_from_file() {
+void test_parse_geojson_big_from_file(bool updates = true) {
   #ifdef JSON_STRICT_MODE
     File f = LittleFS.open("./big_no_spaces.geojson", "r");
   #else
     File f = LittleFS.open("./big.geojson", "r");
   #endif
-  test_parse_geojson_big_from_input<T>(f);
-  //f.close();
-}
-
-void test_parse_geojson_big_with_limited_geometry() {
-  test_parse_geojson_big_from_buffer<FeatureCollectionLimited10Rings>();
+  test_parse_geojson_big_from_input<T>(std::move(f), updates);
 }
 
 #endif
@@ -1645,9 +1649,12 @@ void run_parsing_tests() {
   test_parse_embedded_object_subset();
   test_parse_geojson_big_with_limited_geometry_from_file();
 #ifndef ARDUINO
-  test_parse_geojson_big_from_buffer<FeatureCollection>();
-  //test_parse_geojson_big_from_file<FeatureCollection>();
-  test_parse_geojson_big_with_limited_geometry();
+  test_parse_geojson_big_from_buffer<FeatureCollection>(true);
+  test_parse_geojson_big_from_buffer<FeatureCollection>(false);
+  // test_parse_geojson_big_from_file<FeatureCollection>(true);
+  // test_parse_geojson_big_from_file<FeatureCollection>(false);
+  test_parse_geojson_big_from_buffer<FeatureCollectionLimited10Rings>(true);
+  test_parse_geojson_big_from_buffer<FeatureCollectionLimited10Rings>(false);
   test_parse_with_callback_geojson_medium_from_file();
 #endif
 }

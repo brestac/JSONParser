@@ -19,6 +19,25 @@ public:
     }
   }
 
+  File(const File &) = delete;
+  File &operator=(const File &) = delete;
+
+  File(File &&other) noexcept : _file(other._file), _size(other._size) {
+    other._file = nullptr;
+    other._size = 0;
+  }
+
+  File &operator=(File &&other) noexcept {
+    if (this != &other) {
+      close();
+      _file = other._file;
+      _size = other._size;
+      other._file = nullptr;
+      other._size = 0;
+    }
+    return *this;
+  }
+
   ~File() {
     close();
   }

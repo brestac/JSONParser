@@ -22,6 +22,8 @@ constexpr uint16_t STREAM_BUFFER_SIZE = 1 << 7;     // 128 octets
 constexpr uint16_t RING_BUFFER_SIZE = 1 << 8;       // 256 octets
 constexpr uint16_t MAX_STRING_POOL_SIZE = 1 << 12;  // 4096 octets
 constexpr uint32_t MAX_JSON_LENGTH = 1 << 24;       // 16777216 octets = 16MB
+constexpr uint16_t MAX_NUMERIC_LENGTH = 25 ; // Pour les entiers et les flottants int64_t et double 
+
 #ifdef ARDUINO
 constexpr uint16_t MAX_STRING_POOL_REUSE_COUNT = 0;
 constexpr uint16_t MAX_KEY_LENGTH   = 1 << 5;  // 32 octets
@@ -41,6 +43,7 @@ constexpr uint8_t VERSION = 1;
 // Options
 constexpr bool ALLOW_FLOATING_POINT_INTEGERS = true;
 constexpr bool ALLOW_INTEGER_OVERFLOW = true;
+constexpr bool FROM_JSON_USES_UPDATES = true;
 
 inline bool PRINT_BUFFER_AS_HEX = false;
 inline uint16_t MAX_PRINTF_BUFFER_SIZE = 4096;
