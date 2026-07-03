@@ -1651,8 +1651,8 @@ void run_parsing_tests() {
 #ifndef ARDUINO
   test_parse_geojson_big_from_buffer<FeatureCollection>(true);
   test_parse_geojson_big_from_buffer<FeatureCollection>(false);
-  // test_parse_geojson_big_from_file<FeatureCollection>(true);
-  // test_parse_geojson_big_from_file<FeatureCollection>(false);
+  test_parse_geojson_big_from_file<FeatureCollection>(true);
+  test_parse_geojson_big_from_file<FeatureCollection>(false);
   test_parse_geojson_big_from_buffer<FeatureCollectionLimited10Rings>(true);
   test_parse_geojson_big_from_buffer<FeatureCollectionLimited10Rings>(false);
   test_parse_with_callback_geojson_medium_from_file();
