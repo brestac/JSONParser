@@ -58,7 +58,7 @@ template <typename T> constexpr T be_to_h(T value) {
     return value;
   }
 }
-
+/*
 template <typename T, size_t N> constexpr bool copy_array(T (&dst)[N], T (&src)[N]) {
   bool modified = false;
 
@@ -83,7 +83,7 @@ template <typename T, size_t N, size_t M> constexpr bool copy_array(T (&dst)[N][
 
   return modified;
 }
-
+*/
 constexpr bool _is_hex_char(char c) {
   return is_in_ranges(c, JSON_HEX_CHARACTERS_RANGES);
 }
@@ -172,7 +172,7 @@ unsigned long long now() {
   auto now = std::chrono::steady_clock::now();
   return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 }
-
+#if DEBUG_LEVEL > 0
 void replace_endl(char *str, size_t len) {
   for (size_t i = 0; i < len; i++) {
     if (str[i] == '\n' || str[i] == '\r') {
@@ -190,7 +190,7 @@ template <size_t N, size_t M> void replace_str(char (&input)[N], char (&oldChars
     }
   }
 }
-
+#endif
 // std::string_view copy_to_sv(const char* str, size_t len) {
 //   static char buffer[JSON::MAX_KEY_LENGTH];
 //   strncpy(buffer, str, len);

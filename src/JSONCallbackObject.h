@@ -25,8 +25,8 @@ struct JSONCallbackObject {
   JSONKey key;
   JSON::SKIP skip = JSON::SKIP::NONE;
 
-  JSON::ParseResult fromJSON(const char *name, JSON::StreamCursorReader &cursor);
-  JSON::ParseResult fromJSON(const char *name, const JSON::PointerCursorReader &cursor);
+  JSON::ParseResult fromJSON(const char *name, JSON::StreamCursorReader &cursor, bool updates = JSON::FROM_JSON_USES_UPDATES);
+  JSON::ParseResult fromJSON(const char *name, const JSON::PointerCursorReader &cursor, bool updates = JSON::FROM_JSON_USES_UPDATES);
 
   size_t toJSON(JSON::PointerCursorWriter &cursor, bool /*updates*/ = true) {
     return cursor.write("null");

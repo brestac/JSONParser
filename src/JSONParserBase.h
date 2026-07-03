@@ -19,6 +19,21 @@
 using namespace std;
 using namespace JSON;
 
+
+template <bool UseMask, typename PV, typename V>
+static inline ParseValueResult assign(PV &&pv, V &v) {
+  if constexpr (UseMask) {
+    if (v != pv) {
+      v = pv;
+      return ParseValueResult::VALUE_UPDATED;
+    }
+  } else {
+    v = pv;
+  }
+  
+  return ParseValueResult::NO_RESULT;
+}
+
 // ============================================================
 //  JSONParserBase<Cursor>
 //  Toute la logique du parser, paramétrée uniquement par le
@@ -95,7 +110,7 @@ public:
   template <typename PV, typename V>
   ParseValueResult assign_null_ptr_to_pointer(PV &pv, V &v);
 
-  template <typename V> ParseValueResult assign_array_to_array(V &pv, V &v);
+  // template <typename V> ParseValueResult assign_array_to_array(V &pv, V &v);
 
   template <typename PV, typename V>
   ParseValueResult assign_not_handled(PV &pv, V &v);
@@ -558,6 +573,24 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_floating_point(V &arg_value) {
   return parse_numeric<V, double>(arg_value) | ParseValueResult::FLOAT_PARSED;
 }
 
+// ── parse_numeric ────────────────────────────────────────────
+template <typename Cursor, bool UseMask, typename TargetT>
+template <typename V>
+ParseValueResult
+JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
+  if constexpr (std::is_same_v<V, JSONCallbackObject> ||
+                std::is_same_v<V, UnknownValueType>) {
+    return parse_any_numeric(arg_value);
+  } else if constexpr (std::is_floating_point_v<remove_cv_ref_t<V>>) {
+    return parse_floating_point(arg_value);
+  } else if constexpr (std::is_integral_v<remove_cv_ref_t<V>> &&
+                       !std::is_same_v<remove_cv_ref_t<V>, bool>) {
+    return parse_integer(arg_value);
+  }
+
+  return ParseValueResult::PARSE_ERROR_NUMERIC;
+}
+
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename V, typename Type>
 ParseValueResult
@@ -569,7 +602,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
   if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
     start = const_cast<char *>(_cursor.ptr());
   } else {
-    static char tmp[32];
+    static char tmp[JSON::MAX_NUMERIC_LENGTH];
     size_t len = _cursor.peekToken(tmp, sizeof(tmp) - 1);
     if (len == 0)
       return ParseValueResult::PARSE_ERROR_NUMERIC;
@@ -584,7 +617,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
     static fast_float::parse_options options{fast_float::chars_format::json_or_infnan};
   
     fast_float::from_chars_result result = fast_float::from_chars_advanced(
-        start, start + 32, parsed_value, options);
+        start, start + JSON::MAX_NUMERIC_LENGTH, parsed_value, options);
     if (result.ec != std::errc()) {
       return ParseValueResult::PARSE_ERROR_NUMERIC;
     }
@@ -720,23 +753,6 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_any_numeric(V &arg_value) {
   r = parse_infinity(arg_value);
   if (r.parsed())
     return r;
-
-  return ParseValueResult::PARSE_ERROR_NUMERIC;
-}
-// ── parse_numeric ────────────────────────────────────────────
-template <typename Cursor, bool UseMask, typename TargetT>
-template <typename V>
-ParseValueResult
-JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
-  if constexpr (std::is_same_v<V, JSONCallbackObject> ||
-                std::is_same_v<V, UnknownValueType>) {
-    return parse_any_numeric(arg_value);
-  } else if constexpr (std::is_floating_point_v<remove_cv_ref_t<V>>) {
-    return parse_floating_point(arg_value);
-  } else if constexpr (std::is_integral_v<remove_cv_ref_t<V>> &&
-                       !std::is_same_v<remove_cv_ref_t<V>, bool>) {
-    return parse_integer(arg_value);
-  }
 
   return ParseValueResult::PARSE_ERROR_NUMERIC;
 }
@@ -1095,12 +1111,13 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_value(TableT &table,
   result |= dispatch_by_index(entry->arg_index, *this, args,
                               std::make_index_sequence<NPairs>{});
 
+  
   if (result.updated()) {
     if constexpr (UseMask) {
-      const size_t mask_idx =
-          _automask ? entry->arg_index : static_cast<size_t>(entry->key_index);
+      const size_t mask_idx = _automask ? entry->arg_index : static_cast<size_t>(entry->key_index);
       _keyMask |= (1u << mask_idx);
     }
+    
     _nUpdated++;
   }
 
@@ -1125,9 +1142,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_into_value(V &arg_value) {
   } else if constexpr (std::is_same_v<V, bool>) {
     return parse_bool(arg_value);
   } else if constexpr (std::is_floating_point_v<V>) {
-    return parse_floating_point(arg_value);
+    return parse_numeric<V>(arg_value);
   } else if constexpr (std::is_integral_v<V>) {
-    return parse_integer(arg_value);
+    return parse_numeric<V>(arg_value);
   } else if constexpr (std::is_same_v<V, std::string_view> ||
                        is_char_array_v<V>) {
     return parse_string(arg_value);
@@ -1331,24 +1348,18 @@ void JSONParserBase<Cursor, UseMask, TargetT>::parse(Args &&...args) {
   }
 }
 
-// ── Méthodes d'assignation (logique identique à JSONParser) ───
-
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename PV, typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::assign_same_type(PV &pv, V &v) {
-  if (v != pv) {
-    v = pv;
-    return ParseValueResult::VALUE_UPDATED;
-  }
-
-  return ParseValueResult::NO_RESULT;
+  return assign<UseMask>(pv, v);
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename PV, typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::assign_convertible(PV &pv, V &v) {
+  
   if (v != pv) {
     v = static_cast<V>(pv);
     return ParseValueResult::VALUE_UPDATED;
@@ -1366,12 +1377,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::assign_integral_to_integral(PV &pv,
     pv = clamp_to_min_max<PV, V>(pv);
   }
 #endif
-  if (v != pv) {
-    v = pv;
-    return ParseValueResult::VALUE_UPDATED;
-  }
-
-  return ParseValueResult::NO_RESULT;
+  return assign<UseMask>(pv, v);
 }
 
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -1381,10 +1387,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::assign_infinity_to_integral(PV &,
                                                                       V &v) {
   if constexpr (std::is_integral_v<V>) {
     V nv = std::numeric_limits<V>::max();
-    if (v != nv) {
-      v = nv;
-      return ParseValueResult::VALUE_UPDATED;
-    }
+    return assign<UseMask>(nv, v);
   }
   return ParseValueResult::NO_RESULT;
 }
@@ -1410,20 +1413,16 @@ template <typename PV, typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::assign_null_ptr_to_pointer(PV &,
                                                                      V &v) {
-  if (v != nullptr) {
-    v = nullptr;
-    return ParseValueResult::VALUE_UPDATED;
-  }
-  return ParseValueResult::NO_RESULT;
+  return assign<UseMask>(nullptr, v);
 }
 
-template <typename Cursor, bool UseMask, typename TargetT>
-template <typename V>
-ParseValueResult
-JSONParserBase<Cursor, UseMask, TargetT>::assign_array_to_array(V &pv, V &v) {
-  return copy_array(v, pv) ? ParseValueResult::VALUE_UPDATED
-                           : ParseValueResult::NO_RESULT;
-}
+// template <typename Cursor, bool UseMask, typename TargetT>
+// template <typename V>
+// ParseValueResult
+// JSONParserBase<Cursor, UseMask, TargetT>::assign_array_to_array(V &pv, V &v) {
+//   return copy_array(v, pv) ? ParseValueResult::VALUE_UPDATED
+//                            : ParseValueResult::NO_RESULT;
+// }
 
 template <typename Cursor, bool UseMask, typename TargetT>
 template <typename V>
@@ -1472,11 +1471,11 @@ JSONParserBase<Cursor, UseMask, TargetT>::assign_parsed_value_to_value(PV &pv,
                                                                        V &v) {
   JSON_DEBUG_TYPES("Assign %s to %s\n", pv, v);
   ParseValueResult result = ParseValueResult::NO_RESULT;
-  if constexpr (std::is_same_v<PV, V> &&
+  /*if constexpr (std::is_same_v<PV, V> &&
                 is_container_from_list<V, arguments_array_types>::value &&
                 container_info<V>::dimensions == 1) {
     result |= assign_array_to_array(pv, v) | ParseValueResult::VALUE_CONVERTED;
-  } else if constexpr (std::is_same_v<PV, V>) {
+  } else */if constexpr (std::is_same_v<PV, V>) {
     result |= assign_same_type(pv, v) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_convertible_v<PV, V> && std::is_integral_v<PV> &&
                        std::is_integral_v<V>) {
@@ -1712,7 +1711,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_object(V &arg_value) {
     arg_value.push();
   }
 
-  JSON::ParseResult r = arg_value.fromJSON(name, _cursor);
+  JSON::ParseResult r = arg_value.fromJSON(name, _cursor, UseMask);
 
   if constexpr (std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>>) {
     arg_value.pop();

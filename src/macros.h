@@ -73,6 +73,8 @@ if (++iteration > MAX) {                                                       \
     DEBUG_PRINTF(label" stack: %zu ", stack_remaining);\
     if constexpr (std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>>) {\
       arg_value.key.print();\
+    } else {\
+      DEBUG_PRINTLN();\
     }\
     GLOBAL_CONTEXT_STACK_SIZE = stack_remaining;\
   }
@@ -268,20 +270,23 @@ if (++iteration > MAX) {                                                       \
 // APRÈS
 #define FROM_JSON_OVERRIDE(...)                                                \
   template <typename T>                                                        \
-  JSON::ParseResult fromJSON(const char *_json_name_, T &input) {              \
-    return JSON::_parse(_json_name_, this->updated, input,                     \
-                        MACRO(__VA_ARGS__));                                   \
+  constexpr JSON::ParseResult fromJSON(const char *_json_name_, T &input, bool updates = JSON::FROM_JSON_USES_UPDATES) {              \
+    return JSON::_parse_impl<updates>(_json_name_, this->updated, input, MACRO(__VA_ARGS__));\
   }                                                                            \
   JSON::ParseResult fromJSON(const char *_json_name_,                          \
-                             const PointerCursorReader &cursor) override {     \
+                             const PointerCursorReader &cursor, bool updates) override {     \
     using _SelfT = remove_cv_ref_t<decltype(*this)>;                            \
-    return JSON::_parse_impl<true, const PointerCursorReader, _SelfT>(         \
+    return updates ? JSON::_parse_impl<true, const PointerCursorReader, _SelfT>(         \
+        _json_name_, this->updated, cursor, MACRO(__VA_ARGS__)) : \
+        JSON::_parse_impl<false, const PointerCursorReader, _SelfT>(         \
         _json_name_, this->updated, cursor, MACRO(__VA_ARGS__));               \
   }                                                                            \
-  JSON::ParseResult fromJSON(const char *_json_name_, StreamCursorReader &cursor)    \
+  JSON::ParseResult fromJSON(const char *_json_name_, StreamCursorReader &cursor, bool updates)    \
       override {                                                               \
     using _SelfT = remove_cv_ref_t<decltype(*this)>;                            \
-    return JSON::_parse_impl<true, StreamCursorReader, _SelfT>(                      \
+    return updates ? JSON::_parse_impl<true, StreamCursorReader, _SelfT>(                      \
+        _json_name_, this->updated, cursor, MACRO(__VA_ARGS__)) : \
+        JSON::_parse_impl<false, StreamCursorReader, _SelfT>(                      \
         _json_name_, this->updated, cursor, MACRO(__VA_ARGS__));               \
   }
 #define TO_JSON_OVERRIDE(...)                                                  \

@@ -36,7 +36,7 @@ using enable_if_json_data_container_compatible =
 // Implémentation interne unique, UseMask en template bool direct
 template <bool UseMask, typename Cursor, typename TargetT = Cursor,
           typename... Args>
-ParseResult _parse_impl(const char *name, uint32_t &mask, Cursor &cursor,
+constexpr ParseResult _parse_impl(const char *name, uint32_t &mask, Cursor &cursor,
                         Args &&...args) {
   uint64_t start = now();
 
@@ -157,25 +157,25 @@ parse(uint32_t &mask, const PointerCursorReader &cursor, T &jsonObjects) {
 NAMESPACE_JSON_END
 
 JSON::ParseResult UnknownValueType::fromJSON(const char *name,
-                                             JSON::StreamCursorReader &cursor) {
+                                             JSON::StreamCursorReader &cursor, bool updates) {
   static UnknownValueType dummy;
   return JSON::_parse(name, cursor, dummy);
 }
 
 JSON::ParseResult
 UnknownValueType::fromJSON(const char *name,
-                           const JSON::PointerCursorReader &cursor) {
+                           const JSON::PointerCursorReader &cursor, bool updates) {
   static UnknownValueType dummy;
   return JSON::_parse(name, cursor, dummy);
 }
 
 JSON::ParseResult
 JSONCallbackObject::fromJSON(const char *name,
-                             const JSON::PointerCursorReader &cursor) {
+                             const JSON::PointerCursorReader &cursor, bool updates) {
   return JSON::_parse(name, cursor, *this);
 }
 
 JSON::ParseResult JSONCallbackObject::fromJSON(const char *name,
-                                               JSON::StreamCursorReader &cursor) {
+                                               JSON::StreamCursorReader &cursor, bool updates) {
   return JSON::_parse(name, cursor, *this);
 }
