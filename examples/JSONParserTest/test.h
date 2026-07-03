@@ -907,9 +907,9 @@ char *read_file(const char *filename) {
 }
 
 template <typename T, typename U>
-void test_parse_geojson_big_from_input(U input) {
+void test_parse_geojson_big_from_input(U&& input) {
   constexpr bool limited = std::is_same_v<T, FeatureCollectionLimited10Rings>;
-  constexpr bool is_file = std::is_same_v<U, File>;
+  constexpr bool is_file = std::is_same_v<std::decay_t<U>, File>;
   DEBUG_PRINTF("\n\n");
   DEBUG_PRINTF("TESTING FEATURE COLLECTION With %s FROM %s \n", limited ? "10 rings" : "all rings", is_file ? "FILE" : "BUFFER");
 
@@ -1645,8 +1645,9 @@ void run_parsing_tests() {
   test_parse_geojson_big_with_limited_geometry_from_file();
 #ifndef ARDUINO
   test_parse_geojson_big_from_buffer<FeatureCollection>();
-  test_parse_geojson_big_from_file<FeatureCollection>();
   test_parse_geojson_big_from_buffer<FeatureCollectionLimited10Rings>();
+  test_parse_geojson_big_from_file<FeatureCollection>();
+  test_parse_geojson_big_from_file<FeatureCollectionLimited10Rings>();
   test_parse_with_callback_geojson_medium_from_file();
 #endif
 }
