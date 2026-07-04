@@ -146,23 +146,4 @@ constexpr bool cursor_scan_chars_once(Cursor &cur, const char (&chars)[ChN], boo
   return false;
 }
 
-// // --- skip_spaces ---
-// template <typename Cursor> bool cursor_skip_spaces(Cursor &cur) {
-//   bool skipped = false;
-//   while (true) {
-//     CHECK_LOOP(MAX_ITERATIONS, false);
-//     int got = cur.peek();
-//     if (got < 0)
-//       break;
-//     char c = static_cast<char>(got);
-//     for (uint8_t i = 0; i < 4; i++) {
-//       if (c == JSON_SPACE_CHARACTERS[i]) {
-//         cur.advance();
-//         skipped = true;
-//       }
-//     }
-//   }
-//   return skipped;
-// }
-
 NAMESPACE_JSON_END
