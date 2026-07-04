@@ -1384,8 +1384,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric(V &arg_value) {
 
   static Type parsed_value;
   char *start;
-  char *end;
-  
+
   if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
     start = const_cast<char *>(_cursor.ptr());
   } else {
