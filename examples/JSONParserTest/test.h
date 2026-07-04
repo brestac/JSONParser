@@ -801,8 +801,7 @@ void test_parse_with_callback_geojson_medium_from_stream(Stream *stream) {
   }
 
   f.toJSON(Serial);
-  Serial.println("");
-  Serial.printf("Parsing took %.02fs\n", (float)pr.elapsed / 1000000.0f);
+  Serial.printf("Parsing took %.2fs\n", (float)(pr.elapsed) / 1000000.0F);
 }
 
 void test_parse_with_callback_geojson_medium_from_file() {
@@ -921,11 +920,11 @@ void test_parse_geojson_big_from_input(U&& input) {
   #else
     uint8_t TEST_ITERATIONS = 100U;
   #endif
-  
+
   uint8_t counter = TEST_ITERATIONS;
   T fc;
   JSON::ParseResult pr;
-  
+
   uint64_t start = now();
   while(counter--) {
     fc = T();
@@ -940,9 +939,9 @@ void test_parse_geojson_big_from_input(U&& input) {
       input.seek(0);
     }
   }
- 
+
   double elapsed_me = double(now() - start) / double(TEST_ITERATIONS);
-  
+
   check(pr.error == 0, "parse error %u, parsed length=%zu", pr.error,
         pr.length);
   check(fc.type == "FeatureCollection", "type == FeatureCollection, was %.*s",
@@ -997,11 +996,11 @@ void test_parse_geojson_big_from_input(U&& input) {
     DEBUG_PRINTF("RapidJSON Parsing time: %.0fµs. JSONParser is %.2f times %s than RapidJSON\n", elapsed_rapid_json, faster_than_rapid_json ? "faster" : "slower", factor_vs_rapid_json);
   }
 
-  // ArduinoJson  
+  // ArduinoJson
   JsonDocument doc;
   counter = TEST_ITERATIONS;
   start = now();
-  
+
   while(counter--) {
     DeserializationError error = deserializeJson(doc, input);
     if (error) {
@@ -1014,13 +1013,13 @@ void test_parse_geojson_big_from_input(U&& input) {
   }
 
   double elapsed_arduino_json = double(now() - start) / double(TEST_ITERATIONS);
-  
+
   double factor_vs_arduino_json = elapsed_me / elapsed_arduino_json;
   bool faster_than_arduino_json = elapsed_me < elapsed_arduino_json;
   if (factor_vs_arduino_json !=0 && faster_than_arduino_json) {
     factor_vs_arduino_json = 1.0f / factor_vs_arduino_json;
   }
-  
+
   DEBUG_PRINTF("ArduinoJSON Parsing time: %.0f µs. JSONParser is %.2f times %s than ArduinoJSON\n", elapsed_arduino_json, faster_than_arduino_json ? "faster" : "slower", factor_vs_arduino_json);
 }
 
