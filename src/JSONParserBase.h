@@ -292,9 +292,9 @@ char JSONParserBase<Cursor, UseMask,
 //  Implémentation des méthodes
 // ============================================================
 // ============================================================
-//  
+//
 //                    PARSING
-//  
+//
 // ============================================================
 
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -843,7 +843,7 @@ template <typename PV, typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric_type(V &arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_numeric\n");
-  
+
   char *start;
   static PV parsed_value;
 
@@ -891,7 +891,7 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_numeric_type(V &arg_value) {
     }
 
     // check if parsed_value have been parsed as Infinity
-    if (parsed_value == std::numeric_limits<Type>::infinity()) {
+    if (parsed_value == std::numeric_limits<PV>::infinity()) {
       return parse_infinity(arg_value);
     } else if (isnan(parsed_value)) {
       return parse_nan(arg_value);
@@ -1253,9 +1253,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::parse_any(V arg_value) {
 }
 
 // ============================================================
-//  
+//
 //                    SKIPPING
-//  
+//
 // ============================================================
 
 template <typename Cursor, bool UseMask, typename TargetT>
@@ -1562,9 +1562,9 @@ JSONParserBase<Cursor, UseMask, TargetT>::skip_to_array_end_fast() {
 
 
 // ============================================================
-//  
+//
 //                    ASSIGNMENT
-//  
+//
 // ============================================================
 
 template <typename Cursor, bool UseMask, typename TargetT>
