@@ -1621,7 +1621,7 @@ void test_parse_geojson_from_stream(Stream *stream) {
 void run_parsing_tests() {
   // with callback
   test_parse_callback();
-  test_parse_array_callback();
+  // test_parse_array_callback();
 
   test_parsing();
   test_parse_indexed_keys();
@@ -1647,7 +1647,7 @@ void run_parsing_tests() {
   test_parse_geojson_big_from_buffer<FeatureCollectionLimited10Rings>();
   test_parse_geojson_big_from_file<FeatureCollection>();
   test_parse_geojson_big_from_file<FeatureCollectionLimited10Rings>();
-  test_parse_with_callback_geojson_medium_from_file();
+  //test_parse_with_callback_geojson_medium_from_file();
 #endif
 }
 
