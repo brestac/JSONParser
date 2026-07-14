@@ -15,7 +15,7 @@ desktop-test: tests/desktop.cpp $(HEADERS)
 
 desktop-test-faster: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
-	$(CXX) $(CXXFLAGS) -O3 -std=gnu++23 -I. tests/desktop.cpp -o build/desktop-test-faster
+	$(CXX) $(CXXFLAGS) -O3 -flto -std=gnu++23 -I. tests/desktop.cpp -o build/desktop-test-faster
 	cp -n $(RESOURCES) build/
 
 desktop-test-debug: tests/desktop.cpp $(HEADERS)
