@@ -172,7 +172,7 @@ unsigned long long now() {
   auto now = std::chrono::steady_clock::now();
   return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 }
-#if DEBUG_LEVEL > 0
+#if JSON_DEBUG_LEVEL > 0
 void replace_endl(char *str, size_t len) {
   for (size_t i = 0; i < len; i++) {
     if (str[i] == '\n' || str[i] == '\r') {
