@@ -1584,7 +1584,7 @@ void test_parse_escape_sequence_from_stream() {
 }
 
 void test_parse_strings_from_buffer() {
-  DEBUG_PRINTF("\n--- Test: parse strings ---\n");
+  DEBUG_PRINTF("\n--- Test: parse strings from buffer ---\n");
   Child enfant;
   const char *json = "{\"nom\":\"Legendre\", \"prenom\":\"Jean\", \"age\":42}";
   JSON::ParseResult r = enfant.fromJSON(json);
@@ -1598,7 +1598,7 @@ void test_parse_strings_from_buffer() {
 }
 
 void test_parse_strings_from_stream() {
-  DEBUG_PRINTF("\n--- Test: parse strings ---\n");
+  DEBUG_PRINTF("\n--- Test: parse strings from stream ---\n");
   Child enfant;
   const char *json = "{\"nom\":\"Legendre\", \"prenom\":\"Jean\", \"age\":42}";
   StreamString stream(json);
