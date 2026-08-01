@@ -501,7 +501,7 @@ bool JSONParserBase<Cursor, UseMask>::parse_key() {
   // Pour StreamCursor on doit copier la clé dans un buffer local.
   // Pour PointerCursor on peut pointer directement (comportement original).
   // On utilise un buffer statique court pour la clé.
-  size_t n = 0;
+  int n = 0;
 
   while (n < JSON::MAX_KEY_LENGTH) {
     CHECK_LOOP(MAX_ITERATIONS, false);
@@ -694,7 +694,7 @@ bool JSONParserBase<Cursor, UseMask>::scan_escaped_string(std::string_view& sv) 
 
   bool inEscape = false;
   bool unescaped = false;
-  size_t n = 0;
+  int n = 0;
   Pool::ensure_pool_size(1);
   char *pool_start_ptr = Pool::current_pos();
 
@@ -862,7 +862,7 @@ JSONParserBase<Cursor, UseMask>::parse_numeric_type(V& arg_value) {
       return ParseValueResult::PARSE_ERROR_NUMERIC;
     }
 
-    size_t consumed = result.ptr - start;
+    int consumed = static_cast<int>(result.ptr - start);
     _cursor.advance(consumed);
 #else
     char *end;
@@ -1001,7 +1001,7 @@ JSONParserBase<Cursor, UseMask>::parse_array(V& arg_value) {
 
   _cursor.advance();
 
-  size_t i = 0;
+  int i = 0;
   bool underflow = false;
   constexpr size_t max = container_info<V>::is_container
                              ? container_info<V>::extent

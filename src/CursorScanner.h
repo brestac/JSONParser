@@ -24,7 +24,7 @@ template <typename Cursor> bool cursor_scan_char(Cursor &cur, char c, bool consu
 // --- scan_keyword ---
 template <typename Cursor, size_t KwN>
 bool cursor_scan_keyword(Cursor &cur, const char (&keyword)[KwN], bool consume = true) {
-  for (size_t i = 0; i < KwN; i++) {
+  for (int i = 0; i < KwN; i++) {
     int c = cur.peek(i);
     if (c < 0 || static_cast<char>(c) != keyword[i])
       return false;
@@ -41,7 +41,7 @@ bool cursor_scan_until(Cursor &cur, char delim, size_t maxLen = 0, bool consume 
   __builtin_assume(maxLen <= MAX_JSON_LENGTH);
   __builtin_assume(delim > 0);
 #endif
-  size_t i = 0;
+  int i = 0;
   while (true) {
     CHECK_LOOP(MAX_ITERATIONS, false);
     
@@ -86,7 +86,7 @@ constexpr bool cursor_scan_ranges_once(Cursor &cur, char (&ranges)[RN][2], bool 
 // --- scan_ranges : avance tant que les caractères sont dans les plages ---
 template <typename Cursor, size_t RN>
 constexpr bool cursor_scan_ranges(Cursor &cur, char (&ranges)[RN][2], size_t maxLen = 0, bool consume = true) {
-  size_t n = 0;
+  int n = 0;
   size_t iteration = 0;
   while ((maxLen == 0 || n < maxLen) && ++iteration < JSON::MAX_ITERATIONS) {
 
