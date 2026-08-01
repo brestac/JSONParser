@@ -72,11 +72,10 @@ struct StaticDispatchTable {
 //  Retourne true si l'appel a eu lieu (pour le short-circuit du fold).
 // ---------------------------------------------------------------------------
 
-template <size_t I, typename ParserT, typename TupleT>
-bool call_at(size_t target, ParserT& parser, TupleT& refs,
-             ParseValueResult& result) {
-    if (I != target) return false;
-    result = parser.parse_into_value(std::get<I * 2 + 1>(refs));
+template <typename TargetT, size_t I, typename ParserT, typename TupleT>
+bool call_at(size_t target_index, ParserT& parser, TupleT& refs, ParseValueResult& result) {
+    if (I != target_index) return false;
+    result = parser.template parse_into_value<TargetT>(std::get<I * 2 + 1>(refs));
     return true;
 }
 
@@ -85,11 +84,11 @@ bool call_at(size_t target, ParserT& parser, TupleT& refs,
 //  Le || assure le short-circuit : dès que call_at retourne true, on s'arrête.
 // ---------------------------------------------------------------------------
 
-template <typename ParserT, typename TupleT, size_t... I>
+template <typename TargetT, typename ParserT, typename TupleT, size_t... I>
 ParseValueResult dispatch_by_index(
-        size_t target, ParserT& parser, TupleT& refs,
+        size_t target_index, ParserT& parser, TupleT& refs,
         std::index_sequence<I...>) {
     ParseValueResult result;
-    (call_at<I>(target, parser, refs, result) || ...);
+    (call_at<TargetT, I>(target_index, parser, refs, result) || ...);
     return result;
 }

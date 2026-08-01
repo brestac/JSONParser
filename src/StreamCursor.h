@@ -114,11 +114,12 @@ private:
 enum StreamCursorType : uint8_t { READER = 0, WRITER = 1 };
 
 // Base commune (pas de ring buffer)
+
 class StreamCursorBase {
 public:
-    StreamCursorBase(Stream* s) : _stream(s), _written(0) {}
+    StreamCursorBase(Stream* s) : _stream(s), _written(0) { }
     void flush() { _stream->flush(); }
-    mutable int8_t depth = -1;
+    mutable int8_t depth = 0;
 protected:
     Stream* _stream;
     size_t  _written;

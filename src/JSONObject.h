@@ -43,43 +43,38 @@ public:
   //  fromJSON
   ////////////////////////////////////////////////////////////////////////////////
 
-  virtual JSON::ParseResult fromJSON(const char* /*name*/, const PointerCursorReader & /*cursor*/) {
+  virtual JSON::ParseResult fromJSON(const PointerCursorReader & /*cursor*/) {
     return JSON::ParseResult();
   }
 
-  virtual JSON::ParseResult fromJSON(const char* /*name*/, StreamCursorReader & /*cursor*/) {
+  virtual JSON::ParseResult fromJSON(StreamCursorReader & /*cursor*/) {
     return JSON::ParseResult();
   }
 
   template <size_t N>
-  JSON::ParseResult fromJSON(const char* name, const char (&input)[N]) {
+  JSON::ParseResult fromJSON(const char (&input)[N]) {
     JSON_DEBUG_WARNING("JSONObject::fromJSON(const char (&input)[N])\n");
     const PointerCursorReader cursor(input, N - 1);
-    return fromJSON(name, cursor);
+    return fromJSON(cursor);
   }
 
-  JSON::ParseResult fromJSON(const char* name, const char* input) {
+  JSON::ParseResult fromJSON(const char* input) {
     JSON_DEBUG_WARNING("JSONObject::fromJSON(const char* input)\n");
     const PointerCursorReader cursor(input, str_length(input, MAX_JSON_LENGTH));
-    return fromJSON(name, cursor);
+    return fromJSON(cursor);
   }
 
   template <typename T>
   std::enable_if_t<is_stream_v<T>, JSON::ParseResult>
-  fromJSON(const char* name, T& input) {
+  fromJSON(T& input) {
     StreamCursorReader cursor(input);
-    return fromJSON(name, cursor);
-  }
-
-  template <typename T>
-  JSON::ParseResult fromJSON(T& input) {
-    return fromJSON("$ROOT", input);
+    return fromJSON(cursor);
   }
 
   template <typename T>
   std::enable_if_t<is_stream_v<T*>, JSON::ParseResult>
   fromJSON(T* input) {
-    return fromJSON("$ROOT", *input);
+    return fromJSON(*input);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
