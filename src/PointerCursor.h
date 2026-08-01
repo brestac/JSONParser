@@ -120,7 +120,7 @@ public:
   size_t write(const char* buf) const;
   template <size_t N> size_t write(const char (&buf)[N]) const;
   template <size_t N> size_t write(char (&buf)[N]) const;
-  template <typename... Args> std::enable_if_t<(sizeof...(Args) > 0), size_t> printf(const char* format, Args &&...args) const;;
+  template <typename... Args> std::enable_if_t<(sizeof...(Args) > 0), size_t> printf(const char* format, Args &&...args) const;
 };
 //-------------------------------------------------------------------//
 //  Spécialisation pour const char* (lecture seule)

@@ -24,8 +24,8 @@ template <typename Cursor> bool cursor_scan_char(Cursor &cur, char c, bool consu
 // --- scan_keyword ---
 template <typename Cursor, size_t KwN>
 bool cursor_scan_keyword(Cursor &cur, const char (&keyword)[KwN], bool consume = true) {
-  for (int i = 0; i < KwN; i++) {
-    int c = cur.peek(i);
+  for (unsigned long i = 0; i < KwN; i++) {
+    int c = cur.peek(static_cast<int>(i));
     if (c < 0 || static_cast<char>(c) != keyword[i])
       return false;
   }
@@ -50,7 +50,7 @@ bool cursor_scan_until(Cursor &cur, char delim, size_t maxLen = 0, bool consume 
       return false; // fin de flux
     if (static_cast<char>(c) == delim)
       break; // délimiteur trouvé
-    if (maxLen > 0 && i >= maxLen) {
+    if (maxLen > 0 && i >= static_cast<int>(maxLen)) {
       if (consume)
         cur.advance(i);
       return false; // dépassement
@@ -88,7 +88,7 @@ template <typename Cursor, size_t RN>
 constexpr bool cursor_scan_ranges(Cursor &cur, char (&ranges)[RN][2], size_t maxLen = 0, bool consume = true) {
   int n = 0;
   size_t iteration = 0;
-  while ((maxLen == 0 || n < maxLen) && ++iteration < JSON::MAX_ITERATIONS) {
+  while ((maxLen == 0 || n < static_cast<int>(maxLen)) && ++iteration < JSON::MAX_ITERATIONS) {
 
     int got = cur.peek(n);
     if (got < 0)
