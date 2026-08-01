@@ -269,22 +269,24 @@ if (++iteration > MAX) {                                                       \
 
 // APRÈS
 #define FROM_JSON_OVERRIDE(...)                                                \
-  template <typename T>                                                        \
-  constexpr JSON::ParseResult fromJSON(const char *_json_name_, T &input) {              \
-    return JSON::_parse_impl<true>(_json_name_, this->updated, input, MACRO(__VA_ARGS__));\
-  }                                                                            \
-  JSON::ParseResult fromJSON(const char *_json_name_,                          \
-                             const PointerCursorReader &cursor) override {     \
+  JSON::ParseResult fromJSON(const PointerCursorReader &cursor) override {     \
     using _SelfT = remove_cv_ref_t<decltype(*this)>;                            \
-    return JSON::_parse_impl<true, const PointerCursorReader, _SelfT>(         \
-        _json_name_, this->updated, cursor, MACRO(__VA_ARGS__));               \
+    return JSON::_parse_impl<true, _SelfT, const PointerCursorReader>(         \
+        this->updated, cursor, MACRO(__VA_ARGS__));                             \
   }                                                                            \
-  JSON::ParseResult fromJSON(const char *_json_name_, StreamCursorReader &cursor)    \
+  JSON::ParseResult fromJSON(StreamCursorReader &cursor)                        \
       override {                                                               \
     using _SelfT = remove_cv_ref_t<decltype(*this)>;                           \
-    return JSON::_parse_impl<true, StreamCursorReader, _SelfT>(                \
-        _json_name_, this->updated, cursor, MACRO(__VA_ARGS__));               \
-  }
+    return JSON::_parse_impl<true, _SelfT, StreamCursorReader>(                \
+        this->updated, cursor, MACRO(__VA_ARGS__));                             \
+  }\
+template <typename Cursor, bool UseMask>\
+JSON::ParseResult _fromJSON(JSONParserBase<Cursor, UseMask>& parser)                        \
+     {                                                               \
+  using _SelfT = remove_cv_ref_t<decltype(*this)>;                           \
+  return JSON::_parse_impl<false, _SelfT>(                \
+      this->updated, parser, MACRO(__VA_ARGS__));                             \
+}
 #define TO_JSON_OVERRIDE(...)                                                  \
   template <typename T> size_t toJSON(T &output, bool updates = false) {       \
     uint32_t mask = updates ? this->updated : 0;                               \

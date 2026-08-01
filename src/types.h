@@ -23,6 +23,8 @@ template <typename T> inline constexpr bool is_stream_v = std::is_base_of<Stream
 #include "constants.h"
 #include "macros.h"
 
+template <typename Cursor, bool UseMask>
+class JSONParserBase;
 // ---------------------------------------------------------------------------
 //   Type checker
 // ---------------------------------------------------------------------------
@@ -141,7 +143,7 @@ inline constexpr bool is_container_from_list_v = is_container_from_list<T, TypeL
 
 template <typename T> struct is_char_array : std::false_type {};
 
-template <typename T, size_t N> struct is_char_array<T[N]> : std::is_same<T, char> {};
+template <typename T, size_t N> struct is_char_array<T[N]> : std::is_same<std::remove_cv_t<T>, char> {};
 
 template <typename T> inline constexpr bool is_char_array_v = is_char_array<T>::value;
 
@@ -200,6 +202,16 @@ template <typename T> inline constexpr bool is_cursor_writer_v = is_cursor_write
 template <typename T> inline constexpr bool is_cursor_writer_constructible_v = is_cursor_writer_constructible<T>::value;
 
 template <typename T> inline constexpr bool is_cursor_v = is_cursor_reader_v<T> || is_cursor_writer_v<T>;
+
+// ==========================================
+// Parser
+// ==========================================
+
+template <typename T = void, typename E = void> struct is_parser_type : std::false_type {};
+
+template <typename T, bool U> struct is_parser_type<JSONParserBase<T, U>, std::enable_if_t<is_cursor_v<T>>> : std::true_type {};
+
+template <typename T> inline constexpr bool is_parser_type_v = is_parser_type<T>::value;
 
 // ==========================================
 // Key Value checker

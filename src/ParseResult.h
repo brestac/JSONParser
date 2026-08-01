@@ -55,8 +55,8 @@ struct ParseResult {
 
   constexpr ParseResult() : length(0), nParsed(0), nMatched(0), nConverted(0), nUpdated(0), error(ParserError::NO_ERROR), parseError(ParseValueResult()), elapsed(0), stopped(false) {}
 
-  template <typename T> constexpr ParseResult(T *parser, uint64_t duration) {
-    length = parser->bytesConsumed();
+  template <typename P> constexpr ParseResult(P* parser, uint64_t duration) {
+    length = parser->cursor().bytesConsumed();
     nParsed = parser->nParsed();
     nMatched = parser->nMatched();
     nConverted = parser->nConverted();

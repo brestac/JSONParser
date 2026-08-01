@@ -977,7 +977,7 @@ void test_parse_geojson_big_from_input(U&& input) {
   DEBUG_PRINTF("JSONParser Parsing time: %.0f µs\n", elapsed_me);
 
   // RAPIDJSON
-  if constexpr (std::is_same_v<U, char*>) {
+  if constexpr (!is_file) {
     rapidjson::Document d;
     counter = TEST_ITERATIONS;
     start = now();
