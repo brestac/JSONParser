@@ -1011,9 +1011,9 @@ JSONParserBase<Cursor, UseMask>::parse_array(V& arg_value) {
     arg_value.push();
   }
 
-  while (i < max) {
+  while (i < static_cast<int>(max)) {
 
-    if (i > MAX_ARRAY_LENGTH) {
+    if (i > static_cast<int>(MAX_ARRAY_LENGTH)) {
       JSON_DEBUG_WARNING("JSONParserBase::parse_array: too many elements\n");
       _state = ERROR;
       _lastError = ParserError::TOO_MANY_ITERATIONS;
@@ -1047,7 +1047,7 @@ JSONParserBase<Cursor, UseMask>::parse_array(V& arg_value) {
       JSON_DEBUG_WARNING("JSONParserBase::parse_array: no comma at index %zu, "
                          "assuming end of array\n",
                          i);
-      if (i < max - 1) {
+      if (i < static_cast<int>(max - 1)) {
         underflow = true;
       }
       break;
