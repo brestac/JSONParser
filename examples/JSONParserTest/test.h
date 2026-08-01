@@ -87,7 +87,7 @@ long generate_geojson(const char *path, size_t target_bytes, int rings = 1,
     return -1;
   }
 
-  randomSeed(micros());
+  randomSeed(static_cast<uint32_t>(micros()));
 
   f.print("{\"type\":\"FeatureCollection\",\"features\":[");
 
