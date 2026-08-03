@@ -1,0 +1,33 @@
+---
+Language: Cpp
+Standard: c++17
+
+AllowShortBlocksOnASingleLine: Always
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: Inline
+
+AccessModifierOffset: "-4"
+AlignEscapedNewlines: Left
+AllowAllConstructorInitializersOnNextLine: "true"
+BinPackArguments: "false"
+BinPackParameters: "false"
+BreakConstructorInitializers: AfterColon
+ConstructorInitializerAllOnOneLineOrOnePerLine: "true"
+DerivePointerAlignment: "false"
+FixNamespaceComments: "true"
+IndentCaseLabels: "false"
+IndentPPDirectives: AfterHash
+IndentWidth: "4"
+NamespaceIndentation: All
+PointerAlignment: Left
+SpaceBeforeCtorInitializerColon: "false"
+SpaceInEmptyParentheses: "false"
+SpacesInParentheses: "true"
+TabWidth: "4"
+UseTab: Never
+AlwaysBreakTemplateDeclarations: Yes
+SpaceAfterTemplateKeyword: true
+SortUsingDeclarations: true
+ReflowComments: true
