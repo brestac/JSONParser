@@ -4,6 +4,8 @@
 
 #include <limits>
 
+#include "JSONObject.h"
+#include "JSONCallbackObject.h"
 #include "ParseDispatchTable.h"
 #include "StringPool.h"
 #include "types.h"
@@ -56,7 +58,8 @@ public:
   };
 
   // ── Constructeur ─
-  explicit JSONParserBase(Cursor& cursor)
+  template <typename T = Cursor>
+  explicit JSONParserBase(T& cursor, std::enable_if_t<is_cursor_v<T>>* = nullptr)
       :  _cursor(cursor), _state(START), _progress(),
         _automask(false),
         _is_top_level_array(false),
@@ -393,8 +396,8 @@ void JSONParserBase<Cursor, UseMask>::parse(Args &&...args) {
 
       SKIP_SPACES();
       if (is_object_end()) {
-        //_state = END;
-        _cursor.advance();
+        _state = END;
+        //_cursor.advance();
         continue;
       }
 
@@ -1153,7 +1156,7 @@ JSONParserBase<Cursor, UseMask>::parse_object(V& arg_value) {
   
   reset();
   _cursor.depth++;
-  JSON::ParseResult r = arg_value._fromJSON(*this);
+  JSON::ParseResult r = arg_value.fromJSON(*this);
   _cursor.depth--;
 
   _progress = progress;

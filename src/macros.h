@@ -269,24 +269,12 @@ if (++iteration > MAX) {                                                       \
 
 // APRÈS
 #define FROM_JSON_OVERRIDE(...)                                                \
-  JSON::ParseResult fromJSON(const PointerCursorReader &cursor) override {     \
+  template <typename T>\
+  JSON::ParseResult fromJSON(T &&input) {     \
     using _SelfT = remove_cv_ref_t<decltype(*this)>;                            \
-    return JSON::_parse_impl<true, _SelfT, const PointerCursorReader>(         \
-        this->updated, cursor, MACRO(__VA_ARGS__));                             \
-  }                                                                            \
-  JSON::ParseResult fromJSON(StreamCursorReader &cursor)                        \
-      override {                                                               \
-    using _SelfT = remove_cv_ref_t<decltype(*this)>;                           \
-    return JSON::_parse_impl<true, _SelfT, StreamCursorReader>(                \
-        this->updated, cursor, MACRO(__VA_ARGS__));                             \
-  }\
-template <typename Cursor, bool UseMask>\
-JSON::ParseResult _fromJSON(JSONParserBase<Cursor, UseMask>& parser)                        \
-     {                                                               \
-  using _SelfT = remove_cv_ref_t<decltype(*this)>;                           \
-  return JSON::_parse_impl<false, _SelfT>(                \
-      this->updated, parser, MACRO(__VA_ARGS__));                             \
-}
+    return JSON::_parse_impl<true, _SelfT>(         \
+        this->updated, input, MACRO(__VA_ARGS__));                             \
+  }
 #define TO_JSON_OVERRIDE(...)                                                  \
   template <typename T> size_t toJSON(T &output, bool updates = false) {       \
     uint32_t mask = updates ? this->updated : 0;                               \
@@ -310,7 +298,6 @@ JSON::ParseResult _fromJSON(JSONParserBase<Cursor, UseMask>& parser)            
   TO_JSON_OVERRIDE(__VA_ARGS__)
 
 #define JSON_SERIALIZE_IMPL(...)                                               \
-  using JSONObject::fromJSON;                                                  \
   using JSONObject::toJSON;                                                    \
   FROM_JSON_OVERRIDE(__VA_ARGS__)                                              \
   TO_JSON_OVERRIDE(__VA_ARGS__)

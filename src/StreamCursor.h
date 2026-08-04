@@ -131,8 +131,8 @@ class StreamCursor;
 template<>
 class StreamCursor<StreamCursorType::WRITER> : public StreamCursorBase {
 public:
-    StreamCursor(Stream* s) : StreamCursorBase(s) {}
-    StreamCursor(Stream& s) : StreamCursor(&s) {}
+    explicit StreamCursor(Stream* s) : StreamCursorBase(s) {}
+    explicit StreamCursor(Stream& s) : StreamCursor(&s) {}
     ~StreamCursor() {}
 
     size_t write(uint8_t c);
@@ -169,56 +169,7 @@ private:
     size_t _consumed;
     bool   _eof;
 };
-/*
-template <StreamCursorType T>
-class StreamCursor {
-public:
-  StreamCursor(Stream *stream)
-      : _ring(stream), _stream(stream), _consumed(0), _written(0), _eof(false) {
-    JSON_DEBUG_TYPES("StreamCursor created from %s\n", stream);
-  }
 
-  StreamCursor(Stream &stream) : StreamCursor(&stream) {}
-
-  ~StreamCursor() { JSON_DEBUG_WARNING("StreamCursor destroyed\n"); }
-
-  // --------------------------------------------------------
-  // Méthodes de LECTURE
-  // --------------------------------------------------------
-  int peek(size_t offset = 0);
-  size_t peekToken(char *out, size_t maxLen);
-  void advance(size_t n = 1);
-  int read();
-
-// --------------------------------------------------------
-// Méthodes d'ÉCRITURE
-// --------------------------------------------------------
-  size_t write(uint8_t c);
-  size_t write(const uint8_t *buffer, size_t size);
-  template <size_t N> size_t write(const char (&str)[N]);
-  size_t write(const char *str);
-  template <typename... Args> size_t printf(const char *format, Args &&...args);
-  bool outputCanTimeout();
-  int availableForWrite();
-  size_t bytesWritten() const;
-
-// --------------------------------------------------------
-// Méthodes communes
-// --------------------------------------------------------
-  bool eof() const { return _eof; }
-  size_t bytesConsumed() const { return _consumed; }
-  void flush() { _stream->flush(); }
-
-  mutable int8_t depth = -1;
-
-private:
-  RingBuffer<JSON::RING_BUFFER_SIZE> _ring;
-  Stream *_stream; // référence directe pour l'écriture
-  size_t _consumed;
-  size_t _written;
-  bool _eof;
-};
-*/
 using StreamCursorReader = StreamCursor<StreamCursorType::READER>;
 using StreamCursorWriter = StreamCursor<StreamCursorType::WRITER>;
 // --------------------------------------------------------

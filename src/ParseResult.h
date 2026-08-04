@@ -83,4 +83,6 @@ void ParseResult::print() {
                length, nParsed, nMatched, nConverted, nUpdated, errorToString(error), errorToString(parseError), elapsed, stopped ? "true" : "false");
 }
 
+constexpr ParseResult NO_RESULT = ParseResult();
+
 NAMESPACE_JSON_END

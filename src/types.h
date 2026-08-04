@@ -11,20 +11,18 @@
 #include <type_traits>
 #include <variant>
 
-template <typename T> inline constexpr bool is_stream_v = std::is_base_of<Stream, remove_cv_ref_t<std::remove_pointer_t<T>>>::value;
-
-#include "JSONCallbackObject.h"
-#include "JSONKey.h"
-#include "JSONObject.h"
-#include "ParseValueResult.h"
-#include "PointerCursor.h"
-#include "StreamCursor.h"
-#include "UnknownValueType.h"
 #include "constants.h"
 #include "macros.h"
 
 template <typename Cursor, bool UseMask>
 class JSONParserBase;
+
+struct JSONObject;
+struct JSONKey;
+struct JSONCallbackObject;
+struct ParseValueResult;
+
+using namespace JSON;
 // ---------------------------------------------------------------------------
 //   Type checker
 // ---------------------------------------------------------------------------
@@ -203,6 +201,9 @@ template <typename T> inline constexpr bool is_cursor_writer_constructible_v = i
 
 template <typename T> inline constexpr bool is_cursor_v = is_cursor_reader_v<T> || is_cursor_writer_v<T>;
 
+template <typename T> inline constexpr bool is_stream_v = std::is_base_of<Stream, remove_cv_ref_t<std::remove_pointer_t<T>>>::value;
+
+template <typename T> inline constexpr bool is_buffer_v = std::is_constructible_v<JSON::PointerCursorReader, T>;
 // ==========================================
 // Parser
 // ==========================================
