@@ -6,7 +6,6 @@
 #include "JSONParserBase.h"
 #include "StringPool.h"
 #include "StreamCursor.h"
-#include "UnknownValueType.h"
 #include "macros.h"
 #include "utils.h"
 
@@ -33,7 +32,7 @@ using enable_if_json_data_container_compatible =
 
 // Implémentation interne unique, UseMask en template bool direct
 template <bool UseMask, typename TargetT, typename Parser, typename... Args>
-std::enable_if_t<is_parser_type_v<Parser> && valid_args<Args...>, ParseResult> _parse_impl(uint32_t& mask, Parser& parser, Args &&...args) {
+std::enable_if_t<is_parser_type_v<Parser>/* && valid_args<Args...>*/, ParseResult> _parse_impl(uint32_t& mask, Parser& parser, Args &&...args) {
   using Cursor = decltype(parser.cursor());
   
   JSON_DEBUG_COLOR(COLOR_RED, "Parser Cursor=%s TargetT=%s size=%zu\n",
@@ -112,13 +111,6 @@ parse(uint32_t& mask, const PointerCursorReader& cursor, T& jsonObjects) {
 }
 
 NAMESPACE_JSON_END
-
-template <typename T>
-JSON::ParseResult UnknownValueType::fromJSON(T& cursor) {
-  static UnknownValueType dummy;
-  uint32_t mask = 0;
-  return _parse_impl<false, UnknownValueType>(mask, cursor, dummy);
-}
 
 template <typename T>
 JSON::ParseResult JSONCallbackObject::fromJSON(T& input) {
