@@ -145,8 +145,7 @@ public:
 
   template <typename TargetT, typename V>
   enable_if_t<container_info<V>::is_container ||
-                  std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>> ||
-                  std::is_same_v<UnknownValueType, remove_cv_ref_t<V>>,
+                  std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>>,
               ParseValueResult>
   parse_array(V& arg_value);
 
@@ -202,9 +201,6 @@ private:
   template<typename TargetT>
   ParseValueResult parse_value(JSONCallbackObject& cb);
 
-  template<typename TargetT>
-  ParseValueResult parse_value(UnknownValueType& unknown);
-
   template <typename TargetT, typename TupleT, typename TableT>
   std::enable_if_t<(std::tuple_size<TupleT>::value == 1), ParseValueResult>
   parse_value(TableT& table, TupleT& args);
@@ -222,13 +218,11 @@ private:
   template <typename V> ParseValueResult parse_numeric(V& v);
   template <typename PV, typename V> ParseValueResult parse_numeric_type(V& v);
   // ParseValueResult parse_numeric(JSONCallbackObject& v);
-  // ParseValueResult parse_numeric(UnknownValueType& v);
   template <typename V> ParseValueResult parse_any_numeric(V& v);
   template <typename V> ParseValueResult parse_bool(V& v);
   template <typename V> ParseValueResult parse_null(V& v);
   template <typename V> ParseValueResult parse_nan(V& v);
   template <typename V> ParseValueResult parse_infinity(V& v);
-  // ParseValueResult parse_array(UnknownValueType);
 
   template <typename V> ParseValueResult parse_object(V& v);
   template <typename TargetT, typename V> ParseValueResult parse_any(V v);
@@ -257,8 +251,7 @@ private:
   std::enable_if_t<N == 0 && std::is_same_v<std::string_view, T>,
                    ParseValueResult>
   skip_value();
-  //  template <typename T> std::enable_if_t<is_array_of_basic_values<T>,
-  //  ParseValueResult> skip_value();
+
   template <typename V> ParseValueResult skip_to_array_end();
   template <typename V> ParseValueResult skip_to_array_end_fast();
   ParseValueResult skip_to_object_end();
@@ -370,8 +363,8 @@ void JSONParserBase<Cursor, UseMask>::parse(Args &&...args) {
     case KEY:
       SKIP_SPACES();
       if (is_object_end()) {
-        //_state = END;
-        _cursor.advance();
+        _state = END;
+        //_cursor.advance();
         continue;
       } else if (parse_key()) {
         _progress._nParsed++;
@@ -573,15 +566,6 @@ JSONParserBase<Cursor, UseMask>::parse_value(JSONCallbackObject& cb) {
 }
 
 template <typename Cursor, bool UseMask>
-template <typename TargetT>
-ParseValueResult JSONParserBase<Cursor, UseMask>::parse_value(UnknownValueType& unknown) {
-  JSON_DEBUG_WARNING("JSONParserBase<Cursor, UseMask>::parse_value "
-                     "UnknownValueType\n");
-
-  return parse_into_value<TargetT>(unknown) | ParseValueResult::KEY_FOUND;
-}
-
-template <typename Cursor, bool UseMask>
 template <typename TargetT, typename TupleT, typename TableT>
 std::enable_if_t<(std::tuple_size<TupleT>::value == 1), ParseValueResult>
 JSONParserBase<Cursor, UseMask>::parse_value(TableT & /*table*/,
@@ -656,14 +640,11 @@ JSONParserBase<Cursor, UseMask>::parse_into_value(V& arg_value) {
     return parse_array<TargetT>(arg_value);
   } else if constexpr (is_container_v<V>) {
     return parse_array<TargetT>(arg_value);
-  } else if constexpr (std::is_same_v<remove_cv_ref_t<V>, UnknownValueType>) {
-    return parse_any<TargetT>(arg_value);
   } else if constexpr (std::is_base_of_v<JSONObject, remove_cv_ref_t<V>>) {
     return parse_object(arg_value);
   } else if constexpr (std::is_pointer_v<V>) {
     ParseValueResult result = parse_null(arg_value);
-    if constexpr (!std::is_const_v<std::remove_pointer_t<V>> &&
-                  !std::is_same_v<V, UnknownValueType>) {
+    if constexpr (!std::is_const_v<std::remove_pointer_t<V>>) {
       if (!result.parsed() && arg_value != nullptr)
         result = parse_into_value<TargetT>(*arg_value);
     }
@@ -771,7 +752,6 @@ JSONParserBase<Cursor, UseMask>::parse_string(V& arg_value) {
   // Plusieurs cas: Cursor = PointerCursorReader ou StreamCursor
   // TargetT = Cursor si appel user depuis JSON::parse, UserStruct si appel user
   // depuis fromJSON, JSONCallbackObject si appel depuis parse avec callback
-  // UnknownValueType si appel depuis parse avec UnknownValueType
   if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
     // Chemin rapide : pointer direct dans le buffer
     const char *str_start = _cursor.ptr();
@@ -819,12 +799,6 @@ JSONParserBase<Cursor, UseMask>::parse_string(V& arg_value) {
 // template <typename Cursor, bool UseMask>
 // ParseValueResult
 // JSONParserBase<Cursor, UseMask>::parse_numeric(JSONCallbackObject& arg_value) {
-//   return parse_any_numeric(arg_value);
-// }
-
-// template <typename Cursor, bool UseMask>
-// ParseValueResult
-// JSONParserBase<Cursor, UseMask>::parse_numeric(UnknownValueType& arg_value) {
 //   return parse_any_numeric(arg_value);
 // }
 
@@ -991,8 +965,7 @@ JSONParserBase<Cursor, UseMask>::parse_infinity(V& arg_value) {
 template <typename Cursor, bool UseMask>
 template <typename TargetT, typename V>
 enable_if_t<container_info<V>::is_container ||
-                std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>> ||
-                std::is_same_v<UnknownValueType, remove_cv_ref_t<V>>,
+                std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>>,
             ParseValueResult>
 JSONParserBase<Cursor, UseMask>::parse_array(V& arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_array\n");
@@ -1024,13 +997,8 @@ JSONParserBase<Cursor, UseMask>::parse_array(V& arg_value) {
     }
 
     SKIP_SPACES();
-    ParseValueResult result;
 
-    if constexpr (std::is_same_v<UnknownValueType, remove_cv_ref_t<V>>) {
-      result = skip_value();
-    } else {
-      result = parse_into_array_at_index<TargetT>(arg_value, i);
-    }
+    ParseValueResult result = parse_into_array_at_index<TargetT>(arg_value, i);
 
     if (_state == STOPPED) {
       return ParseValueResult::ARRAY_PARSED;
@@ -1571,8 +1539,6 @@ JSONParserBase<Cursor, UseMask>::assign_parsed_value_to_value(PV& pv,
               ParseValueResult::VALUE_CONVERTED;
   } else if constexpr (std::is_same_v<V, JSONCallbackObject>) {
     result |= assign_callback_object(pv, v) | ParseValueResult::VALUE_CONVERTED;
-  } else if constexpr (std::is_same_v<V, UnknownValueType>) {
-    return result;
   } else {
     result |= assign_not_handled(pv, v);
   }

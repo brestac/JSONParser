@@ -295,8 +295,9 @@ struct Parent : public JSONObject {
   std::string_view nom = "";
   uint8_t age = 0U;
   Child child;
+  Child child2;
 
-  JSON_SERIALIZE_IMPL(nom, age, child);
+  JSON_SERIALIZE_IMPL(nom, age, child, child2);
 };
 
 struct Personne : public JSONObject {
@@ -506,11 +507,9 @@ void test_parse_array_callback() {
 
 void test_parse_embedded_object() {
   DEBUG_PRINTF("\nTEST EMBEDDED OBJECT\n");
-  Child child;
   Parent parent;
-  parent.child = child;
   const char *json =
-    "{\"nom\":\"Bob\",\"child\":{\"prenom\":\"Alice\",\"age\":8},\"age\":40}";
+    "{\"nom\":\"Bob\",\"child\":{\"prenom\":\"Alice\",\"age\":8},\"child2\":{\"prenom\":\"Maxime\",\"age\":5},\"age\":40}";
   JSON::ParseResult pr = parent.fromJSON(json);
   check(pr.error == 0, "parse");
   check(parent.nom == std::string_view("Bob"), "parent.nom == Bob, was %.*s",
@@ -519,6 +518,7 @@ void test_parse_embedded_object() {
   check(parent.child.prenom == std::string_view("Alice"),
         "parent.child.prenom == Alice, was %.*s",
         (int)parent.child.prenom.length(), parent.child.prenom.data());
+  check(parent.child2.age == 5, "parent.child2.age == 5, was %d", parent.child2.age);
 }
 
 void test_parse_embedded_object_from_stream() {
@@ -1142,16 +1142,24 @@ void test_parse_embedded_object_subset() {
   check(p.age == 40, "age == 40, was %d", p.age);
 }
 
-void test_parse_json_subset2() {
-  DEBUG_PRINTF("\n--- Test: parse JSON subset 2 ---\n");
-  Parent p;  // Parent can decode the keys nom, age, child. Child decodes the
-             // keys nom, prenom, age
-  const char *json = "{\"nom\":\"Bob\",\"age\":40,\"child\":{\"nom\":\"Legendre\", "
-                     "\"prenom\":\"Alice\",\"age\":8} , \"unknown\": {\"key_1\":0, \"key_2\":[1,2,3]}}";
+void test_parse_empty_object() {
+  DEBUG_PRINTF("\n--- Test: parse empty object ---\n");
+  Parent p;
+  const char *json = "{\"nom\":\"Bob\",\"child\":{},\"age\":40}";
   JSON::ParseResult result = p.fromJSON(json);
   check(result.error == 0, "parse %s", errorToString(result.error));
-  check(result.nParsed == 3, "nParsed == 3, was %zu", result.nParsed);
-  check(result.nMatched == 3, "nMatched == 3, was %zu", result.nMatched);
+}
+
+void test_parse_json_subset2() {
+  DEBUG_PRINTF("\n--- Test: parse JSON subset 2 ---\n");
+  Parent p;  // Parent can decode the keys nom, age, child, child2. Child decodes the
+             // keys nom, prenom, age
+  const char *json = "{\"nom\":\"Bob\",\"age\":40,\"child\":{\"nom\":\"Legendre\", "
+                     "\"prenom\":\"Alice\",\"age\":8} , \"child2\":{}, \"unknown\": {\"key_1\":0, \"key_2\":[1,2,3]}}";
+  JSON::ParseResult result = p.fromJSON(json);
+  check(result.error == 0, "parse %s", errorToString(result.error));
+  check(result.nParsed == 4, "nParsed == 4, was %zu", result.nParsed);
+  check(result.nMatched == 4, "nMatched == 4, was %zu", result.nMatched);
   check(p.age == 40, "age == 40, was %d", p.age);
 }
 // ----------------------------------------------------------------
@@ -1638,6 +1646,7 @@ void run_parsing_tests() {
   test_parse_escape_sequence_from_stream();
   test_parse_strings_from_buffer();
   test_parse_strings_from_stream();
+  test_parse_empty_object();
   test_parse_json_subset();
   test_parse_json_subset2();
   test_parse_embedded_object_subset();
