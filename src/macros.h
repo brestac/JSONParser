@@ -292,7 +292,6 @@ if (++iteration > MAX) {                                                       \
   }
 
 #define JSON_DECODER_IMPL(...)                                                 \
-  using JSONObject::fromJSON;                                                  \
   FROM_JSON_OVERRIDE(__VA_ARGS__)
 
 #define JSON_ENCODER_IMPL(...)                                                 \
