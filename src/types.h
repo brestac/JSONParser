@@ -204,10 +204,10 @@ template <typename T> inline constexpr bool is_cursor_v = is_cursor_reader_v<T> 
 template <typename T> inline constexpr bool is_stream_v = std::is_base_of<Stream, remove_cv_ref_t<std::remove_pointer_t<T>>>::value;
 
 template <typename T> inline constexpr bool is_buffer_v = std::is_constructible_v<JSON::PointerCursorReader, T>;
+
 // ==========================================
 // Parser
 // ==========================================
-
 template <typename T = void, typename E = void> struct is_parser_type : std::false_type {};
 
 template <typename T, bool U> struct is_parser_type<JSONParserBase<T, U>, std::enable_if_t<is_cursor_v<T>>> : std::true_type {};
@@ -221,6 +221,7 @@ template <typename T> inline constexpr bool is_parser_type_v = is_parser_type<T>
 
 // template <typename T>
 // struct is_convertible_to_indexed_key<T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>> : std::true_type {};
+#if ENABLE_ARGS_CHECK
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename Value>
@@ -270,6 +271,15 @@ template <typename CastableTypeList, typename TypeList, typename ArrayTypeList, 
 bool constexpr key_value_checker_v =
     arg_is_valid<Args...> || key_value_checker<CastableTypeList, TypeList, ArrayTypeList, Args...>::value;
 
+template <typename... Args>
+constexpr bool is_valid_args_v = key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>;
+
+#else
+
+template <typename... Args>
+constexpr bool is_valid_args_v = true;
+
+#endif
 // ---------------------------------------------------------------------------
 //  count_string_view_args_v<Args...>
 //  Compte le nombre de std::string_view aux positions impaires de Args

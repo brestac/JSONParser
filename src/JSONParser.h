@@ -11,9 +11,6 @@
 
 NAMESPACE_JSON_BEGIN
 
-template <typename... Args>
-constexpr bool valid_args = key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>;
-
 template <typename T>
 using enable_if_cursor =
     std::enable_if_t<is_cursor_reader_v<remove_cv_ref_t<T>>, ParseResult>;
@@ -32,7 +29,7 @@ using enable_if_json_data_container_compatible =
 
 // Implémentation interne unique, UseMask en template bool direct
 template <bool UseMask, typename TargetT, typename Parser, typename... Args>
-std::enable_if_t<is_parser_type_v<Parser>/* && valid_args<Args...>*/, ParseResult> _parse_impl(uint32_t& mask, Parser& parser, Args &&...args) {
+std::enable_if_t<is_parser_type_v<Parser> && is_valid_args_v<Args...>, ParseResult> _parse_impl(uint32_t& mask, Parser& parser, Args &&...args) {
   using Cursor = decltype(parser.cursor());
   
   JSON_DEBUG_COLOR(COLOR_RED, "Parser Cursor=%s TargetT=%s size=%zu\n",
