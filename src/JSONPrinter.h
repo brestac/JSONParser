@@ -47,10 +47,7 @@ namespace JSON {
 
 // ── Surcharge pour StreamCursor / PointerCursorWriter ────────────────────────
 template <typename Cursor, typename... Args>
-enable_if_t<is_cursor_writer_v<Cursor> &&
-                key_value_checker_v<parsed_types, arguments_types,
-                                    arguments_array_types, Args...>,
-            size_t>
+enable_if_t<is_cursor_writer_v<Cursor> && is_valid_args_v<Args...>, size_t>
 _print(uint32_t mask, Cursor &output, Args &&...args) {
     return print_json(mask, output, std::forward<Args>(args)...);
 }

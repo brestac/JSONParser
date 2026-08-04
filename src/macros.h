@@ -18,6 +18,8 @@ Background colors: replace 3 with 4 (e.g., \x1b[41m for red background) or use
 RGB values 0‑255.
 */
 
+#define ENABLE_ARGS_CHECK 1
+
 #define NAMESPACE_JSON_BEGIN namespace JSON {
 #define NAMESPACE_JSON_END }
 
