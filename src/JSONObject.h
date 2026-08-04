@@ -8,10 +8,20 @@
 #include "types.h"
 
 using namespace JSON;
+
+NAMESPACE_JSON_BEGIN
+template <typename TargetT, typename Cursor>
+static TargetT fromJSON(Cursor& cursor)                        
+     {                                                               
+  TargetT obj;
+  obj.fromJSON(cursor);                             
+  return obj;
+}
+NAMESPACE_JSON_END
+
 static size_t instances_counter = 0;
 
 struct JSONObject {
-
 public:
   uint32_t updated = 0;
 
@@ -42,40 +52,6 @@ public:
   ////////////////////////////////////////////////////////////////////////////////
   //  fromJSON
   ////////////////////////////////////////////////////////////////////////////////
-
-  virtual JSON::ParseResult fromJSON(const PointerCursorReader & /*cursor*/) {
-    return JSON::ParseResult();
-  }
-
-  virtual JSON::ParseResult fromJSON(StreamCursorReader & /*cursor*/) {
-    return JSON::ParseResult();
-  }
-
-  template <size_t N>
-  JSON::ParseResult fromJSON(const char (&input)[N]) {
-    JSON_DEBUG_WARNING("JSONObject::fromJSON(const char (&input)[N])\n");
-    const PointerCursorReader cursor(input, N - 1);
-    return fromJSON(cursor);
-  }
-
-  JSON::ParseResult fromJSON(const char* input) {
-    JSON_DEBUG_WARNING("JSONObject::fromJSON(const char* input)\n");
-    const PointerCursorReader cursor(input, str_length(input, MAX_JSON_LENGTH));
-    return fromJSON(cursor);
-  }
-
-  template <typename T>
-  std::enable_if_t<is_stream_v<T>, JSON::ParseResult>
-  fromJSON(T& input) {
-    StreamCursorReader cursor(input);
-    return fromJSON(cursor);
-  }
-
-  template <typename T>
-  std::enable_if_t<is_stream_v<T*>, JSON::ParseResult>
-  fromJSON(T* input) {
-    return fromJSON(*input);
-  }
 
   ////////////////////////////////////////////////////////////////////////////////
   //  toJSON

@@ -20,27 +20,27 @@ NAMESPACE_JSON_BEGIN
 
 template <typename T> class PointerCursor {
 public:
-  constexpr PointerCursor(T *start, size_t len)
+  explicit constexpr PointerCursor(T *start, size_t len)
       : _pos(start), _start(start), _end(start + len) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader %p created with buffer %p "
                        "explicit size %zu\n",
                        this, start, len);
   }
 
-  constexpr PointerCursor(std::string_view& sv)
+  explicit constexpr PointerCursor(std::string_view& sv)
       : _pos(sv.data()), _start(sv.data()), _end(sv.data() + sv.length()) {
         JSON_DEBUG_COLOR(COLOR_BLUE,
         "PointerCursor reader created with string_view %p size %zu\n",
         sv.data(), sv.length());
   }
 
-  constexpr PointerCursor(const char* buffer)
+  explicit constexpr PointerCursor(const char* buffer)
       : _pos(buffer), _start(buffer), _end(buffer + str_length(buffer, MAX_JSON_LENGTH)) {
       JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader created with const char* buffer %p deducted size %zu\n", buffer, str_length(buffer, MAX_JSON_LENGTH));
       }
 
   template <size_t N>
-  constexpr PointerCursor(T (&buffer)[N])
+  explicit constexpr PointerCursor(T (&buffer)[N])
       : _pos(buffer), _start(buffer), _end(buffer + N - 1) {
     [[maybe_unused]] constexpr bool is_reader = std::is_same_v<T, const char>;
     JSON_DEBUG_WARNING(
