@@ -242,7 +242,7 @@ template <typename T> inline constexpr bool is_parser_type_v = is_parser_type<T>
 
 // template <typename T>
 // struct is_convertible_to_indexed_key<T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>> : std::true_type {};
-#if ENABLE_ARGS_CHECK == 1
+#if !defined(DISABLE_ARGS_CHECK) || DISABLE_ARGS_CHECK == 0
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename Value>
