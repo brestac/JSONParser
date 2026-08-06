@@ -56,8 +56,11 @@ struct is_in_type_list<T, type_list<Ts...>> : std::disjunction<std::is_same<T, T
 // Type de container
 enum class ContainerKind { NOT_CONTAINER, C_ARRAY, CHAR_ARRAY, STD_ARRAY, STD_VECTOR };
 
+// primary template
 template <typename T> struct container_info {
-  using base_type = T;
+  using base_t = T;
+  using base_container_t = void;                    // pas un container
+  using child_t = void;
   static constexpr size_t dimensions = 0;
   static constexpr ContainerKind kind = ContainerKind::NOT_CONTAINER;
   static constexpr size_t extent = 0;
@@ -67,7 +70,11 @@ template <typename T> struct container_info {
 
 // C-array
 template <typename T, size_t N> struct container_info<T[N]> {
-  using base_type = typename container_info<T>::base_type;
+  using base_t = typename container_info<T>::base_t;
+  using base_container_t = std::conditional_t<container_info<T>::is_container,
+                                             typename container_info<T>::base_container_t,
+                                             T[N]>;
+  using child_t = T;
   static constexpr size_t dimensions = container_info<T>::dimensions + 1;
   static constexpr ContainerKind kind = ContainerKind::C_ARRAY;
   static constexpr size_t extent = N;
@@ -75,10 +82,12 @@ template <typename T, size_t N> struct container_info<T[N]> {
   static constexpr bool fixed = true;
 };
 
-// Char array
+// Char array (inchangé, ce n'est pas un container)
 template <size_t N> struct container_info<char[N]> {
-  using base_type = char;
-  static constexpr size_t dimensions = 1;
+  using base_t = char;
+  using base_container_t = void;
+  using child_t = char;
+  static constexpr size_t dimensions = 0;
   static constexpr ContainerKind kind = ContainerKind::CHAR_ARRAY;
   static constexpr size_t extent = N;
   static constexpr bool is_container = false;
@@ -87,7 +96,11 @@ template <size_t N> struct container_info<char[N]> {
 
 // std::array
 template <typename T, size_t N> struct container_info<std::array<T, N>> {
-  using base_type = typename container_info<T>::base_type;
+  using base_t = typename container_info<T>::base_t;
+  using base_container_t = std::conditional_t<container_info<T>::is_container,
+                                             typename container_info<T>::base_container_t,
+                                             std::array<T, N>>;
+  using child_t = T;
   static constexpr size_t dimensions = container_info<T>::dimensions + 1;
   static constexpr ContainerKind kind = ContainerKind::STD_ARRAY;
   static constexpr size_t extent = N;
@@ -96,14 +109,22 @@ template <typename T, size_t N> struct container_info<std::array<T, N>> {
 };
 
 // std::vector
-template <typename T> struct container_info<std::vector<T>> {
-  using base_type = typename container_info<T>::base_type;
+template <typename T, typename A> struct container_info<std::vector<T, A>> {
+  using base_t = typename container_info<T>::base_t;
+  using base_container_t = std::conditional_t<container_info<T>::is_container,
+                                             typename container_info<T>::base_container_t,
+                                             std::vector<T, A>>;
+  using child_t = T;
   static constexpr size_t dimensions = container_info<T>::dimensions + 1;
   static constexpr ContainerKind kind = ContainerKind::STD_VECTOR;
   static constexpr size_t extent = MAX_ARRAY_LENGTH;
   static constexpr bool is_container = true;
   static constexpr bool fixed = false;
 };
+
+// alias pratique, comme base_array_type dans JSONValue.h
+template <typename T>
+using base_container_t = typename container_info<T>::base_container_t;
 
 template <typename T>
 constexpr bool is_vector_v = container_info<remove_cv_ref_t<T>>::kind == ContainerKind::STD_VECTOR;
@@ -120,17 +141,17 @@ template <typename T, typename TypeList> struct is_container_from_list : std::fa
 
 // C-array
 template <typename T, size_t N, typename TypeList>
-struct is_container_from_list<T[N], TypeList> : is_in_type_list<typename container_info<T[N]>::base_type, TypeList> {};
+struct is_container_from_list<T[N], TypeList> : is_in_type_list<typename container_info<T[N]>::base_t, TypeList> {};
 
 // std::array
 template <typename T, size_t N, typename TypeList>
 struct is_container_from_list<std::array<T, N>, TypeList>
-    : is_in_type_list<typename container_info<std::array<T, N>>::base_type, TypeList> {};
+    : is_in_type_list<typename container_info<std::array<T, N>>::base_t, TypeList> {};
 
 // std::vector
 template <typename T, typename TypeList>
 struct is_container_from_list<std::vector<T>, TypeList>
-    : is_in_type_list<typename container_info<std::vector<T>>::base_type, TypeList> {};
+    : is_in_type_list<typename container_info<std::vector<T>>::base_t, TypeList> {};
 
 template <typename T, typename TypeList>
 inline constexpr bool is_container_from_list_v = is_container_from_list<T, TypeList>::value;
@@ -163,7 +184,7 @@ template <typename T> inline constexpr bool is_derived_json_data_v = is_derived_
 
 template <typename T>
 constexpr bool is_derived_json_data_container_v =
-    container_info<T>::is_container && is_derived_json_data<typename container_info<T>::base_type>::value;
+    container_info<T>::is_container && is_derived_json_data<typename container_info<T>::base_t>::value;
 
 // ==========================================
 // Cursor
@@ -221,7 +242,7 @@ template <typename T> inline constexpr bool is_parser_type_v = is_parser_type<T>
 
 // template <typename T>
 // struct is_convertible_to_indexed_key<T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>> : std::true_type {};
-#if ENABLE_ARGS_CHECK
+#if ENABLE_ARGS_CHECK == 1
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename Value>
@@ -302,3 +323,7 @@ constexpr size_t count_string_view_args_v = string_view_arg_counter<Args...>::va
 
 template<typename T>
 constexpr bool is_basic_value = std::is_integral_v<T> || std::is_floating_point_v<T>;
+
+template<typename T>
+constexpr bool is_callback = std::is_same_v<JSONCallbackObject, remove_cv_ref_t<T>>;
+

@@ -505,6 +505,25 @@ void test_parse_array_callback() {
   check(personnes[2].age == 0, "personnes[2].age unchanged (0) (stopped)");
 }
 
+void test_parse_multidimensional_array() {
+  DEBUG_PRINTF("\nTEST MULTIDIMENSIONAL ARRAY\n");
+  //std::vector<std::vector<std::vector<float>>> coordinates = { { { 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f }  }  };
+  float coordinates[1][3][2] = { { { 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f }  }  };
+
+  // using BaseContainerType = typename container_info<decltype(coordinates)>::base_container_t;
+  // uint8_t path[3] = { 0, 0, 0 };
+  // BaseContainerType& base_container = get_element_at_path<1>(coordinates, path);
+  // JSON_DEBUG_TYPES("base_container %s\n", base_container);
+  const char *json = "{\"coordinates\":[[[1.0,2.0],[3.0,4.0],[5.0,6.0]]]}";
+  uint32_t mask = 0;
+  JSON::ParseResult pr = JSON::parse(mask, json, "coordinates", coordinates);
+  check(pr.error == 0, "parse");
+  check(near(coordinates[0][0][0], 1.0f), "coordinates[0][0][0] == 1.0f, was %f", coordinates[0][0][0]);
+  check(near(coordinates[0][1][1], 4.0f), "coordinates[0][1][1] == 4.0f, was %f", coordinates[0][1][1]);
+  check(near(coordinates[0][2][0], 5.0f), "coordinates[0][2][0] == 5.0f, was %f", coordinates[0][2][0]);
+  check(near(coordinates[0][2][1], 6.0f), "coordinates[0][2][1] == 6.0f, was %f", coordinates[0][2][1]);
+}
+
 void test_parse_embedded_object() {
   DEBUG_PRINTF("\nTEST EMBEDDED OBJECT\n");
   Parent parent;
