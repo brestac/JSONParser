@@ -6,6 +6,8 @@
 #include "JSONParserBase.h"
 #include "StringPool.h"
 #include "StreamCursor.h"
+#define ENABLE_ARGS_CHECK 1
+
 #include "macros.h"
 #include "utils.h"
 

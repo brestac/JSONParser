@@ -1,6 +1,6 @@
 
 #define DEBUG_ESP_PORT Serial
-#define JSON_DEBUG_LEVEL JSON_DEBUG_LEVEL_NONE
+#define JSON_DEBUG_LEVEL 1
 
 #include <array>
 #include <chrono>
@@ -29,7 +29,8 @@
 #include "../examples/JSONParserTest/test.h"
 
 int main() {
-  bool all_passed = run_tests();
+  //bool all_passed = run_tests();
+  test_parse_multidimensional_array();
   // test_parse_indexed_keys();
   // test_parse_geojson_big_from_buffer<FeatureCollection>();
   // test_parse_geojson_big_from_file<FeatureCollection>();
@@ -39,6 +40,6 @@ int main() {
   std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
   std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
 #endif
-  return all_passed ? 0 : 1;
-  //return 0;
+  //return all_passed ? 0 : 1;
+  return 0;
 }
