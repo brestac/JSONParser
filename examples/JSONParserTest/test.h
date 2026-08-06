@@ -517,7 +517,7 @@ void test_parse_multidimensional_array() {
   const char *json = "{\"coordinates\":[[[1.0,2.0],[3.0,4.0],[5.0,6.0]]]}";
   uint32_t mask = 0;
   JSON::ParseResult pr = JSON::parse(mask, json, "coordinates", coordinates);
-  check(pr.error == 0, "parse");
+  check(pr.error == 0, "parse, was %s", errorToString(pr.error));
   check(near(coordinates[0][0][0], 1.0f), "coordinates[0][0][0] == 1.0f, was %f", coordinates[0][0][0]);
   check(near(coordinates[0][1][1], 4.0f), "coordinates[0][1][1] == 4.0f, was %f", coordinates[0][1][1]);
   check(near(coordinates[0][2][0], 5.0f), "coordinates[0][2][0] == 5.0f, was %f", coordinates[0][2][0]);

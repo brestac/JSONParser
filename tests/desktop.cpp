@@ -1,6 +1,7 @@
 
 #define DEBUG_ESP_PORT Serial
-#define JSON_DEBUG_LEVEL 1
+#define JSON_DEBUG_LEVEL 0
+#define DISABLE_ARGS_CHECK 1
 
 #include <array>
 #include <chrono>
@@ -30,7 +31,8 @@
 
 int main() {
   //bool all_passed = run_tests();
-  test_parse_multidimensional_array();
+  test_parsing();
+  // test_parse_multidimensional_array();
   // test_parse_indexed_keys();
   // test_parse_geojson_big_from_buffer<FeatureCollection>();
   // test_parse_geojson_big_from_file<FeatureCollection>();

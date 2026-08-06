@@ -38,7 +38,11 @@ template <size_t D, typename T>
 constexpr auto& get_element_at_path(T& container, const uint8_t* path) {
   if constexpr (container_info<T>::is_container && container_info<T>::dimensions > D) {
     using Elem = typename container_info<T>::child_t;
-    return get_element_at_path<D, Elem>(container[path[0]], path + 1);
+    uint8_t index = path[0];
+    if (index >= container_info<T>::extent) {
+      JSON_DEBUG_ERROR("Index %d out of bounds for container of size %d\n", index, container_info<T>::extent);
+    }
+    return get_element_at_path<D, Elem>(container[index], path + 1);
   } else {
     return container; // base_type atteint (ou char[N] traité comme feuille)
   }
@@ -1006,11 +1010,11 @@ JSONParserBase<Cursor, UseMask>::parse_array(V& arg_value) {
   }
 
   while (true) {
-    CHECK_LOOP(JSON::MAX_ITERATIONS, ParseValueResult::PARSE_ERROR_OVERFLOW);
+    CHECK_LOOP(100, ParseValueResult::PARSE_ERROR_OVERFLOW);
     
     if (depth == D - 1) {
-           BaseContainerType& base_container = get_element_at_path<1>(arg_value, path);
-           ParseValueResult result = parse_array<BaseContainerType>(base_container);
+      BaseContainerType& base_container = get_element_at_path<1>(arg_value, path);      
+      ParseValueResult result = parse_array<BaseContainerType>(base_container);
            JSON_DEBUG_INFO("JSONParserBase::parse_array multi-dimensional depth %d index %d result %s\n", depth, path[depth], errorToString(result));
       
            if (!result.parsed()) {
@@ -1021,6 +1025,9 @@ JSONParserBase<Cursor, UseMask>::parse_array(V& arg_value) {
               depth--;
               path[depth]++;
               _cursor.advance();
+              if (depth == 0) {
+                return ParseValueResult::ARRAY_PARSED;
+              }
               continue;
            }
 
@@ -1028,7 +1035,7 @@ JSONParserBase<Cursor, UseMask>::parse_array(V& arg_value) {
             if (!cursor_scan_char(_cursor, JSON_COMMA_CHARACTER, true)) {
               return ParseValueResult::PARSE_ERROR_ARRAY_NO_COMMA;
             }
-            path[depth - 1]++;
+            path[depth-1]++;
             SKIP_SPACES();
             continue;
     } else {
