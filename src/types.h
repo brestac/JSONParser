@@ -54,7 +54,7 @@ template <typename T, typename... Ts>
 struct is_in_type_list<T, type_list<Ts...>> : std::disjunction<std::is_same<T, Ts>...> {};
 
 // Type de container
-enum class ContainerKind { NOT_CONTAINER, C_ARRAY, CHAR_ARRAY, STD_ARRAY, STD_VECTOR };
+enum class ContainerKind { NOT_CONTAINER, C_ARRAY, CHAR_ARRAY, STD_ARRAY, STD_VECTOR/*, CALLBACK_OBJECT*/ };
 
 // primary template
 template <typename T> struct container_info {
@@ -67,6 +67,18 @@ template <typename T> struct container_info {
   static constexpr bool is_container = false;
   static constexpr bool fixed = false;
 };
+
+// Callback object
+// template <> struct container_info<JSONCallbackObject> {
+//   using base_t = JSONCallbackObject;
+//   using base_container_t = JSONCallbackObject;
+//   using child_t = JSONCallbackObject;
+//   static constexpr size_t dimensions = 1;
+//   static constexpr ContainerKind kind = ContainerKind::CALLBACK_OBJECT;
+//   static constexpr size_t extent = UINT32_MAX;
+//   static constexpr bool is_container = false;
+//   static constexpr bool fixed = false;
+// };
 
 // C-array
 template <typename T, size_t N> struct container_info<T[N]> {
@@ -326,4 +338,8 @@ constexpr bool is_basic_value = std::is_integral_v<T> || std::is_floating_point_
 
 template<typename T>
 constexpr bool is_callback = std::is_same_v<JSONCallbackObject, remove_cv_ref_t<T>>;
+
+template<typename T>
+constexpr bool may_be_geojson_coord = container_info<T>::dimensions == 1 && container_info<T>::extent == 2 && std::is_integral_v<typename container_info<T>::base_t>;
+
 
