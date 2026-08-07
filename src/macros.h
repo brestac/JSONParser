@@ -274,7 +274,13 @@ if (++iteration > MAX) {                                                       \
     using _SelfT = remove_cv_ref_t<decltype(*this)>;                            \
     return JSON::_parse_impl<true, _SelfT>(         \
         this->updated, input, MACRO(__VA_ARGS__));                             \
-  }
+  }\
+template <typename T>\
+JSON::ParseResult fromJSON(T *input) {     \
+  using _SelfT = remove_cv_ref_t<decltype(*this)>;                            \
+  return JSON::_parse_impl<true, _SelfT>(         \
+      this->updated, input, MACRO(__VA_ARGS__));                             \
+}
 #define TO_JSON_OVERRIDE(...)                                                  \
   template <typename T> size_t toJSON(T &output, bool updates = false) {       \
     uint32_t mask = updates ? this->updated : 0;                               \

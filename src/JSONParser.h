@@ -29,8 +29,9 @@ using enable_if_json_data_container_compatible =
 
 // Implémentation interne unique, UseMask en template bool direct
 template <bool UseMask, typename TargetT, typename Parser, typename... Args>
-std::enable_if_t<is_parser_type_v<Parser> && is_valid_args_v<Args...>, ParseResult> _parse_impl(uint32_t& mask, Parser& parser, Args &&...args) {
-  using Cursor = decltype(parser.cursor());
+std::enable_if_t<is_parser_type_v<Parser> && is_valid_args_v<Args...>, ParseResult>
+_parse_impl(uint32_t& mask, Parser* parser, Args &&...args) {
+  using Cursor = decltype(parser->cursor());
   
   JSON_DEBUG_COLOR(COLOR_RED, "Parser Cursor=%s TargetT=%s size=%zu\n",
                    typeid(Cursor).name(), typeid(TargetT).name(),
@@ -49,13 +50,13 @@ std::enable_if_t<is_parser_type_v<Parser> && is_valid_args_v<Args...>, ParseResu
 
   if constexpr (UseMask) {
     const bool automask = are_generic_keys(std::forward<Args>(args)...);
-    parser.setAutomask(automask);
+    parser->setAutomask(automask);
   }
 
-  parser.template parse<TargetT>(std::forward<Args>(args)...);
+  parser->template parse<TargetT>(std::forward<Args>(args)...);
 
   if constexpr (UseMask) {
-    mask = parser.keyMask();
+    mask = parser->keyMask();
   }
 
   return NO_RESULT;
@@ -65,7 +66,7 @@ template <bool UseMask, typename TargetT, typename Cursor, typename... Args>
 std::enable_if_t<is_cursor_v<Cursor>, ParseResult> _parse_impl(uint32_t& mask, Cursor& cursor, Args &&...args) {
   uint64_t start = now();
   JSONParserBase<Cursor, UseMask> parser(cursor);
-  _parse_impl<UseMask, TargetT>(mask, parser, std::forward<Args>(args)...);
+  _parse_impl<UseMask, TargetT>(mask, &parser, std::forward<Args>(args)...);
   uint64_t end = now();
   return ParseResult(&parser, end - start);
                         }
@@ -111,6 +112,12 @@ NAMESPACE_JSON_END
 
 template <typename T>
 JSON::ParseResult JSONCallbackObject::fromJSON(T& input) {
+  uint32_t mask = 0;
+  return _parse_impl<false, JSONCallbackObject>(mask, input, *this);
+}
+
+template <typename T>
+JSON::ParseResult JSONCallbackObject::fromJSON(T* input) {
   uint32_t mask = 0;
   return _parse_impl<false, JSONCallbackObject>(mask, input, *this);
 }
