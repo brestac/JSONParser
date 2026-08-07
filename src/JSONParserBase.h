@@ -613,7 +613,7 @@ JSONParserBase<Cursor, UseMask>::parse_value(TableT& table,
                                                       TupleT& args) {
   constexpr size_t NPairs = std::tuple_size<TupleT>::value / 2;
   const std::string_view parsed_key(_s_key_buf, _key_length);
-  const StaticEntry *entry = table.find(hash32(parsed_key));
+  const StaticEntry* entry = table.find(hash32(parsed_key));
 
   if (!entry) {
     JSON_DEBUG_WARNING("JSONParserBase<Cursor, UseMask>::parse_value "
@@ -713,7 +713,7 @@ bool JSONParserBase<Cursor, UseMask>::scan_escaped_string(std::string_view& sv) 
   bool unescaped = false;
   int n = 0;
   Pool::ensure_pool_size(1);
-  char *pool_start_ptr = Pool::current_pos();
+  char* pool_start_ptr = Pool::current_pos();
 
   while (true) {
     CHECK_LOOP(MAX_ITERATIONS, false);
@@ -787,7 +787,7 @@ JSONParserBase<Cursor, UseMask>::parse_string(V& arg_value) {
   // depuis fromJSON, JSONCallbackObject si appel depuis parse avec callback
   if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
     // Chemin rapide : pointer direct dans le buffer
-    const char *str_start = _cursor.ptr();
+    const char* str_start = _cursor.ptr();
 
     if (!cursor_scan_until(_cursor, JSON_QUOTE_CHARACTER, MAX_VALUE_LENGTH,
                            true, false)) {
@@ -848,11 +848,11 @@ ParseValueResult
 JSONParserBase<Cursor, UseMask>::parse_numeric_type(V& arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_numeric\n");
 
-  char *start;
+  char* start;
   static PV parsed_value;
 
   if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
-    start = const_cast<char *>(_cursor.ptr());
+    start = const_cast<char* >(_cursor.ptr());
   } else {
     static char tmp[JSON::MAX_NUMERIC_LENGTH];
     size_t len = _cursor.peekToken(tmp, sizeof(tmp) - 1);
@@ -875,7 +875,7 @@ JSONParserBase<Cursor, UseMask>::parse_numeric_type(V& arg_value) {
     int consumed = static_cast<int>(result.ptr - start);
     _cursor.advance(consumed);
 #else
-    char *end;
+    char* end;
 
     if constexpr (std::is_same_v<PV, double> || std::is_same_v<PV, float>) {
       parsed_value = std::strtod(start, &end);
@@ -1084,7 +1084,24 @@ template <typename TargetT, typename V>
 ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array(V& arg_value) {
   JSON_DEBUG_INFO("JSONParserBase::parse_array\n");
   LOG_STACK("parse_array");
+/*
+// Check if the number of opening brackets equals the dimensions of the container
+if constexpr (container_info<V>::is_container && container_info<V>::dimensions > 1) {
+  uint8_t n = 0;
+  while (n < JSON::MAX_JSON_DEPTH) {
+    if (_cursor.peek(n) != JSON_ARRAY_START_CHARACTER) {
+      break;
+    }
+    n++;
+  }
 
+  if (n != container_info<V>::dimensions) {
+    JSON_DEBUG_WARNING("JSONParserBase::parse_array: number of opening brackets %d does not match the dimensions of the container %d\n", n, container_info<V>::dimensions);
+    return ParseValueResult::PARSE_ERROR_ARRAY_NO_START;
+  }
+}
+*/
+  
   if (!is_array_start()) {
     return ParseValueResult::PARSE_ERROR_ARRAY_NO_START;
   }
@@ -1188,8 +1205,8 @@ template <typename TargetT, typename T>
 ParseValueResult
 JSONParserBase<Cursor, UseMask>::parse_into_array_at_index(std::vector<T> &array, uint32_t index) {
   if constexpr (may_be_geojson_coord<T>) {
-    if (index % 10 == 0) {
-      array.reserve(index + 10);
+    if (index % 100 == 0 && strcmp(_s_key_buf, "geometry") == 0) {
+      array.reserve(index + 100);
     }
   }
 
@@ -1235,9 +1252,9 @@ JSONParserBase<Cursor, UseMask>::parse_object(V& arg_value) {
     return ParseValueResult::PARSE_ERROR_OBJECT_NO_START;
   }
 
-  JSON_DEBUG_INFO("Will parse object. Cursor position is now at %zu\n", _cursor.bytesConsumed());
+  JSON_DEBUG_INFO("Will parse object for key '%.*s' Cursor position is now at %zu\n", _key_length, _key_buf, _cursor.bytesConsumed());
 
-  if constexpr (std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>>) {
+  if constexpr (is_callback<V>) {
     arg_value.push();
   }
   
@@ -1245,12 +1262,12 @@ JSONParserBase<Cursor, UseMask>::parse_object(V& arg_value) {
   
   reset();
   _cursor.depth++;
-  JSON::ParseResult r = arg_value.fromJSON(*this);
+  JSON::ParseResult r = arg_value.fromJSON(this);
   _cursor.depth--;
 
   _progress = progress;
 
-  if constexpr (std::is_same_v<JSONCallbackObject, remove_cv_ref_t<V>>) {
+  if constexpr (is_callback<V>) {
     arg_value.pop();
   }
 
@@ -1853,16 +1870,16 @@ void JSONParserBase<Cursor, UseMask>::print_state([[maybe_unused]] size_t iterat
 
     [[maybe_unused]] size_t col_number = _cursor.bytesConsumed() / length;
     [[maybe_unused]] size_t col_pos = _cursor.bytesConsumed() % length;
-    [[maybe_unused]] const char *dots = (_cursor.size()) > length ? "..." : "";
+    [[maybe_unused]] const char* dots = (_cursor.size()) > length ? "..." : "";
 
-    [[maybe_unused]] const char *color =
+    [[maybe_unused]] const char* color =
         (_state == ERROR) ? "\x1b[31m" : "\x1b[32m";
-    [[maybe_unused]] const char *error =
+    [[maybe_unused]] const char* error =
         (_state == ERROR) ? errorToString(_lastError) : "";
-    [[maybe_unused]] const char *errorValueType =
+    [[maybe_unused]] const char* errorValueType =
         (_state == ERROR) ? errorToString(_lastParseError) : "";
 
-    char *output = static_cast<char *>(malloc(length));
+    char* output = static_cast<char*>(malloc(length));
     strncpy(output, _cursor.start() + col_number * length, length);
 
     // REPLACE \n with ' ' in output
@@ -1870,7 +1887,7 @@ void JSONParserBase<Cursor, UseMask>::print_state([[maybe_unused]] size_t iterat
     replace_endl(output, length);
 
     JSON_DEBUG_INFO("Parser: %.*s %s pos=%zu it=%zu, p=%p\n%s%*c%s %s %s key='%.*s' \x1b[0m\n",
-                    (int)length, (const char *)output, dots,
+                    (int)length, (const char* )output, dots,
                     _cursor.bytesConsumed(), iteration, this, color,
                     (int)(8 + col_pos + 1), '^',
                     get_state_name().data(), error, errorValueType,

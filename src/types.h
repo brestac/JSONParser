@@ -340,6 +340,6 @@ template<typename T>
 constexpr bool is_callback = std::is_same_v<JSONCallbackObject, remove_cv_ref_t<T>>;
 
 template<typename T>
-constexpr bool may_be_geojson_coord = container_info<T>::dimensions == 1 && container_info<T>::extent == 2 && std::is_integral_v<typename container_info<T>::base_t>;
+constexpr bool may_be_geojson_coord = container_info<T>::dimensions == 1 && container_info<T>::extent == 2 && std::is_floating_point_v<typename container_info<T>::base_t>;
 
 
