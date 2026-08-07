@@ -13,19 +13,19 @@ desktop-test: tests/desktop.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -O2 -std=gnu++17 -I. tests/desktop.cpp -o build/desktop-test
 	cp -n $(RESOURCES) build/
 
-desktop-test-faster: tests/desktop.cpp $(HEADERS)
-	@mkdir -p build
-	$(CXX) $(CXXFLAGS) -O3 -flto -std=gnu++23 -I. tests/desktop.cpp -o build/desktop-test-faster
-	cp -n $(RESOURCES) build/
-
 desktop-test-debug: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
-	NIX_HARDENING_ENABLE= $(CXX) $(CXXFLAGS) -O0 -std=gnu++17 -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments -Wno-variadic-macros -Wno-vla-extension -ferror-limit=50 -I. tests/desktop.cpp -o build/desktop-test-debug
+	NIX_HARDENING_ENABLE= $(CXX) $(CXXFLAGS) -O0 -std=gnu++23 -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments -Wno-variadic-macros -Wno-vla-extension -ferror-limit=50 -I. tests/desktop.cpp -o build/desktop-test-debug
 	cp -n $(RESOURCES) build/
 
 desktop-test-arduino: tests/desktop.cpp $(HEADERS)
 	@mkdir -p build
 	g++ $(CXXFLAGS) -Wno-unknown-pragmas -Os -std=gnu++17 -g -fno-rtti -falign-functions=4 -ffunction-sections -fdata-sections -fno-exceptions -I. tests/desktop.cpp -o build/desktop-test-arduino
+	cp -n $(RESOURCES) build/
+
+desktop-test-faster: tests/desktop.cpp $(HEADERS)
+	@mkdir -p build
+	$(CXX) $(CXXFLAGS) -O3 -flto -std=gnu++23 -I. tests/desktop.cpp -o build/desktop-test-faster
 	cp -n $(RESOURCES) build/
 
 xcode:
