@@ -22,6 +22,7 @@ void setup() {
   LittleFS.begin();
 
   //run_tests();
+  
   Serial.printf("sizeof FeatureMultipoint: %u\n", sizeof(FeatureMultipoint));
   Serial.printf("sizeof GeometryMultipoint: %u\n", sizeof(GeometryMultipoint));
 

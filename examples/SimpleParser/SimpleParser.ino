@@ -1,12 +1,6 @@
 #include "src/JSONParser.h"
 #include "./get_stream.h"
 
-// // Library size: 32700 bytes
-// struct Simple : JSONObject {
-//   bool flag = false;
-//   JSON_DECODER_IMPL(flag);
-// };
-
 struct Properties : public JSONObject {
   char name[32] = { 0 };
   JSON_DECODER_IMPL(name);
@@ -39,9 +33,6 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   
-  // Simple s;
-  // s.fromJSON("{\"flag\":true}");
-  //Serial.printf("flag=%s\n", s.flag ? "true" : "false");
   get_stream("http://192.168.1.2:10000/100K.geojson", [](WiFiClient* stream){
     Serial.printf("Stack before: %u\n", ESP.getFreeContStack());
     
@@ -72,6 +63,11 @@ void setup() {
 // Stack before: 2672
 // Parsing took 1099239us
 // Stack watermark: 1800
+
+// Input size 100K 01.08.26
+// Stack before: 2816
+// Parsing took 1036772us
+// Stack watermark: 1976
 }
 
 void loop() {
