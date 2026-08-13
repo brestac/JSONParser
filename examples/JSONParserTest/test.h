@@ -2,6 +2,7 @@
 #include <chrono>
 #include <math.h>
 #include <stdlib.h>
+#include "include/ArduinoJson.h"
 
 #ifdef ARDUINO
 #include <LittleFS.h>
@@ -11,7 +12,6 @@
 #include "../../include/FileStream.h"
 #define GEOJSON_TEST_FILE_PATH "./generated.geojson"
 #endif
-
 
 using namespace std;
 using namespace JSON;
@@ -356,6 +356,15 @@ struct GeometryMultipoint : public JSONObject {
   JSON_SERIALIZE_IMPL(type, coordinates);
 };
 
+struct GeometryMultiPolygon : public JSONObject {
+  using Coordinate = std::array<float, 2>;
+  using Ring = std::vector<Coordinate>;
+  using Polygon = std::vector<Ring>;
+  char type[32] = { 0 };
+  std::vector<Polygon> coordinates;
+  JSON_SERIALIZE_IMPL(type, coordinates);
+};
+
 struct Feature : public JSONObject {
   char type[32] = { 0 };
   Properties properties;
@@ -384,6 +393,13 @@ struct FeatureMultipoint : public JSONObject {
   JSON_SERIALIZE_IMPL(type, properties, geometry);
 };
 
+struct FeatureMultiPolygon : public JSONObject {
+  char type[32] = { 0 };
+  Properties properties;
+  GeometryMultiPolygon geometry;
+  JSON_SERIALIZE_IMPL(type, properties, geometry);
+};
+
 struct FeatureCollection : public JSONObject {
   std::string_view type = "";
   std::vector<Feature> features;
@@ -400,6 +416,12 @@ template<size_t F, size_t R, size_t C>
 struct FeatureCollectionLimited : public JSONObject {
   std::string_view type = "";
   std::array<FeatureLimited<R, C>, F> features;
+  JSON_SERIALIZE_IMPL(type, features);
+};
+
+struct FeatureCollectionMultiPolygon : public JSONObject {
+  std::string_view type = "";
+  std::vector<FeatureMultiPolygon> features;
   JSON_SERIALIZE_IMPL(type, features);
 };
 
@@ -994,26 +1016,6 @@ void test_parse_geojson_big_from_input(U&& input) {
   }
 
   DEBUG_PRINTF("JSONParser Parsing time: %.0f µs\n", elapsed_me);
-
-  // RAPIDJSON
-  if constexpr (!is_file) {
-    rapidjson::Document d;
-    counter = TEST_ITERATIONS;
-    start = now();
-
-    while(counter--) {
-      d.Parse(input);
-    }
-
-    double elapsed_rapid_json = double(now() - start) / double(TEST_ITERATIONS);
-    double factor_vs_rapid_json = elapsed_me / elapsed_rapid_json;
-    bool faster_than_rapid_json = elapsed_me < elapsed_rapid_json;
-    if (factor_vs_rapid_json !=0 && faster_than_rapid_json) {
-      factor_vs_rapid_json = 1.0f / factor_vs_rapid_json;
-    }
-
-    DEBUG_PRINTF("RapidJSON Parsing time: %.0fµs. JSONParser is %.2f times %s than RapidJSON\n", elapsed_rapid_json, faster_than_rapid_json ? "faster" : "slower", factor_vs_rapid_json);
-  }
 
   // ArduinoJson
   JsonDocument doc;
