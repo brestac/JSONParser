@@ -6,6 +6,8 @@
 #endif
 
 #include <array>
+#include <vector>
+#include <list>
 #include <stdint.h>
 #include <string_view>
 #include <type_traits>
@@ -54,7 +56,7 @@ template <typename T, typename... Ts>
 struct is_in_type_list<T, type_list<Ts...>> : std::disjunction<std::is_same<T, Ts>...> {};
 
 // Type de container
-enum class ContainerKind { NOT_CONTAINER, C_ARRAY, CHAR_ARRAY, STD_ARRAY, STD_VECTOR/*, CALLBACK_OBJECT*/ };
+enum class ContainerKind { NOT_CONTAINER, C_ARRAY, CHAR_ARRAY, STD_ARRAY, STD_VECTOR, STD_LIST };
 
 // primary template
 template <typename T> struct container_info {
@@ -129,6 +131,20 @@ template <typename T, typename A> struct container_info<std::vector<T, A>> {
   using child_t = T;
   static constexpr size_t dimensions = container_info<T>::dimensions + 1;
   static constexpr ContainerKind kind = ContainerKind::STD_VECTOR;
+  static constexpr size_t extent = MAX_ARRAY_LENGTH;
+  static constexpr bool is_container = true;
+  static constexpr bool fixed = false;
+};
+
+// std::list
+template <typename T, typename A> struct container_info<std::list<T, A>> {
+  using base_t = typename container_info<T>::base_t;
+  using base_container_t = std::conditional_t<container_info<T>::is_container,
+                                             typename container_info<T>::base_container_t,
+                                             std::list<T, A>>;
+  using child_t = T;
+  static constexpr size_t dimensions = container_info<T>::dimensions + 1;
+  static constexpr ContainerKind kind = ContainerKind::STD_LIST;
   static constexpr size_t extent = MAX_ARRAY_LENGTH;
   static constexpr bool is_container = true;
   static constexpr bool fixed = false;
@@ -340,6 +356,6 @@ template<typename T>
 constexpr bool is_callback = std::is_same_v<JSONCallbackObject, remove_cv_ref_t<T>>;
 
 template<typename T>
-constexpr bool may_be_geojson_coord = container_info<T>::dimensions == 1 && container_info<T>::extent == 2 && std::is_floating_point_v<typename container_info<T>::base_t>;
+constexpr bool is_coords = container_info<T>::dimensions == 1 && container_info<T>::extent == 2 && std::is_floating_point_v<typename container_info<T>::base_t>;
 
 

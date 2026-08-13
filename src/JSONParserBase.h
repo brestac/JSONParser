@@ -93,6 +93,7 @@ public:
       :  _cursor(cursor), _state(START), _progress(),
         _automask(false),
         _is_top_level_array(false),
+        _is_geometry(false),
         _lastError(ParserError::NO_ERROR), _lastParseError(0) {
   JSON_DEBUG_COLOR(COLOR_BLUE, "JSONParserBase created\n");
   }
@@ -201,6 +202,7 @@ private:
   Progress _progress;
   bool _automask;
   bool _is_top_level_array;
+  bool _is_geometry;
   ParserError _lastError;
   ParseValueResult _lastParseError;
 
@@ -402,6 +404,7 @@ void JSONParserBase<Cursor, UseMask>::parse(Args &&...args) {
       } else if (parse_key()) {
         _progress._nParsed++;
         JSON_DEBUG_INFO("nParsed=%zu\n", _progress._nParsed);
+        _is_geometry = strcmp(_s_key_buf, "geometry") == 0;
         set_state(COLON);
       } else {
         _state = ERROR;
@@ -1204,24 +1207,24 @@ template <typename Cursor, bool UseMask>
 template <typename TargetT, typename T>
 ParseValueResult
 JSONParserBase<Cursor, UseMask>::parse_into_array_at_index(std::vector<T> &array, uint32_t index) {
-  if constexpr (may_be_geojson_coord<T>) {
-    if (index % 100 == 0 && strcmp(_s_key_buf, "geometry") == 0) {
+  if constexpr (is_coords<T>) {
+    if (_is_geometry && index % 100 == 0) {
       array.reserve(index + 100);
     }
   }
 
-  if constexpr (std::is_default_constructible_v<T>) {
+  // if constexpr (std::is_default_constructible_v<T>) {
     array.emplace_back();
     return parse_into_value<TargetT>(array[index]);
-  } else {
-    T value{};
-    ParseValueResult r = parse_into_value<TargetT>(value);
-    if (r.parsed()) {
-      array.emplace_back(value);
-    }
+  // } else {
+  //   T value{};
+  //   ParseValueResult r = parse_into_value<TargetT>(value);
+  //   if (r.parsed()) {
+  //     array.emplace_back(value);
+  //   }
     
-    return r;
-  }
+  //   return r;
+  // }
 }
 
 template <typename Cursor, bool UseMask>
@@ -1252,7 +1255,7 @@ JSONParserBase<Cursor, UseMask>::parse_object(V& arg_value) {
     return ParseValueResult::PARSE_ERROR_OBJECT_NO_START;
   }
 
-  JSON_DEBUG_INFO("Will parse object for key '%.*s' Cursor position is now at %zu\n", _key_length, _key_buf, _cursor.bytesConsumed());
+  JSON_DEBUG_INFO("Will parse object for key '%.*s' Cursor position is now at %zu\n", _key_length, _s_key_buf, _cursor.bytesConsumed());
 
   if constexpr (is_callback<V>) {
     arg_value.push();
