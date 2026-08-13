@@ -1,5 +1,6 @@
 { pkgs }: {
 	deps = [
+   pkgs.cmake
     pkgs.nano
 		pkgs.clang
 		pkgs.gcc10

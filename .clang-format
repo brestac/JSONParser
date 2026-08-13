@@ -3,7 +3,7 @@ Language: Cpp
 Standard: c++17
 
 AllowShortBlocksOnASingleLine: Always
-AllowShortEnumsOnASingleLine: false
+AllowShortEnumsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLambdasOnASingleLine: Inline
@@ -17,17 +17,17 @@ BreakConstructorInitializers: AfterColon
 ConstructorInitializerAllOnOneLineOrOnePerLine: "true"
 DerivePointerAlignment: "false"
 FixNamespaceComments: "true"
-IndentCaseLabels: "false"
+IndentCaseLabels: "true"
 IndentPPDirectives: AfterHash
-IndentWidth: "4"
+IndentWidth: "2"
 NamespaceIndentation: All
 PointerAlignment: Left
 SpaceBeforeCtorInitializerColon: "false"
 SpaceInEmptyParentheses: "false"
 SpacesInParentheses: "true"
-TabWidth: "4"
+TabWidth: "2"
 UseTab: Never
-AlwaysBreakTemplateDeclarations: Yes
+AlwaysBreakTemplateDeclarations: No
 SpaceAfterTemplateKeyword: true
 SortUsingDeclarations: true
 ReflowComments: true

@@ -3,65 +3,175 @@ project(JSONParser CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# -- set(CMAKE_CXX_COMPILER "clang++")
+
+Include(FetchContent)
+
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        v3.8.1
+)
+FetchContent_MakeAvailable(Catch2)
+
+FetchContent_Declare(
+  simdjson
+  GIT_REPOSITORY https://github.com/simdjson/simdjson.git
+  GIT_TAG  tags/v3.6.0
+  GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(simdjson)
+
+FetchContent_Declare(
+  json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG v3.12.0
+)
+FetchContent_MakeAvailable(json)
+
+FetchContent_Declare(
+  ArduinoJson
+  GIT_REPOSITORY https://github.com/bblanchon/ArduinoJson.git
+  GIT_TAG v7.4.3
+)
+FetchContent_MakeAvailable(ArduinoJson)
+
+# ── FetchContent_Declare(
+# ──   rapidjson
+# ──   GIT_REPOSITORY https://github.com/Tencent/rapidjson
+# ──   GIT_TAG v1.1.0
+# ──   SOURCE_SUBDIR include/rapidjson
+# ── )
+# ── FetchContent_MakeAvailable(rapidjson)
 
 # ── Ressources JSON à copier dans le répertoire de build ──────────────────────
-file(GLOB JSON_RESOURCES "${CMAKE_SOURCE_DIR}/examples/JSONParserTest/*.json")
+file(GLOB JSON_RESOURCES "${CMAKE_SOURCE_DIR}/examples/JSONParserTest/*.*json")
 
-# ── desktop-test (release, clang, O2) ────────────────────────────────────────
-add_executable(desktop-test
-    tests/desktop.cpp
-)
-target_include_directories(desktop-test PRIVATE ${CMAKE_SOURCE_DIR})
-target_compile_options(desktop-test PRIVATE
-    -O2 -Wall -Werror -Werror=unused-variable -Wno-format-security
-    -DJSON_DEBUG_LEVEL_NONE=0 -DJSON_DEBUG_LEVEL_INFO=1
-    -DJSON_DEBUG_LEVEL_WARNING=2 -DJSON_DEBUG_LEVEL_ERROR=3
-)
-foreach(res ${JSON_RESOURCES})
-    get_filename_component(res_name "${res}" NAME)
-    add_custom_command(TARGET desktop-test POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${res}" "$<TARGET_FILE_DIR:desktop-test>/${res_name}"
-    )
-endforeach()
-
-# ── desktop-test-arduino (mock ESP8266, g++, Os, no-rtti, no-exceptions) ─────
-add_executable(desktop-test-arduino
-    tests/desktop.cpp
-)
-target_include_directories(desktop-test-arduino PRIVATE ${CMAKE_SOURCE_DIR})
-target_compile_options(desktop-test-arduino PRIVATE
-    -Os -Wall -Werror -Werror=unused-variable -Wno-format-security
+add_compile_options(
+    -Wall
+    -Werror
+    -Werror=unused-variable
+    -Wno-format-security
     -Wno-unknown-pragmas
-    -fno-rtti -falign-functions=4 -ffunction-sections -fdata-sections -fno-exceptions
-    -DJSON_DEBUG_LEVEL_NONE=0 -DJSON_DEBUG_LEVEL_INFO=1
-    -DJSON_DEBUG_LEVEL_WARNING=2 -DJSON_DEBUG_LEVEL_ERROR=3
+    -Wno-unused-function
+    -DJSON_DEBUG_LEVEL_NONE=0
+    -DJSON_DEBUG_LEVEL_INFO=1
+    -DJSON_DEBUG_LEVEL_WARNING=2
+    -DJSON_DEBUG_LEVEL_ERROR=3
+)
+
+add_executable(main
+    tests/main.cpp
+)
+target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR})
+target_compile_options(main PRIVATE
+    -O2
+    -std=gnu++17
 )
 foreach(res ${JSON_RESOURCES})
     get_filename_component(res_name "${res}" NAME)
-    add_custom_command(TARGET desktop-test-arduino POST_BUILD
+    add_custom_command(TARGET main POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${res}" "$<TARGET_FILE_DIR:desktop-test-arduino>/${res_name}"
+            "${res}" "$<TARGET_FILE_DIR:main>/${res_name}"
     )
 endforeach()
 
-# ── desktop-test-debug (debug, clang, O0, sanitizers) ────────────────────────
-add_executable(desktop-test-debug
-    tests/desktop.cpp
+# ── release (release, clang, O2) ────────────────────────────────────────
+add_executable(release
+    tests/test.cpp
 )
-target_include_directories(desktop-test-debug PRIVATE ${CMAKE_SOURCE_DIR})
-target_compile_options(desktop-test-debug PRIVATE
-    -O0 -Wall -Werror -Werror=unused-variable -Wno-format-security
+target_include_directories(release PRIVATE ${CMAKE_SOURCE_DIR})
+target_compile_options(release PRIVATE
+    -O2
+    -std=gnu++17
+)
+foreach(res ${JSON_RESOURCES})
+    get_filename_component(res_name "${res}" NAME)
+    add_custom_command(TARGET release POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${res}" "$<TARGET_FILE_DIR:release>/${res_name}"
+    )
+endforeach()
+target_link_libraries(release PRIVATE Catch2::Catch2WithMain)
+
+# ── release (release benchmarks, clang, O2) ────────────────────────────────────────
+add_executable(release-perf
+    tests/reporter.cpp
+    tests/perf.cpp
+)
+target_include_directories(release-perf PRIVATE ${CMAKE_SOURCE_DIR})
+target_compile_options(release-perf PRIVATE
+    -O2
+    -std=gnu++17
+)
+foreach(res ${JSON_RESOURCES})
+    get_filename_component(res_name "${res}" NAME)
+    add_custom_command(TARGET release-perf POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${res}" "$<TARGET_FILE_DIR:release-perf>/${res_name}"
+    )
+endforeach()
+target_link_libraries(release-perf PRIVATE Catch2::Catch2WithMain simdjson nlohmann_json::nlohmann_json ArduinoJson)
+
+# ── debug (debug, clang, O0, sanitizers) ────────────────────────
+add_executable(debug
+    tests/test.cpp
+)
+
+target_include_directories(debug PRIVATE ${CMAKE_SOURCE_DIR})
+target_compile_options(debug PRIVATE
+    -O0
+    -std=gnu++17
     -Wextra -Wpedantic
     -Wno-gnu-zero-variadic-macro-arguments -Wno-variadic-macros -Wno-vla-extension
     -ferror-limit=50
-    -DJSON_DEBUG_LEVEL_NONE=0 -DJSON_DEBUG_LEVEL_INFO=1
-    -DJSON_DEBUG_LEVEL_WARNING=2 -DJSON_DEBUG_LEVEL_ERROR=3
 )
 foreach(res ${JSON_RESOURCES})
     get_filename_component(res_name "${res}" NAME)
-    add_custom_command(TARGET desktop-test-debug POST_BUILD
+    add_custom_command(TARGET debug POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${res}" "$<TARGET_FILE_DIR:desktop-test-debug>/${res_name}"
+            "${res}" "$<TARGET_FILE_DIR:debug>/${res_name}"
     )
 endforeach()
+
+# ── release-arduino (mock ESP8266, g++, Os, no-rtti, no-exceptions) ─────
+add_executable(release-arduino
+    tests/test.cpp
+)
+target_include_directories(release-arduino PRIVATE ${CMAKE_SOURCE_DIR})
+target_compile_options(release-arduino PRIVATE
+    -DCMAKE_CXX_COMPILER=g++
+    -Os
+    -std=gnu++17
+    -fno-rtti
+    -falign-functions=4
+    -ffunction-sections
+    -fdata-sections
+    -fno-exceptions
+)
+
+foreach(res ${JSON_RESOURCES})
+    get_filename_component(res_name "${res}" NAME)
+    add_custom_command(TARGET release-arduino POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${res}" "$<TARGET_FILE_DIR:release-arduino>/${res_name}"
+    )
+endforeach()
+
+# -- faster -o3 c++23
+add_executable(faster
+    tests/test.cpp
+)
+target_include_directories(faster PRIVATE ${CMAKE_SOURCE_DIR})
+target_compile_options(faster PRIVATE
+    -O3
+    -std=gnu++23
+)
+foreach(res ${JSON_RESOURCES})
+    get_filename_component(res_name "${res}" NAME)
+    add_custom_command(TARGET faster POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${res}" "$<TARGET_FILE_DIR:faster>/${res_name}"
+    )
+endforeach()
+target_link_libraries(faster PRIVATE Catch2::Catch2WithMain)

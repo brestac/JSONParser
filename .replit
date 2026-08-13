@@ -85,42 +85,60 @@ task = "workflow.run"
 args = "Desktop tests"
 
 [[workflows.workflow]]
-name = "Desktop tests Release"
+name = "Release"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "make desktop-test && cd build && ./desktop-test "
+args = "cmake --build build --target release && cd build && ./release"
 
 [workflows.workflow.metadata]
 outputType = "console"
 
 [[workflows.workflow]]
-name = "Desktop tests Debug"
+name = "Debug"
 mode = "sequential"
 author = 564070
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "make desktop-test-debug && cd build && ./desktop-test-debug"
+args = "cmake --build build --target debug && cd build && ./debug"
 
 [[workflows.workflow]]
-name = "Desktop Test Arduino g++ flags"
+name = "Arduino"
 mode = "sequential"
 author = 564070
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "make desktop-test-arduino && cd build && ./desktop-test-arduino"
+args = "cmake --build build --target arduino && cd build && ./arduino"
 
 [[workflows.workflow]]
-name = "Desktop test faster"
+name = "Fast"
 mode = "sequential"
 author = 564070
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "make desktop-test-faster && cd build && ./desktop-test-faster"
+args = "cmake --build build --target faster && cd build && ./faster"
+
+[[workflows.workflow]]
+name = "Main"
+mode = "sequential"
+author = 564070
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cmake --build build --target main && cd build && ./main"
+
+[[workflows.workflow]]
+name = "Benchmark"
+mode = "sequential"
+author = 564070
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cmake --build build --target release-perf && cd build && ./release-perf -r perf-compare"
 
 [postMerge]
 path = "scripts/post-merge.sh"
