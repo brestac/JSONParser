@@ -28,10 +28,9 @@ using enable_if_json_data_container_compatible =
     std::enable_if_t<is_derived_json_data_container_v<T>, ParseResult>;
 
 // Implémentation interne unique, UseMask en template bool direct
-template <bool UseMask, typename TargetT, typename Parser, typename... Args>
-std::enable_if_t<is_parser_type_v<Parser> && is_valid_args_v<Args...>, ParseResult>
-_parse_impl(uint32_t& mask, Parser* parser, Args &&...args) {
-  using Cursor = decltype(parser->cursor());
+template <bool UseMask, typename TargetT, typename Cursor, typename... Args>
+std::enable_if_t<is_valid_args_v<Args...>, ParseResult>
+_parse_impl(uint32_t& mask, JSONParserBase<Cursor, UseMask>* parser, Args &&...args) {
   
   JSON_DEBUG_COLOR(COLOR_RED, "Parser Cursor=%s TargetT=%s size=%zu\n",
                    typeid(Cursor).name(), typeid(TargetT).name(),
@@ -66,30 +65,35 @@ template <bool UseMask, typename TargetT, typename Cursor, typename... Args>
 std::enable_if_t<is_cursor_v<Cursor>, ParseResult> _parse_impl(uint32_t& mask, Cursor& cursor, Args &&...args) {
   uint64_t start = now();
   JSONParserBase<Cursor, UseMask> parser(cursor);
-  _parse_impl<UseMask, TargetT>(mask, &parser, std::forward<Args>(args)...);
+  _parse_impl<UseMask, TargetT, Cursor>(mask, &parser, std::forward<Args>(args)...);
   uint64_t end = now();
   return ParseResult(&parser, end - start);
-                        }
+}
 
 template <bool UseMask, typename TargetT, typename Stream, typename... Args>
 std::enable_if_t<is_stream_v<Stream>, ParseResult> _parse_impl(uint32_t& mask, Stream& stream, Args &&...args) {
   StreamCursorReader cursor(stream);
   return _parse_impl<UseMask, TargetT>(mask, cursor, std::forward<Args>(args)...);
-                        }
+}
 
 template <bool UseMask, typename TargetT, typename Buffer, typename... Args>
 std::enable_if_t<is_buffer_v<Buffer>, ParseResult> _parse_impl(uint32_t& mask, Buffer& buffer, Args &&...args) {
   const PointerCursorReader cursor(buffer);
   return _parse_impl<UseMask, TargetT>(mask, cursor, std::forward<Args>(args)...);
-                        }
+}
 
+template <bool UseMask, typename TargetT, typename... Args>
+ParseResult _parse_impl(uint32_t& mask, const char* buffer, size_t size, Args &&...args) {
+  const PointerCursorReader cursor(buffer, size);
+  return _parse_impl<UseMask, TargetT>(mask, cursor, std::forward<Args>(args)...);
+}
 
 ////////////////////////////////////////////////////////////
 //  parse — public API helpers
 ////////////////////////////////////////////////////////////
 template <typename T, typename... Args>
-ParseResult parse(uint32_t& mask, T& cursor, Args &&...args) {
-  return _parse_impl<true, void>(mask, cursor, std::forward<Args>(args)...);
+ParseResult parse(uint32_t& mask, T& input, Args &&...args) {
+  return _parse_impl<true, void>(mask, input, std::forward<Args>(args)...);
 }
 
 template <typename T>

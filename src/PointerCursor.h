@@ -27,6 +27,11 @@ public:
                        this, start, len);
   }
 
+  explicit constexpr PointerCursor(const char* start)
+      : _pos(start), _start(start), _end(start + str_length(start, MAX_JSON_LENGTH)) {
+    JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader %p created with const char* %p ", this, start);
+  }
+
   explicit constexpr PointerCursor(std::string_view& sv)
       : _pos(sv.data()), _start(sv.data()), _end(sv.data() + sv.length()) {
         JSON_DEBUG_COLOR(COLOR_BLUE,
@@ -34,10 +39,12 @@ public:
         sv.data(), sv.length());
   }
 
-  explicit constexpr PointerCursor(const char* buffer)
-      : _pos(buffer), _start(buffer), _end(buffer + str_length(buffer, MAX_JSON_LENGTH)) {
-      JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader created with const char* buffer %p deducted size %zu\n", buffer, str_length(buffer, MAX_JSON_LENGTH));
-      }
+  explicit constexpr PointerCursor(std::string& str)
+    : _pos(str.c_str()), _start(str.c_str()), _end(str.c_str() + str.length()) {
+      JSON_DEBUG_COLOR(COLOR_BLUE,
+      "PointerCursor reader created with std::string %p size %zu\n",
+        str, str.length());
+}
 
   template <size_t N>
   explicit constexpr PointerCursor(T (&buffer)[N])

@@ -2,7 +2,6 @@
 
 #include <string_view>
 
-#include "CursorScanner.h"
 #include "str_length.h"
 #include "utils.h"
 

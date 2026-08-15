@@ -252,16 +252,7 @@ template <typename T> inline constexpr bool is_cursor_v = is_cursor_reader_v<T> 
 
 template <typename T> inline constexpr bool is_stream_v = std::is_base_of<Stream, remove_cv_ref_t<std::remove_pointer_t<T>>>::value;
 
-template <typename T> inline constexpr bool is_buffer_v = std::is_constructible_v<JSON::PointerCursorReader, T>;
-
-// ==========================================
-// Parser
-// ==========================================
-template <typename T = void, typename E = void> struct is_parser_type : std::false_type {};
-
-template <typename T, bool U> struct is_parser_type<JSONParserBase<T, U>, std::enable_if_t<is_cursor_v<T>>> : std::true_type {};
-
-template <typename T> inline constexpr bool is_parser_type_v = is_parser_type<T>::value;
+template <typename T> inline constexpr bool is_buffer_v = std::is_constructible_v<JSON::PointerCursorReader, T> || std::is_same_v<remove_cv_ref_t<T>, std::string>;
 
 // ==========================================
 // Key Value checker

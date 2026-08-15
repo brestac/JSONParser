@@ -16,7 +16,6 @@
 
 #include "constants.h"
 #include "macros.h"
-#include "CursorScanner.h"
 
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T (&dst)[N], uint8_t *src, size_t src_size);
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T dst, uint8_t (&src)[N]);
