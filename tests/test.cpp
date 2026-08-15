@@ -1,19 +1,23 @@
+#include <cmath>
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "include/ArduinoCompat.h"
-#include "include/FileStream.h"
-#include "include/HardwareSerial.h"
-#include "include/StreamString.h"
+#include "ArduinoCompat.h"
+#include "FileStream.h"
+#include "HardwareSerial.h"
+#include "StreamString.h"
 
-#include "src/JSONParser.h"
-#include "src/JSONPrinter.h"
+#include <JSONParser.h>
+#include <JSONPrinter.h>
 #include "structs.h"
 
 #define GEOJSON_TEST_FILE_PATH "./generated.geojson"
 #define GEOJSON_BIG_FILE_PATH "./big.geojson"
-
+#define GEOJSON_MEDIUM_FILE_PATH "./medium.geojson"
+#define GEOJSON_SMALL_FILE_PATH "./small.geojson"
 #define REQUIRE_FLOAT( a, b ) REQUIRE_THAT( a, WithinULP( b, 1 ) );
+
 using Catch::Matchers::WithinULP;
 // ---------------------------------------------------------------------------
 //  generate_geojson
@@ -205,9 +209,7 @@ parse_with_callback_geojson_medium_from_file( FeatureMultipoint& feature ) {
 
   return parse_with_callback_geojson_medium_from_stream( feature, &file );
 }
-
-#ifndef ARDUINO
-
+/*
 char* read_file( const char* filename ) {
   FILE* file = fopen( filename, "r" );
 
@@ -234,14 +236,21 @@ char* read_file( const char* filename ) {
 
   return buffer;
 }
+*/
+static std::string read_file_to_string( const char* filename ) {
+  std::ifstream file( filename );
+  if ( !file.is_open() ) { throw std::runtime_error( "Could not open file" ); }
+  std::stringstream buffer;
+  buffer << file.rdbuf();
 
-#endif
+  return buffer.str();
+}
 
 TEST_CASE( "TEST CALLBACK", "" ) {
   char* ptr = (char*)"ptr";
   Personne p( "Bob", 40, 1.80f, "Paris", ptr, false, nullptr );
 
-  const char* json = "{\"ville\":\"Lyon\",\"taille\":2.1, \"age\":12.0, "
+  const char json[] = "{\"ville\":\"Lyon\",\"taille\":2.1, \"age\":12.0, "
                      "\"flag\" : true, \"ptr\":null, "
                      "\"buffer\":\"AABBCCDD\",\"liste\":[\"a\", \"b\", \"c\"]}";
 
@@ -292,7 +301,7 @@ TEST_CASE( "TEST ARRAY CALLBACK", "" ) {
   Personne personnes[3];
 
   // age of personnes[0] is Infinity — not a valid number, stays 0
-  const char* json = "[{\"nom\":\"Bob\",\"age\":Infinity},{\"nom\":\"Alice\","
+  const char json[] = "[{\"nom\":\"Bob\",\"age\":Infinity},{\"nom\":\"Alice\","
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
 
   JSON::ParseResult pr = JSON::parse(
@@ -337,8 +346,8 @@ TEST_CASE( "TEST GEOJSON CALLBACK", "[geojson]" ) {
   }
 }
 
-TEST_CASE( "TEST GEOJSON BIG", "[geojson][big][file]" ) {
-  FeatureCollection fc;
+TEST_CASE( "TEST GEOJSON BIG", "[geojson][big][file][stream]" ) {
+  FeatureCollectionPolygon fc;
   File f = LittleFS.open( GEOJSON_BIG_FILE_PATH, "r" );
   if ( !f ) {
     DEBUG_PRINTF( "Failed to open file for reading\n" );
@@ -360,8 +369,8 @@ TEST_CASE( "TEST GEOJSON BIG", "[geojson][big][file]" ) {
 }
 
 TEST_CASE( "TEST GEOJSON PARSING BIG", "[geojson][big][buffer]" ) {
-  FeatureCollection fc;
-  char* json = read_file( GEOJSON_BIG_FILE_PATH );
+  FeatureCollectionPolygon fc;
+  std::string json = read_file_to_string( GEOJSON_BIG_FILE_PATH );
   JSON::ParseResult pr = fc.fromJSON( json );
 
   REQUIRE( pr.error == 0 );
@@ -375,17 +384,14 @@ TEST_CASE( "TEST GEOJSON PARSING BIG", "[geojson][big][buffer]" ) {
                  -68.977218628f );
   REQUIRE_FLOAT( fc.features[0].geometry.coordinates[479][32][1],
                  83.001663208f );
-
-  free( json );
 }
 
 TEST_CASE( "TEST GEOJSON PARSING MEDIUM", "[geojson][medium][buffer]" ) {
   FeatureCollectionMultiPolygon fc;
-  char* json = read_file( GEOJSON_BIG_FILE_PATH );
+  std::string json = read_file_to_string( GEOJSON_MEDIUM_FILE_PATH );
   JSON::ParseResult pr = fc.fromJSON( json );
 
   REQUIRE( pr.error == 0 );
-  free( json );
 }
 
 TEST_CASE( "TEST GEOJSON PARSING SMALL", "[geojson][small][buffer]" ) {
@@ -403,7 +409,7 @@ TEST_CASE( "TEST GEOJSON PARSING SMALL", "[geojson][small][buffer]" ) {
                      "[-52.648098,83.110903],[-52.631163,41.675105],"
                      "[-140.99778,41.675105]]]}}]}";
 
-  FeatureCollection fc;
+  FeatureCollectionPolygon fc;
   StreamString stream( json );
   JSON::ParseResult pr = fc.fromJSON( stream );
 
@@ -445,7 +451,7 @@ TEST_CASE( "TEST GEOJSON PARSING SUBSET", "" ) {
 }
 
 TEST_CASE( "TEST GEOJSON BIG", "[geojson][big][buffer][partial]" ) {
-  char* json = read_file( GEOJSON_BIG_FILE_PATH );
+  std::string json = read_file_to_string( GEOJSON_BIG_FILE_PATH );
   FeatureCollectionLimited10Rings fc;
   JSON::ParseResult pr = fc.fromJSON( json );
 
@@ -457,8 +463,6 @@ TEST_CASE( "TEST GEOJSON BIG", "[geojson][big][buffer][partial]" ) {
   REQUIRE_FLOAT( fc.features[0].geometry.coordinates[4][0][1], 45.558327f );
   REQUIRE_FLOAT( fc.features[0].geometry.coordinates[9][0][0], -64.039719f );
   REQUIRE_FLOAT( fc.features[0].geometry.coordinates[9][0][1], 46.743324f );
-
-  free( json );
 }
 
 TEST_CASE( "TEST MULTIDIMENSIONAL ARRAY", "" ) {
@@ -472,7 +476,7 @@ TEST_CASE( "TEST MULTIDIMENSIONAL ARRAY", "" ) {
   // = { 0, 0, 0 }; BaseContainerType& base_container =
   // get_element_at_path<1>(coordinates, path);
   // JSON_DEBUG_TYPES("base_container %s\n", base_container);
-  const char* json = "{\"coordinates\":[[[1.0,2.0],[3.0,4.0],[5.0,6.0]]]}";
+  const char json[] = "{\"coordinates\":[[[1.0,2.0],[3.0,4.0],[5.0,6.0]]]}";
   uint32_t mask = 0;
   JSON::ParseResult pr = JSON::parse( mask, json, "coordinates", coordinates );
   REQUIRE( pr.error == 0 );
@@ -487,7 +491,7 @@ TEST_CASE( "TEST EMBEDDED OBJECT", "" ) {
   const char* json =
       "{\"nom\":\"Bob\",\"child\":{\"prenom\":\"Alice\",\"age\":8},"
       "\"child2\":{\"prenom\":\"Maxime\",\"age\":5},\"age\":40}";
-  JSON::ParseResult pr = parent.fromJSON( json );
+  JSON::ParseResult pr = parent.fromJSON( json, strlen( json ) );
   REQUIRE( pr.error == 0 );
   REQUIRE( parent.nom == std::string_view( "Bob" ) );
   ;
@@ -536,7 +540,7 @@ TEST_CASE( "TEST PARSING & FILL", "" ) {
       "\"coordinates2\":[[1.0,2.0],[3.0,4.0],[5.0,6.0],[7.0,8.0]]"
       "}";
 
-  JSON::ParseResult result = p.fromJSON( json );
+  JSON::ParseResult result = p.fromJSON( json, strlen(json) );
 
   REQUIRE( result.error == 0 );
   REQUIRE( p.ville == std::string_view( "Lyon" ) );
@@ -610,7 +614,7 @@ TEST_CASE( "TEST INDEXED PARSING", "" ) {
   REQUIRE( mask == 3 );
 
   Personne p;
-  pr = p.fromJSON( json );
+  pr = p.fromJSON( json, strlen(json) );
   REQUIRE( pr.error == 0 );
   REQUIRE( p.updated == ( 1 << 0 | 1 << 1 | 1 << 3 ) );
 }
@@ -618,7 +622,7 @@ TEST_CASE( "TEST INDEXED PARSING", "" ) {
 TEST_CASE( "TEST ARRAY OVERFLOW", "" ) {
   IntegralArray s;
   const char* json = "{\"hex\":[1,2,3,4,5], \"unknown\":1}";
-  JSON::ParseResult pr = s.fromJSON( json );
+  JSON::ParseResult pr = s.fromJSON( json, strlen(json) );
 
   REQUIRE( pr.error == 0 );
   REQUIRE( s.hex[0] == 1 );
@@ -630,7 +634,7 @@ TEST_CASE( "TEST ARRAY OVERFLOW", "" ) {
 TEST_CASE( "TEST ARRAY OVERFLOW", "[array->array]" ) {
   STDArrayArray s;
   const char* json = "{\"array\":[[1,2],[3,4],[5,6]], \"unknown\":1}";
-  JSON::ParseResult pr = s.fromJSON( json );
+  JSON::ParseResult pr = s.fromJSON( json, strlen(json) );
 
   REQUIRE( pr.error == 0 );
   REQUIRE( s.array[0][0] == 1 );
@@ -642,7 +646,7 @@ TEST_CASE( "TEST ARRAY OVERFLOW", "[vector->array->array]" ) {
   VectorArrayArray s;
   const char* json = "{\"vector\":[[[1,2],[3,4],[5,6]], "
                      "[[1,2],[3,4],[5,6]]], \"unknown\":1}";
-  JSON::ParseResult pr = s.fromJSON( json );
+  JSON::ParseResult pr = s.fromJSON( json, strlen(json) );
   REQUIRE( pr.error == 0 );
   REQUIRE( s.vector[0][0][0] == 1 );
   REQUIRE( s.vector[1][1][0] == 3 );
@@ -658,7 +662,7 @@ TEST_CASE( "fromJSON via char buffer", "" ) {
                      "\"active\":true, \"num\":[1,2,3]}";
 
   Sensor s;
-  JSON::ParseResult result = s.fromJSON( json );
+  JSON::ParseResult result = s.fromJSON( json, strlen(json) );
 
   REQUIRE( result.error == 0 );
   REQUIRE( s.id == 42 );
@@ -718,7 +722,7 @@ TEST_CASE( "parse JSON subset", "" ) {
   SensorMin s;
   const char* json = "{\"temp\":20, \"unrelated_1\":1, \"active\":false, "
                      "\"id\":42, \"unrelated_2\":1, \"unrelated_3\":1}";
-  JSON::ParseResult result = s.fromJSON( json );
+  JSON::ParseResult result = s.fromJSON( json, strlen(json) );
   REQUIRE( result.error == 0 );
   REQUIRE( s.id == 42 );
   REQUIRE( s.active == false );
@@ -735,7 +739,7 @@ TEST_CASE( "parse embedded object subset", "" ) {
   const char* json = "{\"nom\":\"Bob\",\"child\":{\"nom\":\"Legendre\", "
                      "\"prenom\":\"Alice\",\"age\":8, \"unknown\": "
                      "{\"key_1\":0, \"key_2\":[1,2,3]}},\"age\":40}";
-  JSON::ParseResult result = p.fromJSON( json );
+  JSON::ParseResult result = p.fromJSON( json, strlen(json) );
   REQUIRE( result.error == 0 );
   REQUIRE( result.nParsed == 3 );
   REQUIRE( result.nMatched == 3 );
@@ -745,7 +749,7 @@ TEST_CASE( "parse embedded object subset", "" ) {
 TEST_CASE( "parse empty object", "" ) {
   Parent p;
   const char* json = "{\"nom\":\"Bob\",\"child\":{},\"age\":40}";
-  JSON::ParseResult result = p.fromJSON( json );
+  JSON::ParseResult result = p.fromJSON( json, strlen(json) );
   REQUIRE( result.error == 0 );
 }
 
@@ -756,7 +760,7 @@ TEST_CASE( "parse JSON subset 2", "" ) {
       "{\"nom\":\"Bob\",\"age\":40,\"child\":{\"nom\":\"Legendre\", "
       "\"prenom\":\"Alice\",\"age\":8} , \"child2\":{}, \"unknown\": "
       "{\"key_1\":0, \"key_2\":[1,2,3]}}";
-  JSON::ParseResult result = p.fromJSON( json );
+  JSON::ParseResult result = p.fromJSON( json, strlen(json) );
   REQUIRE( result.error == 0 );
   REQUIRE( result.nParsed == 4 );
   REQUIRE( result.nMatched == 4 );
@@ -775,10 +779,10 @@ TEST_CASE( "print to buffer", "" ) {
 
   char buf[256] = {};
   size_t written = s.toJSON( buf );
-  const char* expected = "{\"id\":7,\"active\":true,\"name\":\"\","
+  std::string expected = "{\"id\":7,\"active\":true,\"name\":\"\","
                          "\"temperature\":36,\"num\":[1,2,3]}";
-  REQUIRE( strcmp( expected, buf ) == 0 );
-  REQUIRE( written == strlen( expected ) );
+  REQUIRE( std::string( buf ) == expected );
+  REQUIRE( written == expected.length() );
 }
 
 // ----------------------------------------------------------------
@@ -873,9 +877,9 @@ TEST_CASE( "toJSON print to stdout", "" ) {
 // }
 
 TEST_CASE( "print geojson to stdout", "" ) {
-  FeatureCollection fc;
+  FeatureCollectionPolygon fc;
   fc.type = "FeatureCollection";
-  Feature f;
+  FeaturePolygon f;
   strncpy( f.type, "Feature", sizeof( f.type ) );
   strncpy( f.properties.name, "feature_0", sizeof( f.properties.name ) );
   strncpy( f.geometry.type, "Polygon", sizeof( f.geometry.type ) );
@@ -901,9 +905,9 @@ TEST_CASE( "toJSON StreamString", "" ) {
   strncpy( s.names[0], "a", 32 );
   strncpy( s.names[1], "b", 32 );
   s.toJSON( stream );
-  const char* expected = "{\"name\":\"name\",\"names\":[\"a\",\"b\",\"\"],"
-                         "\"numbers\":[12,10000]}";
-  REQUIRE( strcmp( stream.c_str(), expected ) == 0 );
+  std::string expected =
+      "{\"name\":\"name\",\"names\":[\"a\",\"b\",\"\"],\"numbers\":[12,10000]}";
+  REQUIRE( std::string( stream.c_str() ) == expected );
 }
 
 TEST_CASE( "toJSON StreamString with HEX uint8_t array", "" ) {
@@ -944,52 +948,52 @@ TEST_CASE( "roundtrip parse → serialize", "" ) {
   REQUIRE( copy.active == true );
   REQUIRE_FLOAT( copy.temperature, 19.8f );
 }
-/*
-TEST_CASE( "Test: serialize to file", "" ) {
 
-  const char* filename = "./sensor.json";
+// TEST_CASE( "Test: serialize to file", "" ) {
 
-  Sensor s1;
-  s1.id = 8;
-  s1.temperature = 36.6f;
+//   const char* filename = "./sensor.json";
 
-  // delete file if it exists
-  if ( LittleFS.exists( filename ) ) { LittleFS.remove( filename ); }
-  // write sensor to file
-  File file_w = LittleFS.open( filename, "w" );
-  if ( !file_w ) {
-    DEBUG_PRINTF( "Failed to open file for writing\n" );
-    REQUIRE( false );
-    return;
-  }
-  s1.toJSON( file_w, false );
-  file_w.close();
-  // read file back
-  File file_r = LittleFS.open( filename, "r" );
-  if ( !file_r ) {
-    DEBUG_PRINTF( "Failed to open file for reading\n" );
-    REQUIRE( false );
-    return;
-  }
+//   Sensor s1;
+//   s1.id = 8;
+//   s1.temperature = 36.6f;
 
-  DEBUG_PRINTF( "FILE CONTENT ----\n" );
-  while ( file_r.available() > 0 ) {
-    DEBUG_PRINTF( "%c", file_r.read() );
-  }
+//   // delete file if it exists
+//   if ( LittleFS.exists( filename ) ) { LittleFS.remove( filename ); }
+//   // write sensor to file
+//   File file_w = LittleFS.open( filename, "w" );
+//   if ( !file_w ) {
+//     DEBUG_PRINTF( "Failed to open file for writing\n" );
+//     REQUIRE( false );
+//     return;
+//   }
+//   s1.toJSON( file_w, false );
+//   file_w.close();
+//   // read file back
+//   File file_r = LittleFS.open( filename, "r" );
+//   if ( !file_r ) {
+//     DEBUG_PRINTF( "Failed to open file for reading\n" );
+//     REQUIRE( false );
+//     return;
+//   }
 
-  file_r.seek( 0 );
+//   DEBUG_PRINTF( "FILE CONTENT ----\n" );
+//   while ( file_r.available() > 0 ) {
+//     DEBUG_PRINTF( "%c", file_r.read() );
+//   }
 
-  Sensor s2;
-  JSON::ParseResult result = s2.fromJSON( file_r );
-  file_r.close();
+//   file_r.seek( 0 );
 
-  REQUIRE( result.error == 0 );
-  REQUIRE( s2.id == 8 );
-  REQUIRE( s2.temperature == 36.6f );
+//   Sensor s2;
+//   JSON::ParseResult result = s2.fromJSON( file_r );
+//   file_r.close();
 
-  LittleFS.remove( filename );
-}
-*/
+//   REQUIRE( result.error == 0 );
+//   REQUIRE( s2.id == 8 );
+//   REQUIRE( s2.temperature == 36.6f );
+
+//   LittleFS.remove( filename );
+// }
+
 // ----------------------------------------------------------------
 // Test – BigStruct round-trip parse
 // ----------------------------------------------------------------
@@ -1033,7 +1037,7 @@ TEST_CASE( "Test: BigStruct parse ", "" ) {
                      "}";
 
   BigStruct b;
-  JSON::ParseResult r = b.fromJSON( json );
+  JSON::ParseResult r = b.fromJSON( json, strlen(json) );
 
   REQUIRE( r.error == 0 );
   REQUIRE( b.f01 == true );
@@ -1086,7 +1090,7 @@ TEST_CASE( "parse escape sequence", "" ) {
   const char* json =
       "{\"prenom\":\"Jean dit \\\"Jeannot\\\" ou Jo\", \"nom\":\"Legendre\"}";
   Child p;
-  JSON::ParseResult r = p.fromJSON( json );
+  JSON::ParseResult r = p.fromJSON( json, strlen(json) );
   REQUIRE( r.error == 0 );
   REQUIRE( p.prenom == std::string_view( "Jean dit \"Jeannot\" ou Jo" ) );
   REQUIRE( p.nom == std::string_view( "Legendre" ) );
@@ -1106,7 +1110,7 @@ TEST_CASE( "parse escape sequence with stream", "" ) {
 TEST_CASE( "parse strings from buffer", "" ) {
   Child enfant;
   const char* json = "{\"nom\":\"Legendre\", \"prenom\":\"Jean\", \"age\":42}";
-  JSON::ParseResult r = enfant.fromJSON( json );
+  JSON::ParseResult r = enfant.fromJSON( json, strlen(json) );
   REQUIRE( r.error == 0 );
   REQUIRE( enfant.nom == std::string_view( "Legendre" ) );
   REQUIRE( enfant.prenom == std::string_view( "Jean" ) );

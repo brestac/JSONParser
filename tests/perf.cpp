@@ -1,29 +1,26 @@
-#include <catch2/benchmark/catch_benchmark_all.hpp>
-#include <catch2/catch_test_macros.hpp>
-
+// #include <catch2/benchmark/catch_benchmark_all.hpp>
+// #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_all.hpp>
 #include <vector>
-#include <algorithm>
-
-#include "include/ArduinoCompat.h"
-#include "include/FileStream.h"
-#include "include/HardwareSerial.h"
-#include "include/StreamString.h"
 
 // This parser
-#include "src/JSONParser.h"
-#include "src/JSONPrinter.h"
-#include "structs.h"
-
+#include <JSONParser.h>
+#include <JSONPrinter.h>
 // simd json
 #include <simdjson.h>
 // nohlmann json
 #include <nlohmann/json.hpp>
-// RapidJSON
-// #include <rapidjson/document.h>
-// #include <rapidjson/stringbuffer.h>
-// #include <rapidjson/writer.h>
 // ArduinoJson
 #include <ArduinoJson.h>
+// RapidJSON
+//#include <rapidjson/rapidjson.h>
+
+#include "ArduinoCompat.h"
+#include "FileStream.h"
+#include "HardwareSerial.h"
+#include "StreamString.h"
+#include "globals.h"
+#include "structs.h"
 
 #define GEOJSON_GENERATED_FILE_PATH "./generated.geojson"
 #define GEOJSON_BIG_FILE_PATH "./big.geojson"
@@ -31,7 +28,8 @@
 #define GEOJSON_SMALL_FILE_PATH "./small.geojson"
 #define JSON_DEBUG_LEVEL 0
 // GEOJSON_SMALL_FILE_PATH, GEOJSON_MEDIUM_FILE_PATH, GEOJSON_BIG_FILE_PATH
-std::vector<std::string> FILE_PATHS = { GEOJSON_SMALL_FILE_PATH, GEOJSON_MEDIUM_FILE_PATH, GEOJSON_BIG_FILE_PATH };
+std::array<std::string, 3> FILE_PATHS = {
+    GEOJSON_SMALL_FILE_PATH, GEOJSON_MEDIUM_FILE_PATH, GEOJSON_BIG_FILE_PATH };
 /*
 char *read_file(const char *filename) {
   FILE *file = fopen(filename, "r");
@@ -62,70 +60,93 @@ char *read_file(const char *filename) {
 */
 std::string read_file_to_string( const char* filename ) {
   std::ifstream file( filename );
-  if ( !file.is_open() ) {
-    throw std::runtime_error( "Could not open file" );
-  }
+  if ( !file.is_open() ) { throw std::runtime_error( "Could not open file" ); }
   std::stringstream buffer;
   buffer << file.rdbuf();
 
-  //file.close();
   return buffer.str();
 }
 
-TEST_CASE( "Parsing", "[performance]" ) {
+TEST_CASE( "Test string buffer", "[buffer]" ) {
+  static uint8_t n = 0;
 
-  for ( auto& filename : FILE_PATHS ) {
-    std::string json = read_file_to_string( filename.c_str() );
-    REQUIRE( json.size() > 0 );
+  auto path = GENERATE( as<std::string>{},
+                        GEOJSON_SMALL_FILE_PATH,
+                        GEOJSON_MEDIUM_FILE_PATH,
+                        GEOJSON_BIG_FILE_PATH );
 
-    char section_name[64] = { 0 };
-    snprintf( section_name, sizeof( section_name ), "%zu Bytes", json.size());
-    bool is_medium = filename.find( "medium" ) != std::string::npos;
+  std::string json = read_file_to_string( path.c_str() );
+  current_size = json.size();
 
-    SECTION( section_name ) {
+  std::printf( "#%d Testing file: %s with size %zu Bytes\n",
+               n,
+               path.c_str(),
+               current_size );
 
-      BENCHMARK( "ce parser" ) {
-        if (is_medium) {
-          FeatureCollectionMultiPolygon fc;
-          JSON::ParseResult r = fc.fromJSON( json.c_str() );
-          REQUIRE( r.error == 0 );
-          return r;
-        } else {
-          FeatureCollection fc;
-          JSON::ParseResult r = fc.fromJSON( json.c_str() );
-          REQUIRE( r.error == 0 );
-          return r;
-        }
-      };
-
-      BENCHMARK( "arduino json" ) {
-        JsonDocument doc;
-        DeserializationError error = deserializeJson( doc, json );
-        REQUIRE( error == DeserializationError::Ok );
-        return error;
-      };
-
-      BENCHMARK( "simd json" ) {
-        simdjson::ondemand::parser parser;
-        simdjson::padded_string json_padded(json);
-
-        auto doc_result = parser.iterate(json_padded);
-        REQUIRE(doc_result.error() == simdjson::SUCCESS);
-        return doc_result;
-      };
-
-      BENCHMARK( "nlohmann json" ) {
-        nlohmann::json doc = nlohmann::json::parse(json);
-        REQUIRE(doc.is_object());
-        return doc;
-      };
-
-      // BENCHMARK( "rapid json" ) {
-      //   rapidjson::Document doc;
-      //   return doc.Parse( json );
-      // };
-      
-    }
-    //if (json != nullptr) free(json);
+  if ( n == 1 ) {
+    BENCHMARK_ADVANCED("ce parser")(Catch::Benchmark::Chronometer meter) {
+      FeatureCollection<3> fc;
+      const char *json_cstr = json.c_str();
+      meter.measure([&fc, &json_cstr] { return fc.fromJSON( json_cstr ); });
+    };
+  } else {
+    BENCHMARK_ADVANCED( "ce parser" )(Catch::Benchmark::Chronometer meter) {
+      FeatureCollection<2> fc;
+      const char *json_cstr = json.c_str();
+      meter.measure([&fc, &json_cstr] { return fc.fromJSON( json_cstr ); });
+    };
   }
+  
+  BENCHMARK_ADVANCED("ArduinoJson")(Catch::Benchmark::Chronometer meter) {
+    JsonDocument doc;
+    meter.measure([&doc, &json] { return deserializeJson( doc, json ); });
+  };
+
+  BENCHMARK_ADVANCED("simd json")(Catch::Benchmark::Chronometer meter) {
+    simdjson::ondemand::parser parser;
+    simdjson::padded_string json_padded( json );
+
+    meter.measure([&parser, &json_padded] { return parser.iterate( json_padded ); });
+  };
+
+  BENCHMARK("nlohmann json") {
+    return nlohmann::json::parse( json );
+  };
+
+  n++;
+}
+
+TEST_CASE( "Test stream reader", "[stream][file]" ) {
+  static uint8_t n = 0;
+
+  auto path = GENERATE(
+      as<std::string>{}, GEOJSON_SMALL_FILE_PATH, GEOJSON_BIG_FILE_PATH );
+
+  File file = LittleFS.open( path.c_str(), "r" );
+  if ( !file ) {
+    DEBUG_PRINTF( "Failed to open file for reading\n" );
+    REQUIRE( false );
+  }
+
+  current_size = file.size();
+  std::printf( "#%d Testing file stream of size %zu\n", n, current_size );
+
+  BENCHMARK( "ce parser" ) {
+    FeatureCollection<2> fc;
+    file.seek( 0 );
+    JSON::ParseResult pr = fc.fromJSON( &file );
+    REQUIRE( pr.error == 0 );
+    return pr;
+  };
+
+  BENCHMARK( "arduino json" ) {
+    JsonDocument doc;
+    file.seek( 0 );
+    DeserializationError error = deserializeJson( doc, file );
+    REQUIRE( error == DeserializationError::Ok );
+    return error;
+  };
+
+  file.close();
+  n++;
 }

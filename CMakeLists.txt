@@ -1,16 +1,25 @@
 cmake_minimum_required(VERSION 3.15)
-project(JSONParser CXX)
+project(JSONParserProject CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # -- set(CMAKE_CXX_COMPILER "clang++")
+
+# Créer une bibliothèque d'en-têtes (interface)
+add_library(jsonparser INTERFACE)
+
+# Indiquer le dossier contenant les fichiers .h pour la compilation
+target_include_directories(jsonparser INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+# --$<INSTALL_INTERFACE:include>
+)
 
 Include(FetchContent)
 
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.8.1
+  GIT_TAG        v3.15.3
 )
 FetchContent_MakeAvailable(Catch2)
 
@@ -36,14 +45,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(ArduinoJson)
 
-# ── FetchContent_Declare(
-# ──   rapidjson
-# ──   GIT_REPOSITORY https://github.com/Tencent/rapidjson
-# ──   GIT_TAG v1.1.0
-# ──   SOURCE_SUBDIR include/rapidjson
-# ── )
-# ── FetchContent_MakeAvailable(rapidjson)
+FetchContent_Declare(
+    rapidjson
+    GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
+    GIT_TAG v1.1.0
+)
 
+FetchContent_MakeAvailable(rapidjson)
 # ── Ressources JSON à copier dans le répertoire de build ──────────────────────
 file(GLOB JSON_RESOURCES "${CMAKE_SOURCE_DIR}/examples/JSONParserTest/*.*json")
 
@@ -60,65 +68,61 @@ add_compile_options(
     -DJSON_DEBUG_LEVEL_ERROR=3
 )
 
+function(copy_resources CIBLE)
+    foreach(res ${JSON_RESOURCES})
+        get_filename_component(res_name "${res}" NAME)
+        add_custom_command(TARGET ${CIBLE} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${res}" "$<TARGET_FILE_DIR:${CIBLE}>/${res_name}"
+        )
+    endforeach()
+endfunction()
+
 add_executable(main
     tests/main.cpp
 )
-target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(main PRIVATE jsonparser)
 target_compile_options(main PRIVATE
     -O2
     -std=gnu++17
 )
-foreach(res ${JSON_RESOURCES})
-    get_filename_component(res_name "${res}" NAME)
-    add_custom_command(TARGET main POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${res}" "$<TARGET_FILE_DIR:main>/${res_name}"
-    )
-endforeach()
+copy_resources(main)
 
 # ── release (release, clang, O2) ────────────────────────────────────────
 add_executable(release
     tests/test.cpp
 )
-target_include_directories(release PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(release PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(release PRIVATE Catch2::Catch2WithMain jsonparser)
 target_compile_options(release PRIVATE
     -O2
     -std=gnu++17
 )
-foreach(res ${JSON_RESOURCES})
-    get_filename_component(res_name "${res}" NAME)
-    add_custom_command(TARGET release POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${res}" "$<TARGET_FILE_DIR:release>/${res_name}"
-    )
-endforeach()
-target_link_libraries(release PRIVATE Catch2::Catch2WithMain)
+copy_resources(release)
 
 # ── release (release benchmarks, clang, O2) ────────────────────────────────────────
 add_executable(release-perf
     tests/reporter.cpp
     tests/perf.cpp
 )
-target_include_directories(release-perf PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(release-perf PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(release-perf PRIVATE Catch2::Catch2WithMain jsonparser simdjson nlohmann_json::nlohmann_json ArduinoJson)
+
 target_compile_options(release-perf PRIVATE
     -O2
     -std=gnu++17
 )
-foreach(res ${JSON_RESOURCES})
-    get_filename_component(res_name "${res}" NAME)
-    add_custom_command(TARGET release-perf POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${res}" "$<TARGET_FILE_DIR:release-perf>/${res_name}"
-    )
-endforeach()
-target_link_libraries(release-perf PRIVATE Catch2::Catch2WithMain simdjson nlohmann_json::nlohmann_json ArduinoJson)
+copy_resources(release-perf)
 
 # ── debug (debug, clang, O0, sanitizers) ────────────────────────
 add_executable(debug
     tests/test.cpp
 )
 
-target_include_directories(debug PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(debug PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(debug PRIVATE Catch2::Catch2WithMain jsonparser)
+
 target_compile_options(debug PRIVATE
     -O0
     -std=gnu++17
@@ -138,7 +142,9 @@ endforeach()
 add_executable(release-arduino
     tests/test.cpp
 )
-target_include_directories(release-arduino PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(release-arduino PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(release-arduino PRIVATE Catch2::Catch2WithMain jsonparser)
+
 target_compile_options(release-arduino PRIVATE
     -DCMAKE_CXX_COMPILER=g++
     -Os
@@ -150,28 +156,18 @@ target_compile_options(release-arduino PRIVATE
     -fno-exceptions
 )
 
-foreach(res ${JSON_RESOURCES})
-    get_filename_component(res_name "${res}" NAME)
-    add_custom_command(TARGET release-arduino POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${res}" "$<TARGET_FILE_DIR:release-arduino>/${res_name}"
-    )
-endforeach()
+copy_resources(release-arduino)
 
 # -- faster -o3 c++23
 add_executable(faster
     tests/test.cpp
 )
-target_include_directories(faster PRIVATE ${CMAKE_SOURCE_DIR})
+
+target_include_directories(faster PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(faster PRIVATE Catch2::Catch2WithMain jsonparser)
+
 target_compile_options(faster PRIVATE
     -O3
     -std=gnu++23
 )
-foreach(res ${JSON_RESOURCES})
-    get_filename_component(res_name "${res}" NAME)
-    add_custom_command(TARGET faster POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${res}" "$<TARGET_FILE_DIR:faster>/${res_name}"
-    )
-endforeach()
-target_link_libraries(faster PRIVATE Catch2::Catch2WithMain)
+copy_resources(faster)

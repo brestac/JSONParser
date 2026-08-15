@@ -13,12 +13,12 @@
 #include <string_view>
 #include <vector>
 
-#include "../include/FileStream.h"
-#include "../include/HardwareSerial.h"
-#include "../include/StreamString.h"
-#include "../src/JSONParser.h"
-#include "../src/JSONPrinter.h"
+#include <JSONParser.h>
+#include <JSONPrinter.h>
 
+#include "FileStream.h"
+#include "HardwareSerial.h"
+#include "StreamString.h"
 #include "../examples/JSONParserTest/test.h"
 
 int main() {

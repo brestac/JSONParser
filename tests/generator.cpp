@@ -1,59 +1,48 @@
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
-#include <filesystem>
 #include <fstream>
-#include <sstream>
 #include <string>
 #include <vector>
+#include <memory>  // Pour std::unique_ptr
 
-namespace fs = std::filesystem;
-
-// Générateur pour lire le contenu d'un fichier complet
-class WholeFileGenerator : public Catch::Generators::IGenerator<std::string> {
-    std::string m_fileContent;
-    bool m_hasMore = true;
+class FileContentGenerator : public Catch::Generators::IGenerator<std::string> {
+    std::vector<std::string> fileContents;
+    size_t currentIndex = 0;
 
 public:
-    explicit WholeFileGenerator(std::string const& filepath) {
-        std::ifstream stream(filepath);
-        if (stream) {
-            std::stringstream buffer;
-            buffer << stream.rdbuf();
-            m_fileContent = buffer.str();
-        } else {
-            m_fileContent = "ERROR: Fichier introuvable (" + filepath + ")";
+    explicit FileContentGenerator(const std::vector<std::string>& filePaths) {
+        for (const auto& filePath : filePaths) {
+            std::ifstream file(filePath);
+            if (!file.is_open()) {
+                throw std::runtime_error("Impossible d'ouvrir le fichier : " + filePath);
+            }
+            fileContents.push_back(
+                std::string(
+                    (std::istreambuf_iterator<char>(file)),
+                    std::istreambuf_iterator<char>()
+                )
+            );
         }
     }
 
-    std::string const& get() const override { return m_fileContent; }
+    std::string const& get() const override {
+        return fileContents[currentIndex];
+    }
 
     bool next() override {
-        if (m_hasMore) {
-            m_hasMore = false;
-            return true;
+        if (currentIndex + 1 >= fileContents.size()) {
+            return false;
         }
-        return false;
+        ++currentIndex;
+        return true;
     }
 };
-
-// Catch::Generators::GeneratorWrapper<std::string> wholeFile(std::string const& filepath) {
-//     return Catch::Generators::makeGenerators<WholeFileGenerator>(filepath);
-// }
-
-Catch::Generators::GeneratorWrapper<std::string> wholeFile(std::string const& filepath) {
+// Solution correcte pour Catch2 v3 : utiliser le constructeur adapté
+Catch::Generators::GeneratorWrapper<std::string> fileContents(
+    const std::vector<std::string>& filePaths
+) {
     return Catch::Generators::GeneratorWrapper<std::string>(
-        new WholeFileGenerator(filepath)
+        std::make_unique<FileContentGenerator>(filePaths).get()
     );
-}
-// Fonction utilitaire pour récupérer tous les chemins réguliers d'un dossier
-std::vector<std::string> getFilesFromDirectory(std::string const& dirPath) {
-    std::vector<std::string> files;
-    if (fs::exists(dirPath) && fs::is_directory(dirPath)) {
-        for (auto const& entry : fs::directory_iterator(dirPath)) {
-            if (entry.is_regular_file()) {
-                files.push_back(entry.path().string());
-            }
-        }
-    }
-    return files;
 }
