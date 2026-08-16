@@ -1,8 +1,2 @@
 .ccls-cache
-.agents
-!SKILL.md
-.config
 build
-*.xcodeproj
-*.trace
-env.h
