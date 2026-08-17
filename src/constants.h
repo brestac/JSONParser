@@ -19,7 +19,7 @@ static uint16_t GLOBAL_CONTEXT_STACK_SIZE = UINT16_MAX;
 
 constexpr uint16_t YIELD_EVERY = 128;
 constexpr uint16_t STREAM_BUFFER_SIZE = 1 << 7;     // 128 octets
-constexpr uint16_t RING_BUFFER_SIZE = 1 << 8;       // 256 octets
+constexpr uint16_t RING_BUFFER_SIZE = 1 << 7;       // 256 octets
 constexpr uint16_t MAX_STRING_POOL_SIZE = 1 << 12;  // 4096 octets
 constexpr uint32_t MAX_JSON_LENGTH = 1 << 24;       // 16777216 octets = 16MB
 constexpr uint16_t MAX_NUMERIC_LENGTH = 25 ; // Pour les entiers et les flottants int64_t et double 

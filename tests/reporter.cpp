@@ -68,13 +68,11 @@ public:
 
         // Si au moins deux benchmarks cibles ont été mesurés, comparer les temps
         if (m_benchmark_results.size() >= 2) {
-            // trier du plus lent au plus rapide
+            // trier du plus rapide au plus lent
             std::sort(m_benchmark_results.begin(), m_benchmark_results.end(), [](const BenchmarkResult& a, const BenchmarkResult& b) {
-                return a.mean_ns > b.mean_ns;
+                return a.mean_ns < b.mean_ns;
             });
 
-            double temps_ref = m_benchmark_results[0].mean_ns;
-            std::string name_ref = m_benchmark_results[0].name;
             size_t count = m_benchmark_results.size();
             
             for(size_t i = 0; i < count; ++i) {
@@ -83,13 +81,17 @@ public:
                 
                 std::string library_name = m_benchmark_results[i].name;
                 double speed = (current_size / (duration / 1e9)) / (1024 * 1024);
+
                 bool is_tested_lib = (library_name == tested_name);
                 if (is_tested_lib) std::printf("\x1b[32m");
                 if (i == 0) {
-                    std::printf( "%zu: %14s :%.0f ns speed=%.3f MB/s\n", count, library_name.c_str(), duration , speed );
+                    std::printf( "%zu: %14s: %.3f MB/s\n", i + 1, library_name.c_str(), speed );
                 } else {
-                    double diff_pourcent = ((temps_ref - duration) / temps_ref) * 100.0;
-                    std::printf( "%zu: %14s :%.0f ns speed=%.3f MB/s, %.2f%% faster than %s.\n", count - i, library_name.c_str(), duration, speed, diff_pourcent, name_ref.c_str()  );
+                    double faster_dur = m_benchmark_results[i-1].mean_ns;
+                    std::string faster_name = m_benchmark_results[i-1].name;
+
+                    double diff_pourcent = ((duration - faster_dur) / duration) * 100.0;
+                    std::printf( "%zu: %14s: %.3f MB/s, %.0f%% slower than %s.\n", i + 1, library_name.c_str(), speed, diff_pourcent, faster_name.c_str()  );
                 }
                 if (is_tested_lib) std::printf("\x1b[0m");
             }

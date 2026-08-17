@@ -16,14 +16,15 @@ public:
     KEY_FOUND = 1 << 0,
     VALUE_CONVERTED = 1<< 1,
     VALUE_UPDATED = 1 << 2,
-    // BEGINING OF ERRORS 8 to 56 means no error
-    STRING_PARSED = 1 << 3, // parsed JSON type, no error
+    // BEGINING OF PARSED TYPE MASK
+    STRING_PARSED = 8, // parsed JSON type, no error
     INTEGER_PARSED = 16, // parsed JSON type, no error
     FLOAT_PARSED = 24,// parsed JSON type, no error
     BOOLEAN_PARSED = 32,// parsed JSON type, no error
     NULL_VALUE_PARSED = 40,// parsed JSON type, no error
     ARRAY_PARSED = 48,// parsed JSON type, no error
     OBJECT_PARSED = 56, // parsed JSON type, no error
+    // BEGINING OF ERROR MASK
     PARSE_ERROR_STRING = 72, // error parsing JSON type String
     PARSE_ERROR_NUMERIC = 80, // error parsing JSON type Integer
     PARSE_ERROR_FLOAT = 88, // error parsing JSON type Float
@@ -114,6 +115,14 @@ public:
   constexpr ParseValueResult &operator|=(const ParseValueResult::State &otherState) {
     _state = get_state(otherState);
     return *this;
+  }
+
+  constexpr bool operator==(const ParseValueResult &other) const {
+    return _state == other._state;
+  }
+
+  constexpr bool operator!=(const ParseValueResult &other) const {
+    return _state != other._state;
   }
 
   void print() {

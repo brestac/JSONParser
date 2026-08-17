@@ -323,7 +323,7 @@ TEST_CASE( "TEST ARRAY CALLBACK", "" ) {
         }
         if ( arrayIndex == 1 && key == "age" ) skip = JSON::SKIP::STOP;
       } );
-  REQUIRE( pr.error == false );
+  CHECK( pr.error == false );
   REQUIRE( personnes[0].nom == std::string_view( "Bob" ) );
   REQUIRE( personnes[0].age == 0 );
   REQUIRE( personnes[1].nom == std::string_view( "Alice" ) );

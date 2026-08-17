@@ -93,9 +93,6 @@ public:
   mutable uint8_t depth = 0;
 };
 
-// using PointerCursorReader = PointerCursor<const char>;
-// using PointerCursorWriter = PointerCursor<char>;
-
 class PointerCursorReader : public PointerCursor<const char> {
 public:
   using PointerCursor<const char>::PointerCursor;
@@ -135,18 +132,13 @@ public:
 
 // Avance le pointeur de n octets
 bool PointerCursorReader::advance(int n) const {
-  if (_pos + n < _start) {
-    JSON_DEBUG_WARNING("PointerCursor::advance: underflow\n");
-    _pos = _start;
-  } else if (_pos + n > _end) {
-    JSON_DEBUG_WARNING("PointerCursor::advance: overflow\n");
-    _pos = _end;
-  } else {
-    _pos += n;
-    return true;
+  if (_pos + n < _start || _pos + n > _end) {
+    JSON_DEBUG_WARNING("PointerCursor::advance: under/overflow\n");
+    return false;
   }
 
-  return false;
+  _pos += n;
+  return true;
 }
 
 // Avance jusqu'au pointeur

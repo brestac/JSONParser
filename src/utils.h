@@ -6,6 +6,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <charconv>
+#include <system_error>
+
+#include <cmath>
+#include <type_traits>
 
 // include for ntohs
 #ifdef ARDUINO_ARCH_ESP8266 // TODO: check for other platforms
@@ -208,4 +213,108 @@ constexpr uint32_t hash32(const char* str, size_t len) {
 
 constexpr uint32_t hash32(std::string_view key) {
   return hash32(key.data(), key.length());
+}
+
+// Table de puissances de 10 précalculée pour éviter l'appel coûteux à std::pow
+static const double POW10[] = {
+    1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,  1e8,  1e9,
+    1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e22
+};
+
+// Parseur de flottants (float / double) universel pour microcontrôleur
+inline double fast_parse_floating_json(const char* ptr, const char*& end) {  
+    if (ptr == nullptr) return 0.0;
+    if (*ptr == '\0') return 0.0;
+
+    // 1. Gestion du signe
+    bool negative = false;
+    if (*ptr == '-') {
+        negative = true;
+        ptr++;
+    } else if (*ptr == '+') {
+      ptr++;
+    }
+
+    uint64_t value = 0;
+    int decimal_digits = -1;
+    bool has_digits = false;
+
+    // 2. Parser la partie entière et décimale en un seul grand entier
+    while (*ptr != '\0') {
+        if (*ptr >= '0' && *ptr <= '9') {
+            value = value * 10 + (*ptr - '0');
+            has_digits = true;
+            if (decimal_digits >= 0) {
+                decimal_digits++;
+            }
+            ptr++;
+        } else if (*ptr == '.') {
+            if (decimal_digits >= 0) break; // Deuxième point trouvé (erreur de syntaxe)
+            decimal_digits = 0;
+            ptr++;
+        } else {
+            break; // Caractère non numérique ou début de l'exposant 'e'/'E'
+        }
+    }
+
+    if (!has_digits) {
+        return 0.0;
+    }
+
+    // Ajustement de l'exposant de base lié à la virgule
+    int exponent = (decimal_digits > 0) ? -decimal_digits : 0;
+
+    // 3. Gestion de la notation scientifique JSON (e ou E)
+    if (*ptr != '\0') {
+        if (*ptr == 'e' || *ptr == 'E') {
+          ptr++;
+
+            bool exp_negative = false;
+            char sign = *ptr;
+            if (sign != '\0') {
+                if (sign == '-') { exp_negative = true; ptr++; }
+                else if (sign == '+') { ptr++; }
+            }
+
+            int exp_value = 0;
+            while (*ptr != '\0') {
+                char digit = *ptr;
+                if (digit >= '0' && digit <= '9') {
+                    exp_value = exp_value * 10 + (digit - '0');
+                    ptr++;
+                } else {
+                    break;
+                }
+            }
+            exponent += exp_negative ? -exp_value : exp_value;
+        }
+    }
+
+    // 4. Conversion finale (Calcul à la volée pour économiser la Flash ROM)
+    double result = value;
+
+    if (exponent != 0) {
+        // Calcul de la puissance de 10 de manière itérative ou via les fonctions de base
+        // Sur microcontrôleur avec FPU matérielle, l'utilisation d'une boucle ou d'un multiplicateur
+        // évite de charger des grosses bibliothèques d'arrondis parfaits.
+        double factor = 1.0;
+        int abs_exponent = exponent < 0 ? -exponent : exponent;
+
+        // Exponentiation rapide par carré pour optimiser la vitesse de calcul de la puissance
+        double base = 10.0;
+        while (abs_exponent > 0) {
+            if (abs_exponent & 1) factor *= base;
+            base *= base;
+            abs_exponent >>= 1;
+        }
+
+        if (exponent < 0) {
+            result /= factor;
+        } else {
+            result *= factor;
+        }
+    }
+
+    end = ptr;
+    return negative ? -result : result;
 }

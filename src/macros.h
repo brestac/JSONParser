@@ -129,6 +129,48 @@ RGB values 0‑255.
 #  define JSON_DEBUG_ERROR( format, ... )
 #endif
 
+#define FROM_JSON_OVERRIDE( ... )                                 \
+  template <typename T> JSON::ParseResult fromJSON( T&& input ) { \
+    using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
+    return JSON::_parse_impl<true, _SelfT>(                       \
+        this->updated, input, MACRO( __VA_ARGS__ ) );             \
+  }                                                               \
+  template <typename T> JSON::ParseResult fromJSON( T* input ) {  \
+    using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
+    return JSON::_parse_impl<true, _SelfT>(                       \
+        this->updated, input, MACRO( __VA_ARGS__ ) );             \
+  }                                                               \
+  JSON::ParseResult fromJSON( const char* input, size_t size ) {  \
+    using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
+    return JSON::_parse_impl<true, _SelfT>(            \
+        this->updated, input, size, MACRO( __VA_ARGS__ ) );       \
+  }
+#define TO_JSON_OVERRIDE( ... )                                                \
+  template <typename T> size_t toJSON( T& output, bool updates = false ) {     \
+    uint32_t mask = updates ? this->updated : 0;                               \
+    return JSON::print( mask, output, MACRO( __VA_ARGS__ ) );                  \
+  }                                                                            \
+  size_t toJSON( PointerCursorWriter& output, bool updates = false )           \
+      override {                                                               \
+    uint32_t mask = updates ? this->updated : 0;                               \
+    return JSON::_print( mask, output, MACRO( __VA_ARGS__ ) );                 \
+  }                                                                            \
+  size_t toJSON( StreamCursorWriter& output, bool updates = false ) override { \
+    uint32_t mask = updates ? this->updated : 0;                               \
+    return JSON::_print( mask, output, MACRO( __VA_ARGS__ ) );                 \
+  }
+
+#define JSON_DECODER_IMPL( ... ) FROM_JSON_OVERRIDE( __VA_ARGS__ )
+
+#define JSON_ENCODER_IMPL( ... ) \
+  using JSONObject::toJSON;      \
+  TO_JSON_OVERRIDE( __VA_ARGS__ )
+
+#define JSON_SERIALIZE_IMPL( ... )  \
+  using JSONObject::toJSON;         \
+  FROM_JSON_OVERRIDE( __VA_ARGS__ ) \
+  TO_JSON_OVERRIDE( __VA_ARGS__ )
+
 // Macro pour créer les paires
 #define PAIR( x ) #x, x
 #define PAIR_IDX( idx, x ) #x "[" #idx "]", x
@@ -555,45 +597,3 @@ RGB values 0‑255.
              MACRO_1 )    \
   ( __VA_ARGS__ )
 
-// APRÈS
-#define FROM_JSON_OVERRIDE( ... )                                 \
-  template <typename T> JSON::ParseResult fromJSON( T&& input ) { \
-    using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
-    return JSON::_parse_impl<true, _SelfT>(                       \
-        this->updated, input, MACRO( __VA_ARGS__ ) );             \
-  }                                                               \
-  template <typename T> JSON::ParseResult fromJSON( T* input ) {  \
-    using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
-    return JSON::_parse_impl<true, _SelfT>(                       \
-        this->updated, input, MACRO( __VA_ARGS__ ) );             \
-  }                                                               \
-  JSON::ParseResult fromJSON( const char* input, size_t size ) {  \
-    using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
-    return JSON::_parse_impl<true, _SelfT>(            \
-        this->updated, input, size, MACRO( __VA_ARGS__ ) );       \
-  }
-#define TO_JSON_OVERRIDE( ... )                                                \
-  template <typename T> size_t toJSON( T& output, bool updates = false ) {     \
-    uint32_t mask = updates ? this->updated : 0;                               \
-    return JSON::print( mask, output, MACRO( __VA_ARGS__ ) );                  \
-  }                                                                            \
-  size_t toJSON( PointerCursorWriter& output, bool updates = false )           \
-      override {                                                               \
-    uint32_t mask = updates ? this->updated : 0;                               \
-    return JSON::_print( mask, output, MACRO( __VA_ARGS__ ) );                 \
-  }                                                                            \
-  size_t toJSON( StreamCursorWriter& output, bool updates = false ) override { \
-    uint32_t mask = updates ? this->updated : 0;                               \
-    return JSON::_print( mask, output, MACRO( __VA_ARGS__ ) );                 \
-  }
-
-#define JSON_DECODER_IMPL( ... ) FROM_JSON_OVERRIDE( __VA_ARGS__ )
-
-#define JSON_ENCODER_IMPL( ... ) \
-  using JSONObject::toJSON;      \
-  TO_JSON_OVERRIDE( __VA_ARGS__ )
-
-#define JSON_SERIALIZE_IMPL( ... )  \
-  using JSONObject::toJSON;         \
-  FROM_JSON_OVERRIDE( __VA_ARGS__ ) \
-  TO_JSON_OVERRIDE( __VA_ARGS__ )

@@ -18,7 +18,8 @@ enum ParserError : uint8_t {
   INVALID_OBJECT = 6,
   TOO_MANY_ITERATIONS = 7,
   MAX_DEPTH_REACHED = 8,
-  MALFORMED_JSON = 9
+  MALFORMED_JSON = 9,
+  SKIP_ERROR = 10
 };
 
 static const char* errorToString(ParserError& error) {
@@ -37,6 +38,14 @@ static const char* errorToString(ParserError& error) {
     return "NO COMMA";
   case ParserError::INVALID_OBJECT:
     return "INVALID OBJECT";
+  case ParserError::TOO_MANY_ITERATIONS:
+    return "TOO MANY ITERATIONS";
+  case ParserError::MAX_DEPTH_REACHED:
+    return "MAX DEPTH REACHED";
+  case ParserError::MALFORMED_JSON:
+    return "MALFORMED JSON";
+  case ParserError::SKIP_ERROR:
+    return "SKIP ERROR";
   default:
     return "UNKNOWN";
   }

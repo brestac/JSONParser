@@ -21,17 +21,23 @@ NAMESPACE_JSON_BEGIN
 // Buffer circulaire de taille N (doit être une puissance de 2).
 // Se remplit à la demande depuis un Stream Arduino.
 // ============================================================
+enum StreamCursorType : uint8_t { READER = 0, WRITER = 1 };
 
 template <size_t N> class RingBuffer {
   static_assert(N >= 16, "RingBuffer : N doit être >= 16");
-  static_assert((N & (N - 1)) == 0,
-                "RingBuffer : N doit être une puissance de 2");
+  static_assert((N & (N - 1)) == 0, "RingBuffer : N doit être une puissance de 2");
 
+  template<StreamCursorType T>
+  friend class StreamCursor;
 public:
   explicit RingBuffer(Stream *stream) : _stream(stream), _head(0), _tail(0) {}
 
   // Nombre d'octets disponibles en lecture sans refill
-  size_t available() const { return _head - _tail; }
+  int available() const { return _head - _tail; }
+
+  size_t size() const {
+    return N;
+  }
 
   // Tente de remplir le buffer depuis le stream (appels non-bloquants).
   // Ne lit que les octets immédiatement disponibles.
@@ -59,15 +65,17 @@ public:
         _head += n;
     }
   }
+
+  
   // Peek à l'offset i (0 = prochain octet), sans consommer.
   // Effectue un refill si nécessaire.
   // Retourne -1 si la donnée n'est pas disponible (timeout / fin de flux).
   int peek(size_t offset = 0) {
-    if (offset >= available()){
+    if (static_cast<int>(offset) >= available()){
       refill();
     }
 
-    if (offset >= available()){
+    if (static_cast<int>(offset) >= available()){
       return -1;
     }
 
@@ -88,7 +96,24 @@ public:
   }
 
   // Consomme n octets (les marque comme lus)
-  void consume(size_t n) { _tail += n; }
+  void consume(size_t offset, bool refilIfNeeded) {
+    if (refilIfNeeded) {
+      if (static_cast<int>(offset) >= available()){
+        refill();
+      }
+
+      if (static_cast<int>(offset) >= available()){
+        return;
+      }
+    }
+
+    if (_tail + offset > _head) {
+      _tail = _head;
+      return;
+    }
+    
+    _tail += offset;
+  }
 
 private:
   static constexpr size_t MASK = N - 1;
@@ -111,14 +136,13 @@ private:
 //                   size_t printf(const char* format, ...)
 // ============================================================
 
-enum StreamCursorType : uint8_t { READER = 0, WRITER = 1 };
-
 // Base commune (pas de ring buffer)
 
 class StreamCursorBase {
 public:
     StreamCursorBase(Stream* s) : _stream(s), _written(0) { }
     void flush() { _stream->flush(); }
+    int available() const { return _stream->available(); }
     mutable int8_t depth = 0;
 protected:
     Stream* _stream;
@@ -158,11 +182,17 @@ public:
 
     int peek(size_t offset = 0);
     size_t peekToken(char* out, size_t maxLen);
-    void advance(size_t n = 1);
+    void advance(size_t n = 1, bool refill = true);
     int read();
     size_t readBytes(uint8_t* buf, size_t len);
     bool eof() const { return _eof; }
     size_t bytesConsumed() const { return _consumed; }
+    const char* ptr() { return reinterpret_cast<const char*>(_ring._buf + (_ring._tail & _ring.MASK)); }
+    const char* start() { return reinterpret_cast<const char*>(_ring._buf); }
+    size_t size() { return _ring.size(); }
+    int available_without_refilling() const {
+      return _ring.available();
+    }
 
 private:
     RingBuffer<JSON::RING_BUFFER_SIZE> _ring;
@@ -184,9 +214,9 @@ int StreamCursorReader::peek(size_t offset) {
   return c;
 }
 
-// Avance d'un cran
-void StreamCursorReader::advance(size_t n) {
-  _ring.consume(n);
+// Avance de n octets (sans les lire)
+void StreamCursorReader::advance(size_t n, bool refill) {
+  _ring.consume(n, refill);
   _consumed += n;
 }
 

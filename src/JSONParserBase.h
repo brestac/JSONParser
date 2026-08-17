@@ -6,6 +6,8 @@
 #include <limits>
 #include <vector>
 
+#include "PointerCursor.h"
+#include "StreamCursor.h"
 #include "JSONCallbackObject.h"
 #include "JSONObject.h"
 #include "ParseDispatchTable.h"
@@ -262,9 +264,9 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
   // template <typename V> ParseValueResult parse_floating_point(V& v);
   // template <typename V> ParseValueResult parse_integer(V& v);
   template <typename V> ParseValueResult parse_numeric( V& v );
+
   template <typename PV, typename V>
-  ParseValueResult parse_numeric_type( V& v );
-  // ParseValueResult parse_numeric(JSONCallbackObject& v);
+  ParseValueResult parse_numeric_type( V& v );// ParseValueResult parse_numeric(JSONCallbackObject& v);
   template <typename V> ParseValueResult parse_any_numeric( V& v );
   template <typename V> ParseValueResult parse_bool( V& v );
   template <typename V> ParseValueResult parse_null( V& v );
@@ -391,7 +393,7 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
 #endif
     switch ( _state ) {
       case START:
-        SKIP_SPACES;
+        SKIP_SPACES
 
         if ( is_array_start() ) {
           _is_top_level_array = true;
@@ -409,7 +411,7 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
         break;
 
       case KEY:
-        SKIP_SPACES;
+        SKIP_SPACES
         if ( is_object_end() ) {
           _state = END;
           //_cursor.advance();
@@ -436,7 +438,7 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
 
       case VALUE: {
 
-        SKIP_SPACES;
+        SKIP_SPACES
         if ( is_object_end() ) {
           _state = END;
           //_cursor.advance();
@@ -479,7 +481,7 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
       }
 
       case COMMA:
-        SKIP_SPACES;
+        SKIP_SPACES
         if ( is_object_end() ) {
           //_state = END;
           _cursor.advance();
@@ -505,8 +507,7 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
         }
 
       case ERROR:
-        JSON_DEBUG_ERROR( "JSONParserBase: error at byte %zu\n",
-                          _cursor.bytesConsumed() );
+        JSON_DEBUG_ERROR( "JSONParserBase: error at byte %zu: %s\n", _cursor.bytesConsumed(), errorToString( _lastError ) );
 #if JSON_DEBUG_LEVEL > 0
         print_state( iteration );
 #endif
@@ -529,10 +530,17 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
           }
           break;
         }
-      case SKIP:
+      case SKIP: {
         JSON_DEBUG_INFO( "JSONParserBase: skip\n" );
-        skip_to_object_end();
-        _state = END;
+        ParseValueResult r = skip_to_object_end();
+        if ( r.parsed() ) {
+          _state = END;
+        } else {
+          _lastError = ParserError::SKIP_ERROR;
+          _lastParseError = r;
+          _state = ERROR;
+        }
+      }
         break;
       default:
         return;
@@ -588,7 +596,7 @@ bool JSONParserBase<Cursor, UseMask>::parse_key() {
 // ── parse_colon ───────────────────────────────────────────────
 template <typename Cursor, bool UseMask>
 bool JSONParserBase<Cursor, UseMask>::parse_colon() {
-  SKIP_SPACES;
+  SKIP_SPACES
   return scan_char( JSON_COLON_CHARACTER, true );
 }
 
@@ -709,7 +717,7 @@ static bool needs_pool( bool unescaped ) {
   // 1. Quand le string est échappé (unescaped == true) dans tous les cas
   // 2. Quand le curseur est un StreamCursor et que la cible est une string_view
 
-  if constexpr ( std::is_same_v<remove_cv_ref_t<Cursor>, StreamCursorReader> &&
+  if constexpr ( is_stream_cursor_reader_v<Cursor> &&
                  std::is_same_v<remove_cv_ref_t<TargetV>, std::string_view> ) {
     return true;
   } else {
@@ -792,7 +800,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_string( V& arg_value ) {
   // Plusieurs cas: Cursor = PointerCursorReader ou StreamCursor
   // TargetT = Cursor si appel user depuis JSON::parse, UserStruct si appel user
   // depuis fromJSON, JSONCallbackObject si appel depuis parse avec callback
-  if constexpr ( std::is_same_v<Cursor, const PointerCursorReader> ) {
+  if constexpr ( is_pointer_cursor_reader_v<Cursor> ) {
     // Chemin rapide : pointer direct dans le buffer
     const char* str_start = _cursor.ptr();
 
@@ -808,7 +816,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_string( V& arg_value ) {
       if ( !scan_escaped_string<TargetT, V>( parsed_value ) )
         return ParseValueResult::PARSE_ERROR_STRING_ESCAPE;
     }
-  } else if constexpr ( std::is_same_v<Cursor, StreamCursorReader> ) {
+  } else if constexpr ( is_stream_cursor_reader_v<Cursor> ) {
     // StreamCursor : pool obligatoire
     if ( !scan_escaped_string<TargetT, V>( parsed_value ) )
       return ParseValueResult::PARSE_ERROR_STRING_ESCAPE;
@@ -843,83 +851,285 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_string( V& arg_value ) {
 //   return parse_any_numeric(arg_value);
 // }
 
-template <typename Cursor, bool UseMask> template <typename V> ParseValueResult
+template <typename Cursor, bool UseMask>
+template <typename V> ParseValueResult
 JSONParserBase<Cursor, UseMask>::parse_numeric( V& arg_value ) {
   return parse_numeric_type<V>( arg_value );
 }
 
-template <typename Cursor, bool UseMask> template <typename PV, typename V>
+template <typename Cursor, bool UseMask>
+template <typename PV, typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask>::parse_numeric_type( V& arg_value ) {
   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric\n" );
 
-  char* start;
-  static PV parsed_value;
-
-  if constexpr ( std::is_same_v<Cursor, const PointerCursorReader> ) {
-    start = const_cast<char*>( _cursor.ptr() );
-  } else {
-    static char tmp[JSON::MAX_NUMERIC_LENGTH];
-    size_t len = _cursor.peekToken( tmp, sizeof( tmp ) - 1 );
-    if ( len == 0 ) return ParseValueResult::PARSE_ERROR_NUMERIC;
-
-    tmp[len] = '\0';
-    start = tmp;
-  }
-
-  char* end;
-
-  if constexpr ( std::is_same_v<PV, double> || std::is_same_v<PV, float> ) {
-    parsed_value = std::strtod( start, &end );
-    JSON_DEBUG_INFO( "JSONParserBase::parse_numeric double %f\n",
-                     parsed_value );
-  } else if constexpr ( std::is_integral_v<PV> && std::is_unsigned_v<PV> &&
-                        sizeof( PV ) <= 4 ) {
-    parsed_value = (int)std::strtoul( start, &end, 10 );
-    JSON_DEBUG_INFO( "JSONParserBase::parse_numeric uint32_t %d\n",
-                     parsed_value );
-  } else if constexpr ( std::is_integral_v<PV> && std::is_signed_v<PV> &&
-                        sizeof( PV ) <= 4 ) {
-    parsed_value = (int)std::strtol( start, &end, 10 );
-    JSON_DEBUG_INFO( "JSONParserBase::parse_numeric int32_t %d\n",
-                     parsed_value );
-  } else if constexpr ( std::is_integral_v<PV> && std::is_unsigned_v<PV> &&
-                        sizeof( PV ) > 4 ) {
-    parsed_value = std::strtoull( start, &end, 10 );
-    JSON_DEBUG_INFO( "JSONParserBase::parse_numeric uint64 %llu\n",
-                     (unsigned long long)parsed_value );
-  } else if constexpr ( std::is_integral_v<PV> && std::is_signed_v<PV> &&
-                        sizeof( PV ) > 4 ) {
-    parsed_value = std::strtoll( start, &end, 10 );
-    JSON_DEBUG_INFO( "JSONParserBase::parse_numeric int64 %lld\n",
-                     (long long)parsed_value );
-  }
-
-  // check if parsed_value have been parsed as Infinity
-  if ( parsed_value == std::numeric_limits<PV>::infinity() ) {
-    return parse_infinity( arg_value );
-  } else if ( isnan( parsed_value ) ) {
-    return parse_nan( arg_value );
-  }
-
-  size_t consumed = static_cast<size_t>( end - start );
-
-  if ( consumed == 0 ) return ParseValueResult::PARSE_ERROR_NUMERIC;
-
-  _cursor.advance( consumed );
-
-  if constexpr ( std::is_integral_v<PV> && ALLOW_FLOATING_POINT_INTEGERS ) {
-    if ( scan_char( '.', true ) ) {
-      JSON_DEBUG_WARNING( "JSONParserBase::parse_numeric integer: found extra "
-                          "digits after '.'\n" );
-      scan_digits( JSON::MAX_VALUE_LENGTH );
+  if constexpr (is_pointer_cursor_reader_v<Cursor>) {
+    const char* ptr = _cursor.ptr();
+    const char* end = ptr;
+    double parsed_value = fast_parse_floating_json(ptr, end);
+    _cursor.go_to(end);
+    return assign_parsed_value_to_value( parsed_value, arg_value ) | ParseValueResult::INTEGER_PARSED;
+  }/* else if constexpr (is_stream_cursor_reader_v<Cursor>) {
+    int available = _cursor.available_without_refilling();
+    if (available >= JSON::MAX_NUMERIC_LENGTH) {
+      const char* ptr = _cursor.ptr();
+      const char* end = ptr;
+      double parsed_value = fast_parse_floating_json(ptr, end);
+      _cursor.advance(end - ptr, true);
+      return assign_parsed_value_to_value( parsed_value, arg_value ) | ParseValueResult::INTEGER_PARSED;
     }
+  }*/
+
+  if (_cursor.available() < 0) return 0.0;
+
+  // 1. Gestion du signe
+  bool negative = false;
+  char sign = _cursor.peek();
+  if (sign == '-') {
+      negative = true;
+      _cursor.advance();
+  } else if (sign == '+') {
+    _cursor.advance();
   }
 
-  return assign_parsed_value_to_value( parsed_value, arg_value ) |
-         ParseValueResult::INTEGER_PARSED;
+  uint64_t value = 0;
+  int decimal_digits = -1;
+  bool has_digits = false;
+
+  // 2. Parser la partie entière et décimale en un seul grand entier
+  while (_cursor.available() >= 0) {
+      if (_cursor.peek() >= '0' && _cursor.peek() <= '9') {
+          value = value * 10 + (_cursor.peek() - '0');
+          has_digits = true;
+          if (decimal_digits >= 0) {
+              decimal_digits++;
+          }
+        _cursor.advance();
+      } else if (_cursor.peek() == '.') {
+          if (decimal_digits >= 0) break; // Deuxième point trouvé (erreur de syntaxe)
+          decimal_digits = 0;
+        _cursor.advance();
+      } else {
+          break; // Caractère non numérique ou début de l'exposant 'e'/'E'
+      }
+  }
+
+  if (!has_digits) {
+      return 0.0;
+  }
+
+  // Ajustement de l'exposant de base lié à la virgule
+  int exponent = (decimal_digits > 0) ? -decimal_digits : 0;
+
+  // 3. Gestion de la notation scientifique JSON (e ou E)
+  if (_cursor.available() >= 0) {
+      if (_cursor.peek() == 'e' || _cursor.peek() == 'E') {
+        _cursor.advance();
+
+          bool exp_negative = false;
+          char exp_sign = _cursor.peek();
+          if (_cursor.available() >= 0) {
+              if (exp_sign == '-') { exp_negative = true; _cursor.advance(); }
+              else if (exp_sign == '+') { _cursor.advance(); }
+          }
+
+          int exp_value = 0;
+          while (_cursor.available() >= 0) {
+              char digit = _cursor.peek();
+              if (digit >= '0' && digit <= '9') {
+                  exp_value = exp_value * 10 + (digit - '0');
+                _cursor.advance();
+              } else {
+                  break;
+              }
+          }
+          exponent += exp_negative ? -exp_value : exp_value;
+      }
+  }
+
+  // 4. Conversion finale (Calcul à la volée pour économiser la Flash ROM)
+  double result = value;
+
+  if (exponent != 0) {
+      // Calcul de la puissance de 10 de manière itérative ou via les fonctions de base
+      // Sur microcontrôleur avec FPU matérielle, l'utilisation d'une boucle ou d'un multiplicateur
+      // évite de charger des grosses bibliothèques d'arrondis parfaits.
+      double factor = 1.0;
+      int abs_exponent = exponent < 0 ? -exponent : exponent;
+
+      // Exponentiation rapide par carré pour optimiser la vitesse de calcul de la puissance
+      double base = 10.0;
+      while (abs_exponent > 0) {
+          if (abs_exponent & 1) factor *= base;
+          base *= base;
+          abs_exponent >>= 1;
+      }
+
+      if (exponent < 0) {
+          result /= factor;
+      } else {
+          result *= factor;
+      }
+  }
+
+  double parsed_value = negative ? -result : result;
+  return assign_parsed_value_to_value( parsed_value, arg_value ) | ParseValueResult::FLOAT_PARSED;
 }
 
+// template <typename Cursor, bool UseMask>
+// template <typename PV, typename V>
+// ParseValueResult
+// JSONParserBase<const PointerCursorReader, UseMask>::parse_numeric_type( V& arg_value ) {
+//   const char* ptr = _cursor.ptr();
+//   const char* start = ptr;
+
+//   if (ptr == nullptr) return 0.0;
+//   if (*ptr == '\0') return 0.0;
+
+//   // 1. Gestion du signe
+//   bool negative = false;
+//   if (*ptr == '-') {
+//       negative = true;
+//       ptr++;
+//   } else if (*ptr == '+') {
+//     ptr++;
+//   }
+
+//   uint64_t value = 0;
+//   int decimal_digits = -1;
+//   bool has_digits = false;
+
+//   // 2. Parser la partie entière et décimale en un seul grand entier
+//   while (*ptr != '\0') {
+//       if (*ptr >= '0' && *ptr <= '9') {
+//           value = value * 10 + (*ptr - '0');
+//           has_digits = true;
+//           if (decimal_digits >= 0) {
+//               decimal_digits++;
+//           }
+//           ptr++;
+//       } else if (*ptr == '.') {
+//           if (decimal_digits >= 0) break; // Deuxième point trouvé (erreur de syntaxe)
+//           decimal_digits = 0;
+//           ptr++;
+//       } else {
+//           break; // Caractère non numérique ou début de l'exposant 'e'/'E'
+//       }
+//   }
+
+//   if (!has_digits) {
+//       return 0.0;
+//   }
+
+//   // Ajustement de l'exposant de base lié à la virgule
+//   int exponent = (decimal_digits > 0) ? -decimal_digits : 0;
+
+//   // 3. Gestion de la notation scientifique JSON (e ou E)
+//   if (*ptr != '\0') {
+//       if (*ptr == 'e' || *ptr == 'E') {
+//         ptr++;
+
+//           bool exp_negative = false;
+//           char sign = *ptr;
+//           if (sign != '\0') {
+//               if (sign == '-') { exp_negative = true; ptr++; }
+//               else if (sign == '+') { ptr++; }
+//           }
+
+//           int exp_value = 0;
+//           while (*ptr != '\0') {
+//               char digit = *ptr;
+//               if (digit >= '0' && digit <= '9') {
+//                   exp_value = exp_value * 10 + (digit - '0');
+//                   ptr++;
+//               } else {
+//                   break;
+//               }
+//           }
+//           exponent += exp_negative ? -exp_value : exp_value;
+//       }
+//   }
+
+//   _cursor.advance(ptr - start);
+
+//   // 4. Conversion finale (Calcul à la volée pour économiser la Flash ROM)
+//   double result = value;
+
+//   if (exponent != 0) {
+//       // Calcul de la puissance de 10 de manière itérative ou via les fonctions de base
+//       // Sur microcontrôleur avec FPU matérielle, l'utilisation d'une boucle ou d'un multiplicateur
+//       // évite de charger des grosses bibliothèques d'arrondis parfaits.
+//       double factor = 1.0;
+//       int abs_exponent = exponent < 0 ? -exponent : exponent;
+
+//       // Exponentiation rapide par carré pour optimiser la vitesse de calcul de la puissance
+//       double base = 10.0;
+//       while (abs_exponent > 0) {
+//           if (abs_exponent & 1) factor *= base;
+//           base *= base;
+//           abs_exponent >>= 1;
+//       }
+
+//       if (exponent < 0) {
+//           result /= factor;
+//       } else {
+//           result *= factor;
+//       }
+//   }
+
+//   return negative ? -result : result;
+// }
+// char* start;
+// static PV parsed_value;
+
+// if constexpr ( std::is_same_v<Cursor, const PointerCursorReader> ) {
+//   start = const_cast<char*>( _cursor.ptr() );
+// } else {
+//   static char tmp[JSON::MAX_NUMERIC_LENGTH];
+//   size_t len = _cursor.peekToken( tmp, JSON::MAX_NUMERIC_LENGTH - 1 );
+//   if ( len == 0 ) return ParseValueResult::PARSE_ERROR_NUMERIC;
+
+//   tmp[len] = '\0';
+//   start = tmp;
+// }
+
+// char* end = start;
+
+// if constexpr ( std::is_same_v<PV, double> || std::is_same_v<PV, float> ) {
+//   parsed_value = fast_parse_double(_cursor);//strtod_fast(start, &end);
+//   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric double %f\n", parsed_value );
+//   // if (parsed_value == 0.0 && end == start) {
+//   //   return parse_infinity( arg_value );
+//   // }
+// } else if constexpr ( std::is_integral_v<PV> ) {
+//   parsed_value = strtod_fast(start, &end);
+//   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric integral %d\n", parsed_value );
+// }/* else if constexpr ( std::is_integral_v<PV> && std::is_signed_v<PV> && sizeof( PV ) <= 4 ) {
+//   parsed_value = strtod_fast(start, end);
+//   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric int32_t %d\n", parsed_value );
+// } else if constexpr ( std::is_integral_v<PV> && std::is_unsigned_v<PV> && sizeof( PV ) > 4 ) {
+//   parsed_value = strtod_fast(start, end);
+//   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric uint64 %llu\n", (unsigned long long)parsed_value );
+// } else if constexpr ( std::is_integral_v<PV> && std::is_signed_v<PV> && sizeof( PV ) > 4 ) {
+//   parsed_value = strtod_fast(start, end);
+//   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric int64 %lld\n", (long long)parsed_value );
+// }*/
+
+// if (end == start) return ParseValueResult::PARSE_ERROR_NUMERIC;
+
+// if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
+//   _cursor.go_to(end);
+// } else {
+//   //size_t consumed = static_cast<size_t>( end - start );
+//   _cursor.advance(end - start);
+// }
+
+// if constexpr ( std::is_integral_v<PV> && ALLOW_FLOATING_POINT_INTEGERS ) {
+//   if ( scan_char( '.', true ) ) {
+//     JSON_DEBUG_WARNING( "JSONParserBase::parse_numeric integer: found extra digits after '.'\n" );
+//     scan_digits( JSON::MAX_VALUE_LENGTH );
+//   }
+// }
 // ── parse_floating_point ──────────────────────────────────────
 // template <typename Cursor, bool UseMask>
 // template <typename V>
@@ -978,13 +1188,15 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_nan( V& arg_value ) {
 template <typename Cursor, bool UseMask> template <typename V> ParseValueResult
 JSONParserBase<Cursor, UseMask>::parse_infinity( V& arg_value ) {
   JSON_DEBUG_INFO( "JSONParserBase::parse_infinity\n" );
-  if ( !scan_keyword( JSON_INFINITY, true ) ) {
-    return ParseValueResult::PARSE_ERROR_NUMERIC;
+  if ( scan_keyword( JSON_INFINITY, true ) ) {
+    InfinityType pv;
+    return assign_parsed_value_to_value( pv, arg_value ) | ParseValueResult::FLOAT_PARSED;
+  } else if (scan_keyword( JSON_NAN, true )) {
+    NullType pv;
+    return assign_parsed_value_to_value( pv, arg_value ) | ParseValueResult::FLOAT_PARSED;
   }
 
-  InfinityType pv;
-  return assign_parsed_value_to_value( pv, arg_value ) |
-         ParseValueResult::FLOAT_PARSED;
+  return ParseValueResult::PARSE_ERROR_NUMERIC;
 }
 
 template <typename Cursor, bool UseMask> ParseValueResult
@@ -1040,12 +1252,12 @@ path); ParseValueResult result = parse_array<BaseContainerType>(base_container);
               continue;
            }
 
-            SKIP_SPACES;
+            SKIP_SPACES
             if (!scan_char(JSON_COMMA_CHARACTER, true)) {
               return ParseValueResult::PARSE_ERROR_ARRAY_NO_COMMA;
             }
             path[depth-1]++;
-            SKIP_SPACES;
+            SKIP_SPACES
             continue;
     } else {
       if (is_array_end()) {
@@ -1063,7 +1275,7 @@ path); ParseValueResult result = parse_array<BaseContainerType>(base_container);
     }
 
     JSON_DEBUG_INFO("JSONParserBase::parse_array multi-dimensional loop %d\n",
-depth); SKIP_SPACES;
+depth); SKIP_SPACES
   }
 
   return ParseValueResult::PARSE_ERROR_ARRAY_NO_END;
@@ -1114,7 +1326,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array( V& arg_value ) {
       return ParseValueResult::PARSE_ERROR_OVERFLOW;
     }
 
-    SKIP_SPACES;
+    SKIP_SPACES
 
     ParseValueResult result =
         parse_into_array_at_index<TargetT>( arg_value, i );
@@ -1133,12 +1345,10 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array( V& arg_value ) {
       return result;
     }
 
-    SKIP_SPACES;
+    SKIP_SPACES
 
     if ( !scan_char( JSON_COMMA_CHARACTER, true ) ) {
-      JSON_DEBUG_WARNING( "JSONParserBase::parse_array: no comma at index %zu, "
-                          "assuming end of array\n",
-                          i );
+      JSON_DEBUG_WARNING( "JSONParserBase::parse_array: no comma after index %zu, assuming end of array\n", i );
       if constexpr ( container_info<V>::is_container ) {
         if ( i < max - 1 ) { underflow = true; }
       }
@@ -1159,7 +1369,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array( V& arg_value ) {
     }
   }
 
-  SKIP_SPACES;
+  SKIP_SPACES
 
   return ParseValueResult::ARRAY_PARSED;
 }
@@ -1311,9 +1521,8 @@ JSONParserBase<Cursor, UseMask>::parse_any( JSONCallbackObject& arg_value ) {
 // Saute une valeur JSON sans la parser (objet, tableau, littéral...)
 template <typename Cursor, bool UseMask>
 ParseValueResult JSONParserBase<Cursor, UseMask>::skip_value() {
-#ifdef __GXX_RTTI
   JSON_DEBUG_INFO( "JSONParserBase::skip_value generic\n" );
-#endif
+
   int8_t depth = 0;
   bool inString = false;
   bool escape = false;
@@ -1473,7 +1682,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_object_end() {
       if ( is_object_end() ) {
         break;
       } else {
-        SKIP_SPACES;
+        SKIP_SPACES
 
         if ( !scan_char( JSON_COMMA_CHARACTER, true ) ) {
           JSON_DEBUG_ERROR( "JSONParserBase::skip_to_object_end: no comma\n" );
@@ -1512,7 +1721,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_array_end() {
   // We are in the middle of an array after the comma, we need to skip to the
   // end of the array We use skip_value to skip the each value until we find the
   // end of the array;
-  SKIP_SPACES;
+  SKIP_SPACES
 
   while ( true ) {
     CHECK_LOOP( MAX_ITERATIONS, ParseValueResult::PARSE_ERROR_OVERFLOW );
@@ -1526,7 +1735,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_array_end() {
         break;
       } else {
         // skip the comma
-        SKIP_SPACES;
+        SKIP_SPACES
 
         if ( !scan_char( JSON_COMMA_CHARACTER, true ) ) {
           JSON_DEBUG_ERROR( "JSONParserBase::skip_to_array_end: no comma\n" );
@@ -1556,7 +1765,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_array_end_fast() {
   // We are in the middle of an array after the comma, we need to skip to the
   // end of the array We just go to the end of the array assuming none of the
   // values contains ']'.
-  SKIP_SPACES;
+  SKIP_SPACES
 
   while ( brackets_counter > 0 ) {
     CHECK_LOOP( MAX_ITERATIONS, ParseValueResult::PARSE_ERROR_OVERFLOW );
@@ -1580,7 +1789,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_array_end_fast() {
     }
   }
 
-  SKIP_SPACES;
+  SKIP_SPACES
 
   return ParseValueResult::ARRAY_PARSED;
 }
@@ -1932,52 +2141,45 @@ JSONParserBase<Cursor, UseMask>::scan_ranges( char ( &ranges )[RN][2],
 // ============================================================
 
 #if JSON_DEBUG_LEVEL > 0
+#define DEBUG_OFFSET 30
 template <typename Cursor, bool UseMask>
-void JSONParserBase<Cursor, UseMask>::print_state(
-    [[maybe_unused]] size_t iteration ) {
-  // We cannot print the state of a StreamCursor because it is not seekable.
-  if constexpr ( std::is_same_v<Cursor, const PointerCursorReader> ) {
-    size_t length =
-        std::min( _cursor.size(), (size_t)JSON::DEBUG_COLUMN_WIDTH );
+void JSONParserBase<Cursor, UseMask>::print_state( size_t iteration ) {
+    if (_cursor.bytesConsumed() == 0) {
+      std::printf("\x1b[32mSTART\x1b[0m\n");
+      return;
+    }
 
-    [[maybe_unused]] size_t col_number = _cursor.bytesConsumed() / length;
-    [[maybe_unused]] size_t col_pos = _cursor.bytesConsumed() % length;
-    [[maybe_unused]] const char* dots =
-        ( _cursor.size() ) > length ? "..." : "";
+    const char* color = ( _state == ERROR ) ? "\x1b[31m" : "\x1b[32m";
+    char errors[128] = {0};
+    if (_lastError != ParserError::NO_ERROR) {
+      snprintf(errors, sizeof(errors), "error=%s ", errorToString(_lastError));
+    }
+    if (_lastParseError != ParseValueResult::NO_RESULT) {
+      snprintf(errors, sizeof(errors), "parseError=%s ", errorToString(_lastParseError));
+    }
 
-    [[maybe_unused]] const char* color =
-        ( _state == ERROR ) ? "\x1b[31m" : "\x1b[32m";
-    [[maybe_unused]] const char* error =
-        ( _state == ERROR ) ? errorToString( _lastError ) : "";
-    [[maybe_unused]] const char* errorValueType =
-        ( _state == ERROR ) ? errorToString( _lastParseError ) : "";
+    char json[DEBUG_OFFSET * 2 + 1];
+    const char* begin = std::max(_cursor.ptr() - DEBUG_OFFSET, _cursor.start());
+    const char* end = std::min(_cursor.ptr() + DEBUG_OFFSET, _cursor.start() + _cursor.size());
+    size_t json_size = end - begin;
+    int offset = _cursor.ptr() - begin;
+    strncpy( json, begin, json_size );
 
-    char* output = static_cast<char*>( malloc( length ) );
-    strncpy( output, _cursor.start() + col_number * length, length );
-
-    // REPLACE \n with ' ' in output
-    // replace(output, old_chars, new_char);
-    replace_endl( output, length );
-
-    JSON_DEBUG_INFO( "Parser: %.*s %s pos=%zu it=%zu, p=%p\n%s%*c%s %s %s "
-                     "key='%.*s' \x1b[0m\n",
-                     (int)length,
-                     (const char*)output,
-                     dots,
-                     _cursor.bytesConsumed(),
-                     iteration,
-                     this,
+    replace_endl( json, sizeof( json ));
+    std::string_view state = get_state_name();
+    JSON_DEBUG_INFO( "'%.*s'\n%s%*c[%zu]:%.*s %skey='%.*s' \x1b[0m\n",
+                     json_size,
+                     json,
                      color,
-                     (int)( 8 + col_pos + 1 ),
+                     ( 1 + offset ),
                      '^',
-                     get_state_name().data(),
-                     error,
-                     errorValueType,
+                     _cursor.bytesConsumed(),
+                     (int)state.length(),
+                     state.data(),
+                     errors,
                      (int)_key_length,
                      _s_key_buf );
-
-    free( output );
-  }
+  //}
 }
 #endif
 
@@ -2007,6 +2209,8 @@ std::string_view JSONParserBase<Cursor, UseMask>::get_state_name() {
       break;
     case STOPPED:
       return "STOPPED";
+    case SKIP:
+      return "SKIP";
       break;
     default:
       return "UNKNOWN";

@@ -5,7 +5,6 @@
 
 #include "JSONParserBase.h"
 #include "StringPool.h"
-#include "StreamCursor.h"
 #include "macros.h"
 #include "utils.h"
 
@@ -41,8 +40,7 @@ _parse_impl(uint32_t& mask, JSONParserBase<Cursor, UseMask>* parser, Args &&...a
     MAX_GLOBAL_PARSER_SIZE = GLOBAL_PARSER_SIZE;
   }
 #endif
-  if constexpr (std::is_same<remove_cv_ref_t<Cursor>, StreamCursorReader>::value &&
-                (sizeof...(Args) > 1)) {
+  if constexpr (is_stream_cursor_reader_v<Cursor> && (sizeof...(Args) > 1)) {
     constexpr size_t n_sv = count_string_view_args_v<Args...>;
     StringPool<TargetT>::ensure_pool_size(n_sv);
   }

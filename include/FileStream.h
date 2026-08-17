@@ -68,6 +68,7 @@ public:
     _update_size();
     return written;
   }
+
   size_t write(const uint8_t *buffer, size_t size) override {
     size_t written = fwrite(buffer, 1, size, _file);
     _update_size();

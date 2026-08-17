@@ -13,7 +13,7 @@ AlignEscapedNewlines: Left
 AllowAllConstructorInitializersOnNextLine: "true"
 BinPackArguments: false
 BinPackParameters: false
-ColumnWidth: 0
+ColumnWidth: 120
 BreakConstructorInitializers: AfterColon
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 DerivePointerAlignment: "false"

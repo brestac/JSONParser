@@ -254,6 +254,10 @@ template <typename T> inline constexpr bool is_stream_v = std::is_base_of<Stream
 
 template <typename T> inline constexpr bool is_buffer_v = std::is_constructible_v<JSON::PointerCursorReader, T> || std::is_same_v<remove_cv_ref_t<T>, std::string>;
 
+template <typename T> inline constexpr bool is_pointer_cursor_reader_v = std::is_same_v<remove_cv_ref_t<T>, JSON::PointerCursorReader>;
+
+template <typename T> inline constexpr bool is_stream_cursor_reader_v = std::is_same_v<remove_cv_ref_t<T>, JSON::StreamCursorReader>;
+
 // ==========================================
 // Key Value checker
 // ==========================================
@@ -261,7 +265,7 @@ template <typename T> inline constexpr bool is_buffer_v = std::is_constructible_
 
 // template <typename T>
 // struct is_convertible_to_indexed_key<T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>> : std::true_type {};
-#if !defined(DISABLE_ARGS_CHECK) || DISABLE_ARGS_CHECK == 0
+#if !defined(DISABLE_ARGS_CHECK)
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename Value>

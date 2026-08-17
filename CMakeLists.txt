@@ -45,13 +45,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(ArduinoJson)
 
+# Désactiver les options inutiles de RapidJSON avant de l'inclure
+set(RAPIDJSON_BUILD_DOC OFF CACHE BOOL "" FORCE)
+set(RAPIDJSON_BUILD_TERS OFF CACHE BOOL "" FORCE)
+set(RAPIDJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(RAPIDJSON_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+# Déclarer et récupérer RapidJSON depuis GitHub
 FetchContent_Declare(
     rapidjson
     GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
-    GIT_TAG v1.1.0
+    GIT_TAG        v1.1.0 # ou un commit SHA récent
 )
-
 FetchContent_MakeAvailable(rapidjson)
+
 # ── Ressources JSON à copier dans le répertoire de build ──────────────────────
 file(GLOB JSON_RESOURCES "${CMAKE_SOURCE_DIR}/examples/JSONParserTest/*.*json")
 
@@ -106,12 +113,15 @@ add_executable(release-perf
     tests/reporter.cpp
     tests/perf.cpp
 )
-target_include_directories(release-perf PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_include_directories(release-perf PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${rapidjson_SOURCE_DIR}/include)
 target_link_libraries(release-perf PRIVATE Catch2::Catch2WithMain jsonparser simdjson nlohmann_json::nlohmann_json ArduinoJson)
 
 target_compile_options(release-perf PRIVATE
     -O2
     -std=gnu++17
+    -Wno-deprecated-declarations
+    -Wno-class-memaccess
 )
 copy_resources(release-perf)
 
@@ -127,8 +137,10 @@ target_compile_options(debug PRIVATE
     -O0
     -std=gnu++17
     -Wextra -Wpedantic
-    -Wno-gnu-zero-variadic-macro-arguments -Wno-variadic-macros -Wno-vla-extension
-    -ferror-limit=50
+    -Wno-gnu-zero-variadic-macro-arguments
+    -Wno-variadic-macros
+    -Wno-vla-extension
+# --    -ferror-limit=50
 )
 foreach(res ${JSON_RESOURCES})
     get_filename_component(res_name "${res}" NAME)
