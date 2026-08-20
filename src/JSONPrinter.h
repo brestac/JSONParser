@@ -1,6 +1,8 @@
 #pragma once
 
-#include "demangled.h"
+#ifdef __GXX_RTTI
+  #include "demangled.h"
+#endif
 #include "types.h"
 #ifndef ARDUINO
 #include "../include/ArduinoCompat.h"

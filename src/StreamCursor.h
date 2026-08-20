@@ -8,10 +8,12 @@
 #else
 #include "../include/Stream.h"
 #endif
-
+#ifdef __GXX_RTTI
+  #include "demangled.h"
+#endif
 #include "StringPool.h"
 #include "constants.h"
-#include "demangled.h"
+
 #include "macros.h"
 
 static inline uint64_t refill_duration = 0;

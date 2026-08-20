@@ -5,7 +5,9 @@
 #include <stdexcept>
 #endif
 #include "constants.h"
-#include "demangled.h"
+#ifdef __GXX_RTTI
+  #include "demangled.h"
+#endif
 #include "utils.h"
 
 // ---------------------------------------------------------------------------
