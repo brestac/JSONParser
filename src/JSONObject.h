@@ -4,7 +4,6 @@
 #include "PointerCursor.h"
 #include "StreamCursor.h"
 #include "StringPool.h"
-#include "str_length.h"
 #include "types.h"
 
 using namespace JSON;

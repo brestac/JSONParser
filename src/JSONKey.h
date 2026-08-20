@@ -2,7 +2,6 @@
 
 #include <string_view>
 
-#include "str_length.h"
 #include "utils.h"
 
 // ---------------------------------------------------------------------------

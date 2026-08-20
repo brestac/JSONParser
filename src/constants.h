@@ -75,6 +75,15 @@ constexpr T create_char_range_mask(const uint8_t min, const uint8_t max) {
     return mask;
 }
 
+constexpr size_t strlen_ctx(const char* str, uint32_t max_len) {
+  uint32_t len = 0;
+  while (len < max_len && str[len] != '\0') {
+    ++len;
+  }
+
+  return len;
+}
+
 template <typename T>
 constexpr bool is_in_mask(const uint8_t c, const T mask) {
     return (mask & (1ULL << c)) != 0ULL;

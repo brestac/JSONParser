@@ -2,7 +2,6 @@
 
 #include "constants.h"
 #include "macros.h"
-#include "str_length.h"
 // ============================================================
 //  PointerCursor
 //  Wrapper autour de const char*& pour exposer la même interface
@@ -28,7 +27,7 @@ public:
   }
 
   explicit constexpr PointerCursor(const char* start)
-      : _pos(start), _start(start), _end(start + str_length(start, MAX_JSON_LENGTH)) {
+      : _pos(start), _start(start), _end(start + strlen_ctx(start, MAX_JSON_LENGTH)) {
     JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader %p created with const char* %p ", this, start);
   }
 
@@ -204,7 +203,7 @@ size_t PointerCursorWriter::write(const char* buf, size_t size) const {
   return i;
 }
 
-size_t PointerCursorWriter::write(const char* buf) const { return write(buf, str_length(buf, MAX_JSON_LENGTH)); }
+size_t PointerCursorWriter::write(const char* buf) const { return write(buf, strlen_ctx(buf, MAX_JSON_LENGTH)); }
 
 template <size_t N> size_t PointerCursorWriter::write(const char (&buf)[N]) const {
   return write(buf, N - 1);
