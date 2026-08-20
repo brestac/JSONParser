@@ -90,9 +90,12 @@ RGB values 0‑255.
 #  define SKIP_SPACES
 #endif
 
+#ifndef __GXX_RTTI
+#  define JSON_DEBUG_TYPES
+#endif
+
 #ifdef ARDUINO
 #  define PRINTF_COLOR( n, fmt, ... ) DEBUG_PRINTF( fmt, ##__VA_ARGS__ )
-#  define JSON_DEBUG_TYPES
 #else
 #  define PRINTF_COLOR( n, fmt, ... ) \
     DEBUG_PRINTF( "\x1b[" TO_STRING( n ) "m" fmt "\x1b[0m", ##__VA_ARGS__ )
