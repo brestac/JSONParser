@@ -222,8 +222,9 @@ public:
 
   static void increment_values_counter() { n_values++; }
 
-  static void move_offset(int n) { 
-    if (s_pool_offset + n > s_pool_size || s_pool_offset + n < 0) {
+  static void move_offset(int n) {
+    int new_offset = s_pool_offset + n;
+    if (new_offset < 0 || new_offset > static_cast<int>(s_pool_size)) {
       JSON_DEBUG_COLOR(COLOR_RED, "StringPool<%s> move_offset out of bounds\n", typeid(T).name());
       return;
     }

@@ -8,6 +8,10 @@
 
 #define PARSE_TIMEOUT 1000 // default number of milli-seconds to wait
 #define NO_SKIP_CHAR 1 // a magic char not found in a valid ASCII numeric field
+unsigned long long _now() {
+  auto time = std::chrono::steady_clock::now();
+  return std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count();
+}
 
 class Stream {
 protected:
@@ -74,7 +78,6 @@ int Stream::timedPeek() {
 // the buffer is NOT null terminated.
 //
 size_t Stream::readBytes(uint8_t *buffer, size_t length) {
-
   size_t count = 0;
   while (count < length) {
     int c = timedRead();

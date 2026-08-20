@@ -126,7 +126,7 @@ TEST_CASE( "Test stream reader", "[stream][file]" ) {
 
       //meter.measure([&fc,&file] {
         JSON::ParseResult pr = fc.fromJSON( file );
-        //REQUIRE( pr.error == 0 );
+        REQUIRE( pr.error == 0 );
         return pr;
       //});
   };
@@ -138,7 +138,7 @@ TEST_CASE( "Test stream reader", "[stream][file]" ) {
   
       //meter.measure([&doc,&file] {
         DeserializationError error = deserializeJson( doc, file );
-        //REQUIRE( error == DeserializationError::Ok );
+        REQUIRE( error == DeserializationError::Ok );
         return error;
       //});
   };

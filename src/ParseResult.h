@@ -22,7 +22,7 @@ enum ParserError : uint8_t {
   SKIP_ERROR = 10
 };
 
-static const char* errorToString(ParserError& error) {
+[[maybe_unused]] static const char* errorToString(ParserError& error) {
   switch (error) {
   case ParserError::NO_ERROR:
     return "NO ERROR";

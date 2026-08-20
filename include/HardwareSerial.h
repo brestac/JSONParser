@@ -41,7 +41,7 @@ public:
   int available() override { return UINT32_MAX; }
   // Ecrit et avance
   size_t write(uint8_t c) override {
-    std::printf("%c", (const char)c);
+    std::printf("%c", c);
     return 1;
   }
 

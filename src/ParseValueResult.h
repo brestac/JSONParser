@@ -209,7 +209,7 @@ const char *parseStateToString(ParseValueResult::State &state) {
   return "VALUE_NOT_CONVERTED_NOT_UPDATED";
 }
 
-static const char *errorToString(ParseValueResult &result) {
+[[maybe_unused]] static const char *errorToString(ParseValueResult &result) {
   static char output[80] = {0};
 
   ParseValueResult::State state = result.state();

@@ -35,23 +35,16 @@ std::string read_file_to_string( const char* filename ) {
 int main() {
   FeatureCollection<2> fc;
   File input = LittleFS.open( GEOJSON_SMALL_FILE_PATH, "r" );
-  //std::string input = read_file_to_string( GEOJSON_SMALL_FILE_PATH );
+  // //std::string input = read_file_to_string( GEOJSON_SMALL_FILE_PATH );
   JSON::ParseResult r = fc.fromJSON( input );
   r.print();
-  std::printf( "error: %d %s\n", r.error, errorToString( r.error ) );
-  // bool all_passed = run_tests();
-  // test_parse_geojson_small();
-  // test_parsing();
-  // test_parse_multidimensional_array();
-  // test_parse_indexed_keys();
-  // test_parse_geojson_big_from_buffer<FeatureCollection>();
-  // test_parse_geojson_big_from_file<FeatureCollection>();
-  // test_parse_geojson_big_from_file<FeatureCollection>(true);
-  // test_parse_geojson_big_from_file<FeatureCollection>(false);
+  std::printf("Refill total duration %.2f%% read bytes %.2f%%\n", ((float)refill_duration / r.elapsed) * 100.0f, ((float)profile_read_bytes / r.elapsed) * 100.0f);
+  // std::printf( "error: %d %s\n", r.error, errorToString( r.error ) );
+  
 #ifdef JSON_DEBUG_MEM
   std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
   std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
 #endif
-  // return all_passed ? 0 : 1;
+
   return 0;
 }

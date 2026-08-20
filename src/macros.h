@@ -85,7 +85,7 @@ RGB values 0‑255.
 #endif
 
 #ifndef JSON_STRICT_MODE
-#  define SKIP_SPACES scan_chars( JSON_SPACE_CHARACTERS, true );
+#  define SKIP_SPACES skip_spaces();
 #else
 #  define SKIP_SPACES
 #endif

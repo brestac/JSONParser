@@ -11,7 +11,34 @@ add_library(jsonparser INTERFACE)
 # Indiquer le dossier contenant les fichiers .h pour la compilation
 target_include_directories(jsonparser INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-# --$<INSTALL_INTERFACE:include>
+)
+
+set(jsonparser INTERFACE JSON_DEBUG_LEVEL_NONE 0)
+set(jsonparser INTERFACE JSON_DEBUG_LEVEL_INFO 1)
+set(jsonparser INTERFACE JSON_DEBUG_LEVEL_WARNING 2)
+set(jsonparser INTERFACE JSON_DEBUG_LEVEL_ERROR 3)
+
+# Créer une bibliothèque d'en-têtes (interface)
+add_library(jsonparser-arduino INTERFACE)
+
+# Indiquer le dossier contenant les fichiers .h pour la compilation
+target_include_directories(jsonparser-arduino INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+)
+
+set(jsonparser-arduino INTERFACE JSON_DEBUG_LEVEL_NONE 0)
+set(jsonparser-arduino INTERFACE JSON_DEBUG_LEVEL_INFO 1)
+set(jsonparser-arduino INTERFACE JSON_DEBUG_LEVEL_WARNING 2)
+set(jsonparser-arduino INTERFACE JSON_DEBUG_LEVEL_ERROR 3)
+target_compile_options(jsonparser-arduino INTERFACE
+    -DCMAKE_CXX_COMPILER=g++
+    -Os
+    -std=gnu++17
+    -fno-rtti
+    -falign-functions=4
+    -ffunction-sections
+    -fdata-sections
+    -fno-exceptions
 )
 
 Include(FetchContent)
@@ -45,19 +72,25 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(ArduinoJson)
 
-# Désactiver les options inutiles de RapidJSON avant de l'inclure
-set(RAPIDJSON_BUILD_DOC OFF CACHE BOOL "" FORCE)
-set(RAPIDJSON_BUILD_TERS OFF CACHE BOOL "" FORCE)
-set(RAPIDJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(RAPIDJSON_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-
 # Déclarer et récupérer RapidJSON depuis GitHub
 FetchContent_Declare(
-    rapidjson
+    rapidjson_src
     GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
     GIT_TAG        v1.1.0 # ou un commit SHA récent
 )
-FetchContent_MakeAvailable(rapidjson)
+FetchContent_MakeAvailable(rapidjson_src)
+
+add_library(rapidjson INTERFACE)
+target_include_directories(rapidjson INTERFACE ${rapidjson_src_SOURCE_DIR}/include)
+
+set(rapidjson INTERFACE RAPIDJSON_BUILD_DOC OFF)
+set(rapidjson INTERFACE RAPIDJSON_BUILD_TERS OFF)
+set(rapidjson INTERFACE RAPIDJSON_BUILD_TESTS OFF)
+set(rapidjson INTERFACE RAPIDJSON_BUILD_EXAMPLES OFF)
+target_compile_options(rapidjson INTERFACE
+    -Wno-deprecated-declarations
+    -Wno-class-memaccess
+)
 
 # ── Ressources JSON à copier dans le répertoire de build ──────────────────────
 file(GLOB JSON_RESOURCES "${CMAKE_SOURCE_DIR}/examples/JSONParserTest/*.*json")
@@ -66,13 +99,6 @@ add_compile_options(
     -Wall
     -Werror
     -Werror=unused-variable
-    -Wno-format-security
-    -Wno-unknown-pragmas
-    -Wno-unused-function
-    -DJSON_DEBUG_LEVEL_NONE=0
-    -DJSON_DEBUG_LEVEL_INFO=1
-    -DJSON_DEBUG_LEVEL_WARNING=2
-    -DJSON_DEBUG_LEVEL_ERROR=3
 )
 
 function(copy_resources CIBLE)
@@ -105,6 +131,7 @@ target_link_libraries(release PRIVATE Catch2::Catch2WithMain jsonparser)
 target_compile_options(release PRIVATE
     -O2
     -std=gnu++17
+    -ftemplate-backtrace-limit=0
 )
 copy_resources(release)
 
@@ -114,14 +141,12 @@ add_executable(release-perf
     tests/perf.cpp
 )
 
-target_include_directories(release-perf PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${rapidjson_SOURCE_DIR}/include)
-target_link_libraries(release-perf PRIVATE Catch2::Catch2WithMain jsonparser simdjson nlohmann_json::nlohmann_json ArduinoJson)
+target_include_directories(release-perf PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(release-perf PRIVATE Catch2::Catch2WithMain jsonparser simdjson rapidjson nlohmann_json::nlohmann_json ArduinoJson)
 
 target_compile_options(release-perf PRIVATE
     -O2
     -std=gnu++17
-    -Wno-deprecated-declarations
-    -Wno-class-memaccess
 )
 copy_resources(release-perf)
 
@@ -136,11 +161,12 @@ target_link_libraries(debug PRIVATE Catch2::Catch2WithMain jsonparser)
 target_compile_options(debug PRIVATE
     -O0
     -std=gnu++17
-    -Wextra -Wpedantic
-    -Wno-gnu-zero-variadic-macro-arguments
+    -Wno-cpp
     -Wno-variadic-macros
-    -Wno-vla-extension
-# --    -ferror-limit=50
+    -Wextra
+    -Wpedantic
+    -Wdangling-pointer
+     -error-limit=50
 )
 foreach(res ${JSON_RESOURCES})
     get_filename_component(res_name "${res}" NAME)
@@ -154,19 +180,12 @@ endforeach()
 add_executable(release-arduino
     tests/test.cpp
 )
-target_include_directories(release-arduino PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(release-arduino PRIVATE Catch2::Catch2WithMain jsonparser)
-
 target_compile_options(release-arduino PRIVATE
-    -DCMAKE_CXX_COMPILER=g++
-    -Os
+    -O2
     -std=gnu++17
-    -fno-rtti
-    -falign-functions=4
-    -ffunction-sections
-    -fdata-sections
-    -fno-exceptions
 )
+target_include_directories(release-arduino PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(release-arduino PRIVATE Catch2::Catch2WithMain jsonparser-arduino)
 
 copy_resources(release-arduino)
 

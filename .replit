@@ -111,7 +111,7 @@ author = 564070
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cmake --build build --target arduino && cd build && ./arduino"
+args = "cmake --build build --target release-arduino && cd build && ./release-arduino"
 
 [[workflows.workflow]]
 name = "Fast"
@@ -138,7 +138,7 @@ author = 564070
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cmake --build build --target release-perf && cd build && ./release-perf -r perf-compare"
+args = "cmake --build build --target release-perf && cd build && ./release-perf -r perf-compare --benchmark-samples=250"
 
 [postMerge]
 path = "scripts/post-merge.sh"

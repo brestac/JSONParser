@@ -6,8 +6,26 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <sstream>
 
 #include "globals.h"
+
+std::string format_bytes(uint64_t bytes) {
+    const char* units[] = {"B", "KB", "MB", "GB", "TB"};
+    int unitIndex = 0;
+    double size = static_cast<double>(bytes);
+
+    while (size >= 1024 && unitIndex < 4) {
+        size /= 1024;
+        unitIndex++;
+    }
+
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2) << size << " " << units[unitIndex];
+    return oss.str();
+}
 
 struct BenchmarkResult {
     std::string name;
@@ -80,18 +98,18 @@ public:
                 if (duration == 0) continue;
                 
                 std::string library_name = m_benchmark_results[i].name;
-                double speed = (current_size / (duration / 1e9)) / (1024 * 1024);
+                double speed = (current_size / (duration / 1e9));
 
                 bool is_tested_lib = (library_name == tested_name);
                 if (is_tested_lib) std::printf("\x1b[32m");
                 if (i == 0) {
-                    std::printf( "%zu: %14s: %.3f MB/s\n", i + 1, library_name.c_str(), speed );
+                    std::printf( "%zu: %14s: %s/s\n", i + 1, library_name.c_str(), format_bytes(speed).c_str() );
                 } else {
                     double faster_dur = m_benchmark_results[i-1].mean_ns;
                     std::string faster_name = m_benchmark_results[i-1].name;
 
                     double diff_pourcent = ((duration - faster_dur) / duration) * 100.0;
-                    std::printf( "%zu: %14s: %.3f MB/s, %.0f%% slower than %s.\n", i + 1, library_name.c_str(), speed, diff_pourcent, faster_name.c_str()  );
+                    std::printf( "%zu: %14s: %s/s, %.0f%% slower than %s.\n", i + 1, library_name.c_str(), format_bytes(speed).c_str(), diff_pourcent, faster_name.c_str()  );
                 }
                 if (is_tested_lib) std::printf("\x1b[0m");
             }

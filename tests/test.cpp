@@ -209,37 +209,18 @@ parse_with_callback_geojson_medium_from_file( FeatureMultipoint& feature ) {
 
   return parse_with_callback_geojson_medium_from_stream( feature, &file );
 }
-/*
-char* read_file( const char* filename ) {
-  FILE* file = fopen( filename, "r" );
 
-  if ( !file ) {
-    DEBUG_PRINTF( "ERROR: Could not open %s\n", filename );
-    return nullptr;
-  }
-
-  fseek( file, 0, SEEK_END );
-  long size = ftell( file );
-  fseek( file, 0, SEEK_SET );
-
-  char* buffer = (char*)malloc( size + 1 );
-  [[maybe_unused]] size_t s = fread( buffer, 1, size, file );
-
-  if ( !buffer ) {
-    DEBUG_PRINTF( "ERROR: Could not allocate buffer\n" );
-    fclose( file );
-    return nullptr;
-  }
-
-  buffer[size] = '\0';
-  fclose( file );
-
-  return buffer;
-}
-*/
 static std::string read_file_to_string( const char* filename ) {
   std::ifstream file( filename );
-  if ( !file.is_open() ) { throw std::runtime_error( "Could not open file" ); }
+
+  if ( !file.is_open() ) {
+#ifdef __EXCEPTIONS
+    throw std::runtime_error( "Could not open file" );
+#else
+    std::printf( "Could not open file %s\n", filename );
+    return "";
+#endif
+  }
   std::stringstream buffer;
   buffer << file.rdbuf();
 
@@ -258,7 +239,7 @@ TEST_CASE( "TEST CALLBACK", "" ) {
   JSON::ParseResult pr = JSON::parse(
       json,
       [&p, &liste_idx](
-          const JSONKey& key, const JSONValue& value, JSON::SKIP& stop ) {
+          const JSONKey& key, const JSONValue& value, JSON::SKIP& ) {
         if ( key == "ville" ) {
           p.ville = value;
         } else if ( key == "age" ) {
@@ -296,7 +277,7 @@ TEST_CASE( "TEST CALLBACK", "" ) {
   REQUIRE( strcmp( p.liste[2], "c" ) == 0 );
 }
 
-TEST_CASE( "TEST ARRAY CALLBACK", "" ) {
+TEST_CASE( "TEST ARRAY CALLBACK", "[.]" ) {
 
   Personne personnes[3];
 
@@ -308,8 +289,8 @@ TEST_CASE( "TEST ARRAY CALLBACK", "" ) {
       json,
       [&personnes](
           const JSONKey& key, const JSONValue& value, JSON::SKIP& skip ) {
-        uint16_t arrayIndex = key.getArrayIndex();
-        if ( arrayIndex >= 3 || arrayIndex < 0 ) return;
+        int arrayIndex = key.getArrayIndex();
+        if ( arrayIndex < 0 || arrayIndex > 2 ) return;
 
         switch ( key ) {
           case "nom"_hash:
@@ -323,7 +304,7 @@ TEST_CASE( "TEST ARRAY CALLBACK", "" ) {
         }
         if ( arrayIndex == 1 && key == "age" ) skip = JSON::SKIP::STOP;
       } );
-  CHECK( pr.error == false );
+  REQUIRE( pr.error == 0 );
   REQUIRE( personnes[0].nom == std::string_view( "Bob" ) );
   REQUIRE( personnes[0].age == 0 );
   REQUIRE( personnes[1].nom == std::string_view( "Alice" ) );
@@ -477,13 +458,20 @@ TEST_CASE( "TEST MULTIDIMENSIONAL ARRAY", "" ) {
   // get_element_at_path<1>(coordinates, path);
   // JSON_DEBUG_TYPES("base_container %s\n", base_container);
   const char json[] = "{\"coordinates\":[[[1.0,2.0],[3.0,4.0],[5.0,6.0]]]}";
-  uint32_t mask = 0;
-  JSON::ParseResult pr = JSON::parse( mask, json, "coordinates", coordinates );
+  JSON::ParseResult pr = JSON::parse( 0, json, "coordinates", coordinates );
   REQUIRE( pr.error == 0 );
   REQUIRE_FLOAT( coordinates[0][0][0], 1.0f );
   REQUIRE_FLOAT( coordinates[0][1][1], 4.0f );
   REQUIRE_FLOAT( coordinates[0][2][0], 5.0f );
   REQUIRE_FLOAT( coordinates[0][2][1], 6.0f );
+}
+
+TEST_CASE("Test characters after closing brace", "") {
+  char key[16] = { 0 };
+  const char json[] = "{\"key\":\"value\"}abc";
+  JSON::ParseResult pr = JSON::parse( 0, json, "key", key );
+  REQUIRE( pr.error == 0 );
+  REQUIRE( strcmp( key, "value" ) == 0 );  
 }
 
 TEST_CASE( "TEST EMBEDDED OBJECT", "" ) {
@@ -516,7 +504,6 @@ TEST_CASE( "TEST EMBEDDED OBJECT FROM STREAM", "" ) {
 }
 
 TEST_CASE( "TEST PARSING & FILL", "" ) {
-  JSON::PRINT_BUFFER_AS_HEX = false;
 
   char* ptr = (char*)"ptr";
   Personne enfant( "", 10, 1.50f, "Lyon", ptr, false, nullptr );
@@ -583,8 +570,8 @@ TEST_CASE( "TEST ARRAY PARSING", "" ) {
 
   const char* json = "[{\"nom\":\"Bob\",\"age\":40},{\"nom\":\"Alice\",\"age\":"
                      "30},{\"nom\":\"Roger\",\"age\":64}]";
-  uint32_t mask = 0;
-  JSON::ParseResult r = JSON::parse( mask, json, personnes );
+
+  JSON::ParseResult r = JSON::parse( json, personnes );
 
   REQUIRE( r.error == 0 );
   REQUIRE( personnes[0].nom == std::string_view( "Bob" ) );
@@ -604,9 +591,8 @@ TEST_CASE( "TEST INDEXED PARSING", "" ) {
   int age;
 
   const char* json = "{ \"nom\":\"Bob\", \"age\":40, \"ville\":\"Paris\" }";
-  uint32_t mask = 0;
-  JSON::ParseResult pr =
-      JSON::parse( mask, json, "nom[0]", nom, "age[1]", age );
+  uint8_t mask = 0;
+  JSON::ParseResult pr = JSON::parse( mask, json, "nom[0]", nom, "age[1]", age );
 
   REQUIRE( pr.error == 0 );
   REQUIRE( nom == std::string_view( "Bob" ) );
@@ -753,6 +739,14 @@ TEST_CASE( "parse empty object", "" ) {
   REQUIRE( result.error == 0 );
 }
 
+TEST_CASE( "key allowed characters", "" ) {
+  int value = 0;
+  const char *json = "{\"$kEy_\":1}";
+  JSON::ParseResult result = JSON::parse(0, json, "$kEy_", value );
+  REQUIRE( result.error == 0 );
+  REQUIRE( value == 1 );
+}
+
 TEST_CASE( "parse JSON subset 2", "" ) {
   Parent p; // Parent can decode the keys nom, age, child, child2. Child
             // decodes the keys nom, prenom, age
@@ -768,7 +762,7 @@ TEST_CASE( "parse JSON subset 2", "" ) {
 }
 
 // ----------------------------------------------------------------
-// Test 4 – toJSON char buffer
+// PRINTING TESTS
 // ----------------------------------------------------------------
 
 TEST_CASE( "print to buffer", "" ) {
@@ -920,6 +914,7 @@ TEST_CASE( "toJSON StreamString with HEX uint8_t array", "" ) {
   JSON::PRINT_BUFFER_AS_HEX = true;
   s.toJSON( stream );
   const char* expected = "{\"hex\":\"AABBCCDD\"}";
+  JSON::PRINT_BUFFER_AS_HEX = false;
   REQUIRE( strcmp( stream.c_str(), expected ) == 0 );
 }
 

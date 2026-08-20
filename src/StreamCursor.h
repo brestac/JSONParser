@@ -14,6 +14,8 @@
 #include "demangled.h"
 #include "macros.h"
 
+static inline uint64_t refill_duration = 0;
+
 NAMESPACE_JSON_BEGIN
 
 // ============================================================
@@ -44,6 +46,7 @@ public:
   void refill() {
     size_t space = N - available();
     if (space == 0) return;
+    uint64_t start = now();
 
     // Sur WiFiClient, available() peut retourner 0 entre deux paquets
     // alors que le stream n'est pas terminé. On se limite à ce qui est
@@ -64,22 +67,25 @@ public:
         n = _stream->readBytes(_buf, second);
         _head += n;
     }
+
+    refill_duration += now() - start;
   }
 
   
   // Peek à l'offset i (0 = prochain octet), sans consommer.
   // Effectue un refill si nécessaire.
   // Retourne -1 si la donnée n'est pas disponible (timeout / fin de flux).
-  int peek(size_t offset = 0) {
-    if (static_cast<int>(offset) >= available()){
+  int peek() {
+
+    if (available() <= 0){
       refill();
     }
 
-    if (static_cast<int>(offset) >= available()){
+    if (available() <= 0){
       return -1;
     }
 
-    return _buf[(_tail + offset) & MASK];
+    return _buf[_tail & MASK];
   }
 
   // Lit et consomme un octet. Retourne -1 si vide.
@@ -96,23 +102,24 @@ public:
   }
 
   // Consomme n octets (les marque comme lus)
-  void consume(size_t offset, bool refilIfNeeded) {
-    if (refilIfNeeded) {
-      if (static_cast<int>(offset) >= available()){
-        refill();
-      }
+  bool consume(size_t offset) {
+    // if (refilIfNeeded) {
+    //   if (static_cast<int>(offset) >= available()){
+    //     refill();
+    //   }
 
-      if (static_cast<int>(offset) >= available()){
-        return;
-      }
-    }
+    //   if (static_cast<int>(offset) >= available()){
+    //     return;
+    //   }
+    // }
 
     if (_tail + offset > _head) {
-      _tail = _head;
-      return;
+      return false;
     }
     
     _tail += offset;
+
+    return true;
   }
 
 private:
@@ -180,9 +187,9 @@ public:
     StreamCursor(Stream& s) : StreamCursor(&s) {}
     ~StreamCursor() {}
 
-    int peek(size_t offset = 0);
-    size_t peekToken(char* out, size_t maxLen);
-    void advance(size_t n = 1, bool refill = true);
+    int peek();
+    //size_t peekToken(char* out, size_t maxLen);
+    bool advance(int n = 1);
     int read();
     size_t readBytes(uint8_t* buf, size_t len);
     bool eof() const { return _eof; }
@@ -207,20 +214,30 @@ using StreamCursorWriter = StreamCursor<StreamCursorType::WRITER>;
 // --------------------------------------------------------
 
 // Caractère courant sans avancer (-1 = fin de flux)
-int StreamCursorReader::peek(size_t offset) {
-  int c = _ring.peek(offset);
+// Recharge le tampon si nécessaire.
+int StreamCursorReader::peek() {
+  int c = _ring.peek();
   if (c < 0)
     _eof = true;
   return c;
 }
 
+/*
+  ATTENTION : advance() ne recharge pas le tampon si le caractère n'est pas disponible.
+*/
 // Avance de n octets (sans les lire)
-void StreamCursorReader::advance(size_t n, bool refill) {
-  _ring.consume(n, refill);
+bool StreamCursorReader::advance(int n) {
+  if (!_ring.consume(n)) {
+    return false;
+  }
+
   _consumed += n;
+
+  return true;
 }
 
 // Lit et avance d'un cran
+// Recharge le tampon si nécessaire.
 int StreamCursorReader::read() {
   int c = _ring.read();
   if (c >= 0)
@@ -233,6 +250,7 @@ int StreamCursorReader::read() {
 // Extrait au plus maxLen octets dans out[] en s'arrêtant sur un
 // délimiteur JSON. Ne consomme PAS les octets (lecture seule via peek).
 // Retourne le nombre d'octets copiés.
+/*
 size_t StreamCursorReader::peekToken(char *out, size_t maxLen) {
   size_t n = 0;
   while (n < maxLen) {
@@ -256,7 +274,7 @@ size_t StreamCursorReader::peekToken(char *out, size_t maxLen) {
     out[n] = '\0';
   return n;
 }
-
+*/
 // --------------------------------------------------------
 // IMPLEMENTATION DES Méthodes d'écriture
 // --------------------------------------------------------
@@ -310,7 +328,7 @@ size_t StreamCursorWriter::write(const char *str) {
 
 template <typename... Args>
 size_t StreamCursorWriter::printf(const char *format, Args &&...args) {
-  char buf[STREAM_BUFFER_SIZE];
+  char buf[STREAM_WRITER_BUFFER_SIZE];
 
   // snprintf écrit au plus sizeof(buf)-1 caractères
   int needed =

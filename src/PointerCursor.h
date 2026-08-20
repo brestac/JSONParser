@@ -99,10 +99,11 @@ public:
   // --------------------------------------------------------
   // Méthodes de LECTURE
   // --------------------------------------------------------
-  bool advance(int n = 1) const;
-  bool go_to(const char* ptr) const;
-  int peek(int offset = 0) const;
+  bool advance() const;
+  bool advance(int n) const;
+  int peek() const;
   int read() const;
+  bool go_to(const char* ptr) const;
 
   PointerCursorReader() = delete;
   PointerCursorReader(const PointerCursorReader &) = delete;
@@ -141,6 +142,15 @@ bool PointerCursorReader::advance(int n) const {
   return true;
 }
 
+bool PointerCursorReader::advance() const {
+  if (_pos >= _end) {
+    return false;
+  }
+  _pos++;
+
+  return true;
+}
+
 // Avance jusqu'au pointeur
 bool PointerCursorReader::go_to(const char* ptr) const {
   if (ptr >= _start && ptr < _end) {
@@ -152,12 +162,11 @@ bool PointerCursorReader::go_to(const char* ptr) const {
 }
 
 // Caractère courant sans avancer (-1 = fin)
-int PointerCursorReader::peek(int offset) const {
-  const char* p = _pos + offset;
-  if (p < _start || p >= _end)
+int PointerCursorReader::peek() const {
+  if (_pos >= _end)
     return -1;
 
-  return static_cast<unsigned char>(*p);
+  return static_cast<unsigned char>(*_pos);
 }
 
 // Lit et avance

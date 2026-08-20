@@ -81,7 +81,7 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
   };
 
   struct Progress {
-    uint8_t _keyMask = 0;
+    MaskType _keyMask = 0;
     uint8_t _nParsed = 0;
     uint8_t _nMatched = 0;
     uint8_t _nConverted = 0;
@@ -191,7 +191,7 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
   size_t nMatched() { return _progress._nMatched; }
   size_t nConverted() { return _progress._nConverted; }
   size_t nUpdated() { return _progress._nUpdated; }
-  uint32_t keyMask() { return _progress._keyMask; }
+  MaskType keyMask() { return _progress._keyMask; }
   bool automask() { return _automask; }
   void setAutomask( bool automask ) { _automask = automask; }
   bool stopped() { return _state == STOPPED; }
@@ -215,19 +215,8 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
   // ── Primitives de lecture via curseur ──────────────────────
   bool scan_char( char c, bool consume = true );
 
-  template <size_t ChN> constexpr bool
-  scan_chars_once( const char ( &chars )[ChN], bool consume = true );
-
-  template <size_t ChN>
-  constexpr bool scan_chars( const char ( &chars )[ChN], bool consume = true );
-
   template <size_t KwN>
-  bool scan_keyword( const char ( &keyword )[KwN], bool consume = true );
-
-  bool scan_until( char delim,
-                   size_t maxLen = 0,
-                   bool consume = true,
-                   bool consumeDelim = false );
+  bool scan_keyword( const char ( &keyword )[KwN]);
 
   template <size_t RN> constexpr bool scan_ranges_once( char ( &ranges )[RN][2],
                                                         bool consume = true );
@@ -240,6 +229,8 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
     int c = _cursor.peek();
     return c < 0 ? '\0' : static_cast<char>( c );
   }
+
+  void skip_spaces();
 
   // ── Méthodes de parsing (logique identique à JSONParser) ───
 
@@ -266,7 +257,7 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
   template <typename V> ParseValueResult parse_numeric( V& v );
 
   template <typename PV, typename V>
-  ParseValueResult parse_numeric_type( V& v );// ParseValueResult parse_numeric(JSONCallbackObject& v);
+  ParseValueResult parse_numeric_as( V& v );// ParseValueResult parse_numeric(JSONCallbackObject& v);
   template <typename V> ParseValueResult parse_any_numeric( V& v );
   template <typename V> ParseValueResult parse_bool( V& v );
   template <typename V> ParseValueResult parse_null( V& v );
@@ -307,15 +298,12 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
 
   bool parse_colon();
   bool parse_comma();
-  bool is_object_start() { return _current_char() == JSON_START_CHARACTER; }
-  bool is_object_end() { return _current_char() == JSON_END_CHARACTER; }
-  bool is_array_start() {
-    return _current_char() == JSON_ARRAY_START_CHARACTER;
-  }
+  bool is_object_start() { return _current_char() == JSON_OBJECT_START_CHARACTER; }
+  bool is_object_end() { return _current_char() == JSON_OBJECT_END_CHARACTER; }
+  bool is_array_start() { return _current_char() == JSON_ARRAY_START_CHARACTER; }
   bool is_array_end() { return _current_char() == JSON_ARRAY_END_CHARACTER; }
-  void skip_spaces();
   size_t scan_digits( size_t max_length = 0 );
-  size_t is_start_numeric();
+  //size_t is_start_numeric();
 
   void set_state( ParserState s );
 #if JSON_DEBUG_LEVEL > 0
@@ -408,8 +396,8 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
           _state = ERROR;
           _lastError = ParserError::NO_OBJECT_START;
         }
-        break;
 
+        break;
       case KEY:
         SKIP_SPACES
         if ( is_object_end() ) {
@@ -425,8 +413,8 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
           _state = ERROR;
           _lastError = ParserError::INVALID_KEY;
         }
-        break;
 
+        break;
       case COLON:
         if ( parse_colon() ) {
           set_state( VALUE );
@@ -434,8 +422,8 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
           _state = ERROR;
           _lastError = ParserError::NO_COLON;
         }
+        
         break;
-
       case VALUE: {
 
         SKIP_SPACES
@@ -476,10 +464,9 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
             break;
           }
         }
-
-        break;
       }
 
+      break;
       case COMMA:
         SKIP_SPACES
         if ( is_object_end() ) {
@@ -493,26 +480,25 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
           _state = ERROR;
           _lastError = ParserError::NO_COMMA;
         }
-        break;
 
+        break;
       case END:
         _cursor.advance();
-
+#if JSON_DEBUG_LEVEL > 0
         if ( _cursor.depth == 0 ) {
           JSON_DEBUG_INFO(
               "JSONParserBase: parsing complete, iterations=%zu position=%zu\n",
               iteration,
               _cursor.bytesConsumed() );
-          return;
         }
-
+#endif
+      return;
       case ERROR:
         JSON_DEBUG_ERROR( "JSONParserBase: error at byte %zu: %s\n", _cursor.bytesConsumed(), errorToString( _lastError ) );
 #if JSON_DEBUG_LEVEL > 0
         print_state( iteration );
 #endif
         return;
-
       case STOPPED:
         if constexpr ( std::is_same_v<remove_cv_ref_t<TargetT>,
                                       JSONCallbackObject> ) {
@@ -541,6 +527,7 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
           _state = ERROR;
         }
       }
+
         break;
       default:
         return;
@@ -559,32 +546,37 @@ bool JSONParserBase<Cursor, UseMask>::parse_key() {
   // Pour StreamCursor on doit copier la clé dans un buffer local.
   // Pour PointerCursor on peut pointer directement (comportement original).
   // On utilise un buffer statique court pour la clé.
-  int n = 0;
+  uint8_t n = 0;
 
   while ( n < JSON::MAX_KEY_LENGTH ) {
     CHECK_LOOP( MAX_ITERATIONS, false );
 
-    int c = _cursor.peek( n );
+    int c = _cursor.peek();
+
     if ( c < 0 ) {
       _reset_key();
       return false;
     }
+    
     char ch = static_cast<char>( c );
     // Valide si dans JSON_KEY_CHARACTERS (ranges a–z A–Z 0–9 _ $)
-    bool valid = is_in_ranges( ch, JSON_KEY_CHARACTERS_RANGES );
-    if ( !valid ) break;
+    //bool valid = is_in_mask(c, ALPHA_LOWER_CHARACTERS_MASK, 'a') || is_in_mask(c, ALPHA_UPPER_CHARACTERS_MASK, 'A') || is_in_mask(c, _$_CHARACTERS_MASK, '$' );
+    if ( !is_in_ranges(ch, JSON_KEY_CHARACTERS_RANGES) ) break;
 
     _s_key_buf[n++] = ch;
+    _cursor.advance();
   }
 
   if ( n == 0 ) { return false; }
 
-  _cursor.advance( n ); // consomme les caractères de la clé
+  //_cursor.advance( n ); // consomme les caractères de la clé
 
-  if ( !scan_char( JSON_QUOTE_CHARACTER, true ) ) {
+  if ( _cursor.peek() != JSON_QUOTE_CHARACTER) {
     _reset_key();
     return false;
   }
+
+  _cursor.advance();
 
   _key_length = n;
 
@@ -739,7 +731,7 @@ JSONParserBase<Cursor, UseMask>::scan_escaped_string( std::string_view& sv ) {
   while ( true ) {
     CHECK_LOOP( MAX_ITERATIONS, false );
 
-    unsigned char c = _cursor.peek();
+    int c = _cursor.peek();
 
     if ( c < 0 ) { break; }
 
@@ -793,94 +785,67 @@ JSONParserBase<Cursor, UseMask>::scan_escaped_string( std::string_view& sv ) {
 
 template <typename Cursor, bool UseMask> template <typename TargetT, typename V>
 ParseValueResult JSONParserBase<Cursor, UseMask>::parse_string( V& arg_value ) {
-  if ( !scan_char( JSON_QUOTE_CHARACTER, true ) )
-    return ParseValueResult::PARSE_ERROR_STRING;
-
+  if ( !scan_char( JSON_QUOTE_CHARACTER, true ) ) {
+    return ParseValueResult::PARSE_ERROR_STRING_NO_START;
+  }
+    
   std::string_view parsed_value;
   // Plusieurs cas: Cursor = PointerCursorReader ou StreamCursor
   // TargetT = Cursor si appel user depuis JSON::parse, UserStruct si appel user
   // depuis fromJSON, JSONCallbackObject si appel depuis parse avec callback
   if constexpr ( is_pointer_cursor_reader_v<Cursor> ) {
     // Chemin rapide : pointer direct dans le buffer
-    const char* str_start = _cursor.ptr();
 
-    if ( !scan_until( JSON_QUOTE_CHARACTER, MAX_VALUE_LENGTH, true, false ) ) {
-      return ParseValueResult::PARSE_ERROR_STRING_NO_START;
+    const char* ptr = _cursor.ptr();
+    size_t len = 0;
+    size_t max_length = _cursor.available() - 1;
+    
+    while (len < max_length) {
+      if (*(ptr + len) == JSON_QUOTE_CHARACTER) break;
+      len++;
     }
 
-    parsed_value = std::string_view( str_start, _cursor.ptr() - str_start );
+    if (len == max_length) {
+      return ParseValueResult::PARSE_ERROR_STRING_NO_END;
+    }
 
-    if ( _cursor.peek( -1 ) == JSON_ESCAPE_CHARACTER ) {
-      _cursor.go_to( str_start );
+    parsed_value = std::string_view( ptr, len );
+    // Si le caractère précédent est un caractère d'échappement, on doit
+    // réanalyser la chaîne avec les caractères d'échappement.
+    if ( *(ptr + len - 1) == JSON_ESCAPE_CHARACTER ) {
+      _cursor.go_to( ptr );
 
       if ( !scan_escaped_string<TargetT, V>( parsed_value ) )
         return ParseValueResult::PARSE_ERROR_STRING_ESCAPE;
+    } else {
+      _cursor.advance( len );
     }
   } else if constexpr ( is_stream_cursor_reader_v<Cursor> ) {
     // StreamCursor : pool obligatoire
     if ( !scan_escaped_string<TargetT, V>( parsed_value ) )
       return ParseValueResult::PARSE_ERROR_STRING_ESCAPE;
-  } else {
-    JSON_DEBUG_ERROR(
-        "JSONParserBase::parse_string: unsupported cursor type\n" );
-    return ParseValueResult::PARSE_ERROR_STRING;
   }
 
-  if ( !scan_char( JSON_QUOTE_CHARACTER, true ) )
+  if ( _cursor.read() != JSON_QUOTE_CHARACTER )
     return ParseValueResult::PARSE_ERROR_STRING_NO_END;
 
   return assign_parsed_value_to_value( parsed_value, arg_value ) |
          ParseValueResult::STRING_PARSED;
 }
 
-// template <typename Cursor, bool UseMask>
-// template <typename V>
-// ParseValueResult
-// JSONParserBase<Cursor, UseMask>::parse_any_numeric(V& arg_value) {
-//   if (is_start_numeric()) {
-//     return parse_numeric_type<double>(arg_value);
-//   }
-
-//   return ParseValueResult::PARSE_ERROR_NUMERIC;
-// }
-
-// template <typename Cursor, bool UseMask>
-// ParseValueResult
-// JSONParserBase<Cursor, UseMask>::parse_numeric(JSONCallbackObject& arg_value)
-// {
-//   return parse_any_numeric(arg_value);
-// }
-
 template <typename Cursor, bool UseMask>
 template <typename V> ParseValueResult
 JSONParserBase<Cursor, UseMask>::parse_numeric( V& arg_value ) {
-  return parse_numeric_type<V>( arg_value );
+  return parse_numeric_as<V>( arg_value );
 }
 
 template <typename Cursor, bool UseMask>
 template <typename PV, typename V>
 ParseValueResult
-JSONParserBase<Cursor, UseMask>::parse_numeric_type( V& arg_value ) {
+JSONParserBase<Cursor, UseMask>::parse_numeric_as( V& arg_value ) {
   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric\n" );
 
-  if constexpr (is_pointer_cursor_reader_v<Cursor>) {
-    const char* ptr = _cursor.ptr();
-    const char* end = ptr;
-    double parsed_value = fast_parse_floating_json(ptr, end);
-    _cursor.go_to(end);
-    return assign_parsed_value_to_value( parsed_value, arg_value ) | ParseValueResult::INTEGER_PARSED;
-  }/* else if constexpr (is_stream_cursor_reader_v<Cursor>) {
-    int available = _cursor.available_without_refilling();
-    if (available >= JSON::MAX_NUMERIC_LENGTH) {
-      const char* ptr = _cursor.ptr();
-      const char* end = ptr;
-      double parsed_value = fast_parse_floating_json(ptr, end);
-      _cursor.advance(end - ptr, true);
-      return assign_parsed_value_to_value( parsed_value, arg_value ) | ParseValueResult::INTEGER_PARSED;
-    }
-  }*/
-
-  if (_cursor.available() < 0) return 0.0;
+  if (_cursor.available() < 0) return ParseValueResult::PARSE_ERROR_NUMERIC;
 
   // 1. Gestion du signe
   bool negative = false;
@@ -893,19 +858,21 @@ JSONParserBase<Cursor, UseMask>::parse_numeric_type( V& arg_value ) {
   }
 
   uint64_t value = 0;
-  int decimal_digits = -1;
+  int8_t decimal_digits = -1;
   bool has_digits = false;
 
   // 2. Parser la partie entière et décimale en un seul grand entier
+  
   while (_cursor.available() >= 0) {
-      if (_cursor.peek() >= '0' && _cursor.peek() <= '9') {
-          value = value * 10 + (_cursor.peek() - '0');
+      char digit = _cursor.peek();
+      if (digit >= '0' && digit <= '9') {
+          value = value * 10 + (digit - '0');
           has_digits = true;
           if (decimal_digits >= 0) {
               decimal_digits++;
           }
         _cursor.advance();
-      } else if (_cursor.peek() == '.') {
+      } else if (digit == '.') {
           if (decimal_digits >= 0) break; // Deuxième point trouvé (erreur de syntaxe)
           decimal_digits = 0;
         _cursor.advance();
@@ -915,15 +882,32 @@ JSONParserBase<Cursor, UseMask>::parse_numeric_type( V& arg_value ) {
   }
 
   if (!has_digits) {
-      return 0.0;
+    if constexpr(std::is_floating_point_v<PV>) {
+      return parse_infinity(arg_value);
+    }
+    else {
+      return ParseValueResult::PARSE_ERROR_NUMERIC;
+    }
   }
-
+  
+  // Si PV est un entier on peut ignorer la suite jusqu'à l'assignement
+  if constexpr(std::is_integral_v<PV> ) {
+    if constexpr (ALLOW_PARSING_INTEGER_AS_FLOAT == false) {
+      if (decimal_digits > 0) return ParseValueResult::PARSE_ERROR_NUMERIC;
+    }
+    
+    int64_t parsed_value = negative ? -static_cast<int64_t>(value) : static_cast<int64_t>(value);
+    if (decimal_digits > 0) parsed_value = multiplyByPowerOfTen(parsed_value, -decimal_digits);
+    // les overflows sont gérés dans assign_integral_to_integral
+    return assign_parsed_value_to_value( parsed_value, arg_value ) | ParseValueResult::INTEGER_PARSED;
+  }
   // Ajustement de l'exposant de base lié à la virgule
   int exponent = (decimal_digits > 0) ? -decimal_digits : 0;
 
   // 3. Gestion de la notation scientifique JSON (e ou E)
   if (_cursor.available() >= 0) {
-      if (_cursor.peek() == 'e' || _cursor.peek() == 'E') {
+      char exp_char = _cursor.peek();
+      if (exp_char == 'e' || exp_char == 'E') {
         _cursor.advance();
 
           bool exp_negative = false;
@@ -948,208 +932,24 @@ JSONParserBase<Cursor, UseMask>::parse_numeric_type( V& arg_value ) {
   }
 
   // 4. Conversion finale (Calcul à la volée pour économiser la Flash ROM)
-  double result = value;
+  double result = multiplyByPowerOfTen(value, exponent);
 
-  if (exponent != 0) {
-      // Calcul de la puissance de 10 de manière itérative ou via les fonctions de base
-      // Sur microcontrôleur avec FPU matérielle, l'utilisation d'une boucle ou d'un multiplicateur
-      // évite de charger des grosses bibliothèques d'arrondis parfaits.
-      double factor = 1.0;
-      int abs_exponent = exponent < 0 ? -exponent : exponent;
-
-      // Exponentiation rapide par carré pour optimiser la vitesse de calcul de la puissance
-      double base = 10.0;
-      while (abs_exponent > 0) {
-          if (abs_exponent & 1) factor *= base;
-          base *= base;
-          abs_exponent >>= 1;
-      }
-
-      if (exponent < 0) {
-          result /= factor;
-      } else {
-          result *= factor;
-      }
-  }
-
-  double parsed_value = negative ? -result : result;
-  return assign_parsed_value_to_value( parsed_value, arg_value ) | ParseValueResult::FLOAT_PARSED;
+  if (negative) result *= -1;
+  
+  return assign_parsed_value_to_value( result, arg_value ) | ParseValueResult::FLOAT_PARSED;
 }
-
-// template <typename Cursor, bool UseMask>
-// template <typename PV, typename V>
-// ParseValueResult
-// JSONParserBase<const PointerCursorReader, UseMask>::parse_numeric_type( V& arg_value ) {
-//   const char* ptr = _cursor.ptr();
-//   const char* start = ptr;
-
-//   if (ptr == nullptr) return 0.0;
-//   if (*ptr == '\0') return 0.0;
-
-//   // 1. Gestion du signe
-//   bool negative = false;
-//   if (*ptr == '-') {
-//       negative = true;
-//       ptr++;
-//   } else if (*ptr == '+') {
-//     ptr++;
-//   }
-
-//   uint64_t value = 0;
-//   int decimal_digits = -1;
-//   bool has_digits = false;
-
-//   // 2. Parser la partie entière et décimale en un seul grand entier
-//   while (*ptr != '\0') {
-//       if (*ptr >= '0' && *ptr <= '9') {
-//           value = value * 10 + (*ptr - '0');
-//           has_digits = true;
-//           if (decimal_digits >= 0) {
-//               decimal_digits++;
-//           }
-//           ptr++;
-//       } else if (*ptr == '.') {
-//           if (decimal_digits >= 0) break; // Deuxième point trouvé (erreur de syntaxe)
-//           decimal_digits = 0;
-//           ptr++;
-//       } else {
-//           break; // Caractère non numérique ou début de l'exposant 'e'/'E'
-//       }
-//   }
-
-//   if (!has_digits) {
-//       return 0.0;
-//   }
-
-//   // Ajustement de l'exposant de base lié à la virgule
-//   int exponent = (decimal_digits > 0) ? -decimal_digits : 0;
-
-//   // 3. Gestion de la notation scientifique JSON (e ou E)
-//   if (*ptr != '\0') {
-//       if (*ptr == 'e' || *ptr == 'E') {
-//         ptr++;
-
-//           bool exp_negative = false;
-//           char sign = *ptr;
-//           if (sign != '\0') {
-//               if (sign == '-') { exp_negative = true; ptr++; }
-//               else if (sign == '+') { ptr++; }
-//           }
-
-//           int exp_value = 0;
-//           while (*ptr != '\0') {
-//               char digit = *ptr;
-//               if (digit >= '0' && digit <= '9') {
-//                   exp_value = exp_value * 10 + (digit - '0');
-//                   ptr++;
-//               } else {
-//                   break;
-//               }
-//           }
-//           exponent += exp_negative ? -exp_value : exp_value;
-//       }
-//   }
-
-//   _cursor.advance(ptr - start);
-
-//   // 4. Conversion finale (Calcul à la volée pour économiser la Flash ROM)
-//   double result = value;
-
-//   if (exponent != 0) {
-//       // Calcul de la puissance de 10 de manière itérative ou via les fonctions de base
-//       // Sur microcontrôleur avec FPU matérielle, l'utilisation d'une boucle ou d'un multiplicateur
-//       // évite de charger des grosses bibliothèques d'arrondis parfaits.
-//       double factor = 1.0;
-//       int abs_exponent = exponent < 0 ? -exponent : exponent;
-
-//       // Exponentiation rapide par carré pour optimiser la vitesse de calcul de la puissance
-//       double base = 10.0;
-//       while (abs_exponent > 0) {
-//           if (abs_exponent & 1) factor *= base;
-//           base *= base;
-//           abs_exponent >>= 1;
-//       }
-
-//       if (exponent < 0) {
-//           result /= factor;
-//       } else {
-//           result *= factor;
-//       }
-//   }
-
-//   return negative ? -result : result;
-// }
-// char* start;
-// static PV parsed_value;
-
-// if constexpr ( std::is_same_v<Cursor, const PointerCursorReader> ) {
-//   start = const_cast<char*>( _cursor.ptr() );
-// } else {
-//   static char tmp[JSON::MAX_NUMERIC_LENGTH];
-//   size_t len = _cursor.peekToken( tmp, JSON::MAX_NUMERIC_LENGTH - 1 );
-//   if ( len == 0 ) return ParseValueResult::PARSE_ERROR_NUMERIC;
-
-//   tmp[len] = '\0';
-//   start = tmp;
-// }
-
-// char* end = start;
-
-// if constexpr ( std::is_same_v<PV, double> || std::is_same_v<PV, float> ) {
-//   parsed_value = fast_parse_double(_cursor);//strtod_fast(start, &end);
-//   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric double %f\n", parsed_value );
-//   // if (parsed_value == 0.0 && end == start) {
-//   //   return parse_infinity( arg_value );
-//   // }
-// } else if constexpr ( std::is_integral_v<PV> ) {
-//   parsed_value = strtod_fast(start, &end);
-//   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric integral %d\n", parsed_value );
-// }/* else if constexpr ( std::is_integral_v<PV> && std::is_signed_v<PV> && sizeof( PV ) <= 4 ) {
-//   parsed_value = strtod_fast(start, end);
-//   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric int32_t %d\n", parsed_value );
-// } else if constexpr ( std::is_integral_v<PV> && std::is_unsigned_v<PV> && sizeof( PV ) > 4 ) {
-//   parsed_value = strtod_fast(start, end);
-//   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric uint64 %llu\n", (unsigned long long)parsed_value );
-// } else if constexpr ( std::is_integral_v<PV> && std::is_signed_v<PV> && sizeof( PV ) > 4 ) {
-//   parsed_value = strtod_fast(start, end);
-//   JSON_DEBUG_INFO( "JSONParserBase::parse_numeric int64 %lld\n", (long long)parsed_value );
-// }*/
-
-// if (end == start) return ParseValueResult::PARSE_ERROR_NUMERIC;
-
-// if constexpr (std::is_same_v<Cursor, const PointerCursorReader>) {
-//   _cursor.go_to(end);
-// } else {
-//   //size_t consumed = static_cast<size_t>( end - start );
-//   _cursor.advance(end - start);
-// }
-
-// if constexpr ( std::is_integral_v<PV> && ALLOW_FLOATING_POINT_INTEGERS ) {
-//   if ( scan_char( '.', true ) ) {
-//     JSON_DEBUG_WARNING( "JSONParserBase::parse_numeric integer: found extra digits after '.'\n" );
-//     scan_digits( JSON::MAX_VALUE_LENGTH );
-//   }
-// }
-// ── parse_floating_point ──────────────────────────────────────
-// template <typename Cursor, bool UseMask>
-// template <typename V>
-// ParseValueResult
-// JSONParserBase<Cursor, UseMask>::parse_floating_point(V& arg_value) {
-//   JSON_DEBUG_INFO("JSONParserBase::parse_floating_point\n");
-//   return parse_numeric(arg_value) | ParseValueResult::FLOAT_PARSED;
-// }
 
 // ── parse_bool ───────────────────────────────────────────────
 template <typename Cursor, bool UseMask> template <typename V>
 ParseValueResult JSONParserBase<Cursor, UseMask>::parse_bool( V& arg_value ) {
   JSON_DEBUG_INFO( "JSONParserBase::parse_bool\n" );
-  if ( scan_keyword( JSON_FALSE, true ) ) {
+  if ( scan_keyword( JSON_FALSE ) ) {
     bool pv = false;
     return assign_parsed_value_to_value( pv, arg_value ) |
            ParseValueResult::BOOLEAN_PARSED;
   }
 
-  if ( scan_keyword( JSON_TRUE, true ) ) {
+  if ( scan_keyword( JSON_TRUE ) ) {
     bool pv = true;
     return assign_parsed_value_to_value( pv, arg_value ) |
            ParseValueResult::BOOLEAN_PARSED;
@@ -1162,7 +962,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_bool( V& arg_value ) {
 template <typename Cursor, bool UseMask> template <typename V>
 ParseValueResult JSONParserBase<Cursor, UseMask>::parse_null( V& arg_value ) {
   JSON_DEBUG_INFO( "JSONParserBase::parse_null\n" );
-  if ( !scan_keyword( JSON_NULL, true ) ) {
+  if ( !scan_keyword( JSON_NULL ) ) {
     return ParseValueResult::PARSE_ERROR_NULL;
   }
 
@@ -1175,7 +975,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_null( V& arg_value ) {
 template <typename Cursor, bool UseMask> template <typename V>
 ParseValueResult JSONParserBase<Cursor, UseMask>::parse_nan( V& arg_value ) {
   JSON_DEBUG_INFO( "JSONParserBase::parse_nan\n" );
-  if ( !scan_keyword( JSON_NAN, true ) ) {
+  if ( !scan_keyword( JSON_NAN ) ) {
     return ParseValueResult::PARSE_ERROR_NUMERIC;
   }
 
@@ -1188,10 +988,10 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_nan( V& arg_value ) {
 template <typename Cursor, bool UseMask> template <typename V> ParseValueResult
 JSONParserBase<Cursor, UseMask>::parse_infinity( V& arg_value ) {
   JSON_DEBUG_INFO( "JSONParserBase::parse_infinity\n" );
-  if ( scan_keyword( JSON_INFINITY, true ) ) {
+  if ( scan_keyword( JSON_INFINITY ) ) {
     InfinityType pv;
     return assign_parsed_value_to_value( pv, arg_value ) | ParseValueResult::FLOAT_PARSED;
-  } else if (scan_keyword( JSON_NAN, true )) {
+  } else if (scan_keyword( JSON_NAN )) {
     NullType pv;
     return assign_parsed_value_to_value( pv, arg_value ) | ParseValueResult::FLOAT_PARSED;
   }
@@ -1359,7 +1159,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array( V& arg_value ) {
     i++;
   }
 
-  if ( !scan_char( JSON_ARRAY_END_CHARACTER, true ) ) {
+  if ( !is_array_end() ) {
     if ( underflow ) {
       JSON_DEBUG_WARNING( "JSONParserBase::parse_array: no array end\n" );
       _state = ERROR;
@@ -1368,6 +1168,8 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array( V& arg_value ) {
       return skip_to_array_end<V>();
     }
   }
+
+  _cursor.advance();
 
   SKIP_SPACES
 
@@ -1497,7 +1299,7 @@ template <typename Cursor, bool UseMask> ParseValueResult
 JSONParserBase<Cursor, UseMask>::parse_any( JSONCallbackObject& arg_value ) {
   ParseValueResult result = ParseValueResult::NO_RESULT;
 
-  result = parse_numeric_type<double>( arg_value );
+  result = parse_numeric_as<double>( arg_value );
   if ( result.parsed() ) return result;
   result = parse_string<JSONCallbackObject>( arg_value );
   if ( result.parsed() ) return result;
@@ -1549,9 +1351,9 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_value() {
       continue;
     }
 
-    if ( ch == JSON_START_CHARACTER || ch == JSON_ARRAY_START_CHARACTER ) {
+    if ( ch == JSON_OBJECT_START_CHARACTER || ch == JSON_ARRAY_START_CHARACTER ) {
       depth++;
-    } else if ( ch == JSON_END_CHARACTER || ch == JSON_ARRAY_END_CHARACTER ) {
+    } else if ( ch == JSON_OBJECT_END_CHARACTER || ch == JSON_ARRAY_END_CHARACTER ) {
       if ( depth == 0 ) { break; }
       depth--;
     } else if ( ch == JSON_COMMA_CHARACTER && depth == 0 ) {
@@ -1660,8 +1462,8 @@ JSONParserBase<Cursor, UseMask>::skip_value() {
 template <typename Cursor, bool UseMask> template <typename T, size_t N>
 std::enable_if_t<N == 0 && std::is_same_v<T, bool>, ParseValueResult>
 JSONParserBase<Cursor, UseMask>::skip_value() {
-  return ( scan_keyword( JSON_TRUE, true ) ||
-           scan_keyword( JSON_FALSE, true ) );
+  return ( scan_keyword( JSON_TRUE ) ||
+           scan_keyword( JSON_FALSE ) );
 }
 
 template <typename Cursor, bool UseMask>
@@ -1969,11 +1771,11 @@ size_t JSONParserBase<Cursor, UseMask>::scan_digits( size_t max_length ) {
   return scan_ranges( JSON_DIGIT_CHARACTERS_RANGES, max_length, true );
 }
 
-template <typename Cursor, bool UseMask>
-size_t JSONParserBase<Cursor, UseMask>::is_start_numeric() {
-  return scan_ranges_once( JSON_DIGIT_CHARACTERS_RANGES, false ) ||
-         scan_char( '-', false );
-}
+// template <typename Cursor, bool UseMask>
+// size_t JSONParserBase<Cursor, UseMask>::is_start_numeric() {
+//   return scan_ranges_once( JSON_DIGIT_CHARACTERS_RANGES, false ) ||
+//          scan_char( '-', false );
+// }
 
 template <typename Cursor, bool UseMask> template <class From, class To>
 constexpr To JSONParserBase<Cursor, UseMask>::clamp_to_min_max( From v ) {
@@ -2008,9 +1810,6 @@ constexpr To JSONParserBase<Cursor, UseMask>::clamp_to_min_max( From v ) {
 // --- scan_char ---
 template <typename Cursor, bool UseMask>
 bool JSONParserBase<Cursor, UseMask>::scan_char( char c, bool consume ) {
-#if defined( __clang__ )
-  __builtin_assume( c > 0 );
-#endif
   int got = _cursor.peek();
   if ( got < 0 || static_cast<char>( got ) != c ) return false;
   if ( consume ) _cursor.advance();
@@ -2018,78 +1817,34 @@ bool JSONParserBase<Cursor, UseMask>::scan_char( char c, bool consume ) {
   return true;
 }
 
-// --- scan_chars_once : teste un seul caractère contre un ensemble ---
-template <typename Cursor, bool UseMask> template <size_t ChN> constexpr bool
-JSONParserBase<Cursor, UseMask>::scan_chars_once( const char ( &chars )[ChN],
-                                                  bool consume ) {
-  int got = _cursor.peek();
-  if ( got < 0 ) return false;
-  char c = static_cast<char>( got );
-  for ( uint8_t i = 0; i < ChN; i++ ) {
-    if ( c == chars[i] ) {
-      if ( consume ) _cursor.advance();
-      return true;
-    }
-  }
-  return false;
-}
+// inline void swap_chars(char* arr, size_t index1, size_t index2) {
+//     char temp = arr[index1];
+//     arr[index1] = arr[index2];
+//     arr[index2] = temp;
+// }
 
-// --- scan_chars : avance tant que les caractères sont dans l'ensemble ---
-template <typename Cursor, bool UseMask> template <size_t ChN> constexpr bool
-JSONParserBase<Cursor, UseMask>::scan_chars( const char ( &chars )[ChN],
-                                             bool consume ) {
-  bool found = false;
+template <typename Cursor, bool UseMask>
+void JSONParserBase<Cursor, UseMask>::skip_spaces() {
   size_t iteration = 0;
 
-  while ( iteration++ < MAX_ITERATIONS ) {
-    if ( !scan_chars_once( chars, consume ) ) break;
-    found = true;
+  while ( iteration < MAX_ITERATIONS ) {
+    if ( (JSON_SPACE_CHARACTERS_MASK & (1ULL << _cursor.peek())) == 0ULL ) break;
+    iteration++;
+    _cursor.advance();
   }
-
-  return found;
 }
+
 // --- scan_keyword ---
 
 template <typename Cursor, bool UseMask> template <size_t KwN> bool
-JSONParserBase<Cursor, UseMask>::scan_keyword( const char ( &keyword )[KwN],
-                                               bool consume ) {
-  for ( unsigned long i = 0; i < KwN; i++ ) {
-    int c = _cursor.peek( static_cast<int>( i ) );
+JSONParserBase<Cursor, UseMask>::scan_keyword( const char ( &keyword )[KwN]) {
+  for ( uint8_t i = 0; i < KwN; i++ ) {
+    int c = _cursor.peek();
     if ( c < 0 || static_cast<char>( c ) != keyword[i] ) return false;
+    _cursor.advance();
   }
-  if ( consume ) _cursor.advance( KwN );
+
   return true;
-}
-
-// --- scan_until : avance jusqu'au délimiteur (non inclus par défaut) ---
-template <typename Cursor, bool UseMask>
-bool JSONParserBase<Cursor, UseMask>::scan_until( char delim,
-                                                  size_t maxLen,
-                                                  bool consume,
-                                                  bool consumeDelim ) {
-#if defined( __clang__ )
-  __builtin_assume( maxLen <= MAX_JSON_LENGTH );
-  __builtin_assume( delim > 0 );
-#endif
-  int i = 0;
-  while ( true ) {
-    CHECK_LOOP( MAX_ITERATIONS, false );
-
-    int c = _cursor.peek( i );
-    if ( c < 0 ) return false;                    // fin de flux
-    if ( static_cast<char>( c ) == delim ) break; // délimiteur trouvé
-    if ( maxLen > 0 && i >= static_cast<int>( maxLen ) ) {
-      if ( consume ) _cursor.advance( i );
-      return false; // dépassement
-    }
-    i++;
-  }
-  bool result = ( i > 0 );
-  if ( consume ) {
-    _cursor.advance( i );
-    if ( consumeDelim ) _cursor.advance();
-  }
-  return result;
 }
 
 // --- scan_ranges_once : teste un seul caractère contre N plages ---

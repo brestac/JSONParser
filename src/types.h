@@ -16,8 +16,8 @@
 #include "constants.h"
 #include "macros.h"
 
-template <typename Cursor, bool UseMask>
-class JSONParserBase;
+// template <typename Cursor, bool UseMask>
+// class JSONParserBase;
 
 struct JSONObject;
 struct JSONKey;
@@ -29,11 +29,11 @@ using namespace JSON;
 //   Type checker
 // ---------------------------------------------------------------------------
 
-template <size_t N, class... Args> decltype(auto) getNthArg(Args &&...args) {
-  static_assert(N < sizeof...(Args), "Index out of bounds");
+// template <size_t N, class... Args> decltype(auto) getNthArg(Args &&...args) {
+//   static_assert(N < sizeof...(Args), "Index out of bounds");
 
-  return std::get<N>(std::forward_as_tuple(std::forward<Args>(args)...));
-}
+//   return std::get<N>(std::forward_as_tuple(std::forward<Args>(args)...));
+// }
 
 template <class... Args> constexpr bool args_are_pairs = (sizeof...(Args) > 0) && (sizeof...(Args) % 2) == 0;
 
@@ -352,5 +352,3 @@ constexpr bool is_callback = std::is_same_v<JSONCallbackObject, remove_cv_ref_t<
 
 template<typename T>
 constexpr bool is_coords = container_info<T>::dimensions == 1 && container_info<T>::extent == 2 && std::is_floating_point_v<typename container_info<T>::base_t>;
-
-
