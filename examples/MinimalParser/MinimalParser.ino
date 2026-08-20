@@ -54,36 +54,33 @@ void loop() {
 // BUILD CONSOLE OUTPUT FOR THIS SKETCH  //
 // ------------------------------------- //
 /*
-. Variables and constants in RAM (global, static), used 28328 / 80192 bytes (35%)
+. Variables and constants in RAM (global, static), used 28332 / 80192 bytes (35%)
 ║   SEGMENT  BYTES    DESCRIPTION
 ╠══ DATA     1516     initialized variables
-╠══ RODATA   972      constants       
+╠══ RODATA   976      constants       
 ╚══ BSS      25840    zeroed variables
 . Instruction RAM (IRAM_ATTR, ICACHE_RAM_ATTR), used 59747 / 65536 bytes (91%)
 ║   SEGMENT  BYTES    DESCRIPTION
 ╠══ ICACHE   32768    reserved space for flash instruction cache
 ╚══ IRAM     26979    code in IRAM    
-. Code in flash (default, ICACHE_FLASH_ATTR), used 239172 / 1048576 bytes (22%)
+. Code in flash (default, ICACHE_FLASH_ATTR), used 239300 / 1048576 bytes (22%)
 ║   SEGMENT  BYTES    DESCRIPTION
-╚══ IROM     239172   code in flash   
+╚══ IROM     239300   code in flash   
 */
-
-// ------------------------------------- //
-// BUILD CONSOLE OUTPUT FOR THIS SKETCH WITHOUT ARGS TYPE CHECK//
-// ------------------------------------- //
 /*
-. Variables and constants in RAM (global, static), used 28328 / 80192 bytes (35%)
+commit c67cc2d72ed2a34e5417900ec7de9fef666ceaff
+. Variables and constants in RAM (global, static), used 28340 / 80192 bytes (35%)
 ║   SEGMENT  BYTES    DESCRIPTION
-╠══ DATA     1516     initialized variables
-╠══ RODATA   972      constants       
-╚══ BSS      25840    zeroed variables
-. Instruction RAM (IRAM_ATTR, ICACHE_RAM_ATTR), used 59747 / 65536 bytes (91%)
+╠══ DATA     1496     initialized variables
+╠══ RODATA   996      constants       
+╚══ BSS      25848    zeroed variables
+. Instruction RAM (IRAM_ATTR, ICACHE_RAM_ATTR), used 59771 / 65536 bytes (91%)
 ║   SEGMENT  BYTES    DESCRIPTION
 ╠══ ICACHE   32768    reserved space for flash instruction cache
-╚══ IRAM     26979    code in IRAM    
-. Code in flash (default, ICACHE_FLASH_ATTR), used 239172 / 1048576 bytes (22%)
+╚══ IRAM     27003    code in IRAM    
+. Code in flash (default, ICACHE_FLASH_ATTR), used 239300 / 1048576 bytes (22%)
 ║   SEGMENT  BYTES    DESCRIPTION
-╚══ IROM     239172   code in flash   
+╚══ IROM     239300   code in flash
 */
 // ------------------------------------- //
 // ARDUINOJSON LIBRARY                   //

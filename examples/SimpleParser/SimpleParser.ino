@@ -1,3 +1,4 @@
+
 #include "src/JSONParser.h"
 #include "./get_stream.h"
 
@@ -33,7 +34,7 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   
-  get_stream("http://192.168.1.2:10000/100K.geojson", [](WiFiClient* stream){
+  get_stream("http://192.168.1.2:10000/big.geojson", [](WiFiClient* stream){
     Serial.printf("Stack before: %u\n", ESP.getFreeContStack());
     
     uint64_t start = micros();
@@ -50,7 +51,7 @@ void setup() {
   });
 // Results ESP-01
 // Input size 500B
-// Stack before: 2544
+// Stack before: 2544\n
 // Parsing took 7080us
 // Stack watermark: 1800 => -744
 
@@ -106,3 +107,18 @@ void loop() {
 . Code in flash (default, ICACHE_FLASH_ATTR), used 313936 / 1048576 bytes (29%)
 ║   SEGMENT  BYTES    DESCRIPTION
 ╚══ IROM     313936   code in flash*/
+/*
+commit c67cc2d72ed2a34e5417900ec7de9fef666ceaff
+. Variables and constants in RAM (global, static), used 29576 / 80192 bytes (36%)
+║   SEGMENT  BYTES    DESCRIPTION
+╠══ DATA     1496     initialized variables
+╠══ RODATA   1712     constants       
+╚══ BSS      26368    zeroed variables
+. Instruction RAM (IRAM_ATTR, ICACHE_RAM_ATTR), used 59783 / 65536 bytes (91%)
+║   SEGMENT  BYTES    DESCRIPTION
+╠══ ICACHE   32768    reserved space for flash instruction cache
+╚══ IRAM     27015    code in IRAM    
+. Code in flash (default, ICACHE_FLASH_ATTR), used 265976 / 1048576 bytes (25%)
+║   SEGMENT  BYTES    DESCRIPTION
+╚══ IROM     265976   code in flash 
+*/
