@@ -92,6 +92,7 @@ RGB values 0‑255.
 
 #ifdef ARDUINO
 #  define PRINTF_COLOR( n, fmt, ... ) DEBUG_PRINTF( fmt, ##__VA_ARGS__ )
+#  define JSON_DEBUG_TYPES
 #else
 #  define PRINTF_COLOR( n, fmt, ... ) \
     DEBUG_PRINTF( "\x1b[" TO_STRING( n ) "m" fmt "\x1b[0m", ##__VA_ARGS__ )
@@ -596,4 +597,3 @@ RGB values 0‑255.
              MACRO_2,     \
              MACRO_1 )    \
   ( __VA_ARGS__ )
-
