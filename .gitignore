@@ -10,3 +10,4 @@ build
 include
 scripts
 tests
+src/demangled.h
