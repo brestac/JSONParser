@@ -11,3 +11,4 @@ include
 scripts
 tests
 src/demangled.h
+JSONParser.trace
