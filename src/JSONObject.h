@@ -23,7 +23,7 @@ static size_t instances_counter = 0;
 
 struct JSONObject {
 public:
-  uint32_t updated = 0;
+  uint8_t updated = 0;
 
   JSONObject() {
     ++instances_counter;

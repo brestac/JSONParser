@@ -6,6 +6,8 @@
 #endif
 
 #include <array>
+#include <vector>
+#include <list>
 #include <stdint.h>
 #include <string_view>
 #include <type_traits>
@@ -14,8 +16,8 @@
 #include "constants.h"
 #include "macros.h"
 
-template <typename Cursor, bool UseMask>
-class JSONParserBase;
+// template <typename Cursor, bool UseMask>
+// class JSONParserBase;
 
 struct JSONObject;
 struct JSONKey;
@@ -27,11 +29,11 @@ using namespace JSON;
 //   Type checker
 // ---------------------------------------------------------------------------
 
-template <size_t N, class... Args> decltype(auto) getNthArg(Args &&...args) {
-  static_assert(N < sizeof...(Args), "Index out of bounds");
+// template <size_t N, class... Args> decltype(auto) getNthArg(Args &&...args) {
+//   static_assert(N < sizeof...(Args), "Index out of bounds");
 
-  return std::get<N>(std::forward_as_tuple(std::forward<Args>(args)...));
-}
+//   return std::get<N>(std::forward_as_tuple(std::forward<Args>(args)...));
+// }
 
 template <class... Args> constexpr bool args_are_pairs = (sizeof...(Args) > 0) && (sizeof...(Args) % 2) == 0;
 
@@ -54,7 +56,7 @@ template <typename T, typename... Ts>
 struct is_in_type_list<T, type_list<Ts...>> : std::disjunction<std::is_same<T, Ts>...> {};
 
 // Type de container
-enum class ContainerKind { NOT_CONTAINER, C_ARRAY, CHAR_ARRAY, STD_ARRAY, STD_VECTOR/*, CALLBACK_OBJECT*/ };
+enum class ContainerKind { NOT_CONTAINER, C_ARRAY, CHAR_ARRAY, STD_ARRAY, STD_VECTOR, STD_LIST };
 
 // primary template
 template <typename T> struct container_info {
@@ -129,6 +131,20 @@ template <typename T, typename A> struct container_info<std::vector<T, A>> {
   using child_t = T;
   static constexpr size_t dimensions = container_info<T>::dimensions + 1;
   static constexpr ContainerKind kind = ContainerKind::STD_VECTOR;
+  static constexpr size_t extent = MAX_ARRAY_LENGTH;
+  static constexpr bool is_container = true;
+  static constexpr bool fixed = false;
+};
+
+// std::list
+template <typename T, typename A> struct container_info<std::list<T, A>> {
+  using base_t = typename container_info<T>::base_t;
+  using base_container_t = std::conditional_t<container_info<T>::is_container,
+                                             typename container_info<T>::base_container_t,
+                                             std::list<T, A>>;
+  using child_t = T;
+  static constexpr size_t dimensions = container_info<T>::dimensions + 1;
+  static constexpr ContainerKind kind = ContainerKind::STD_LIST;
   static constexpr size_t extent = MAX_ARRAY_LENGTH;
   static constexpr bool is_container = true;
   static constexpr bool fixed = false;
@@ -236,16 +252,11 @@ template <typename T> inline constexpr bool is_cursor_v = is_cursor_reader_v<T> 
 
 template <typename T> inline constexpr bool is_stream_v = std::is_base_of<Stream, remove_cv_ref_t<std::remove_pointer_t<T>>>::value;
 
-template <typename T> inline constexpr bool is_buffer_v = std::is_constructible_v<JSON::PointerCursorReader, T>;
+template <typename T> inline constexpr bool is_buffer_v = std::is_constructible_v<JSON::PointerCursorReader, T> || std::is_same_v<remove_cv_ref_t<T>, std::string>;
 
-// ==========================================
-// Parser
-// ==========================================
-template <typename T = void, typename E = void> struct is_parser_type : std::false_type {};
+template <typename T> inline constexpr bool is_pointer_cursor_reader_v = std::is_same_v<remove_cv_ref_t<T>, JSON::PointerCursorReader>;
 
-template <typename T, bool U> struct is_parser_type<JSONParserBase<T, U>, std::enable_if_t<is_cursor_v<T>>> : std::true_type {};
-
-template <typename T> inline constexpr bool is_parser_type_v = is_parser_type<T>::value;
+template <typename T> inline constexpr bool is_stream_cursor_reader_v = std::is_same_v<remove_cv_ref_t<T>, JSON::StreamCursorReader>;
 
 // ==========================================
 // Key Value checker
@@ -254,7 +265,7 @@ template <typename T> inline constexpr bool is_parser_type_v = is_parser_type<T>
 
 // template <typename T>
 // struct is_convertible_to_indexed_key<T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>> : std::true_type {};
-#if !defined(DISABLE_ARGS_CHECK) || DISABLE_ARGS_CHECK == 0
+#if !defined(DISABLE_ARGS_CHECK)
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename Value>
@@ -340,6 +351,4 @@ template<typename T>
 constexpr bool is_callback = std::is_same_v<JSONCallbackObject, remove_cv_ref_t<T>>;
 
 template<typename T>
-constexpr bool may_be_geojson_coord = container_info<T>::dimensions == 1 && container_info<T>::extent == 2 && std::is_floating_point_v<typename container_info<T>::base_t>;
-
-
+constexpr bool is_coords = container_info<T>::dimensions == 1 && container_info<T>::extent == 2 && std::is_floating_point_v<typename container_info<T>::base_t>;

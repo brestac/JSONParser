@@ -5,7 +5,7 @@
 #ifndef ARDUINO
 #include "../include/ArduinoCompat.h"
 #endif
-constexpr int8_t get_last_bitwise_mask_index(uint32_t mask);
+constexpr int8_t get_last_bitwise_mask_index(MaskType mask);
 
 // ── Toutes les fonctions internes prennent Cursor par référence ──────────────
 // Cela évite de copier StreamCursor (~280 octets avec RingBuffer<256>) à chaque
@@ -21,12 +21,12 @@ template <typename Cursor, typename... Args>
 size_t print_to(Cursor &output, const char *format, Args &&...args);
 
 template <typename Cursor, typename T, typename... Rest>
-size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int8_t &last_idx,
+size_t constexpr print_key_value_pair(MaskType mask, size_t idx, int8_t &last_idx,
                                       Cursor &output, const char *key, T &value,
                                       Rest &&...rest);
 
 template <typename Cursor, typename... Args>
-constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args);
+constexpr size_t print_json(MaskType mask, Cursor &output, Args &&...args);
 
 template <typename Cursor, typename T>
 size_t constexpr print_array_to(Cursor &output, T &array);
@@ -48,14 +48,14 @@ namespace JSON {
 // ── Surcharge pour StreamCursor / PointerCursorWriter ────────────────────────
 template <typename Cursor, typename... Args>
 enable_if_t<is_cursor_writer_v<Cursor> && is_valid_args_v<Args...>, size_t>
-_print(uint32_t mask, Cursor &output, Args &&...args) {
+_print(MaskType mask, Cursor &output, Args &&...args) {
     return print_json(mask, output, std::forward<Args>(args)...);
 }
 
 // ── Surcharge pour dérivées de Stream
 // ──────────────────────────────────────────
 template <typename T, typename... Args>
-std::enable_if_t<is_stream_v<T>, size_t> print(uint32_t mask, T &stream, Args &&...args) {
+std::enable_if_t<is_stream_v<T>, size_t> print(MaskType mask, T &stream, Args &&...args) {
   StreamCursorWriter c(stream);
   return _print(mask, c, std::forward<Args>(args)...);
 }
@@ -65,7 +65,7 @@ template <typename Buffer, typename... Args>
 std::enable_if_t<(std::is_array<std::remove_reference_t<Buffer>>::value ||
                   std::is_same<std::decay_t<Buffer>, char *>::value),
                  size_t>
-print(uint32_t mask, Buffer &&buffer, Args &&...args) {
+print(MaskType mask, Buffer &&buffer, Args &&...args) {
   if constexpr (std::is_array<std::remove_reference_t<Buffer>>::value) {
     constexpr size_t N = sizeof(std::remove_reference_t<Buffer>) / sizeof(char);
     PointerCursorWriter c(buffer, N);
@@ -81,7 +81,7 @@ print(uint32_t mask, Buffer &&buffer, Args &&...args) {
 // ── Cas de base de la récursion (aucune paire restante)
 // ───────────────────────
 template <typename Cursor>
-inline size_t constexpr print_key_value_pair(uint32_t /*mask*/, size_t /*idx*/,
+inline size_t constexpr print_key_value_pair(MaskType /*mask*/, size_t /*idx*/,
                                              int8_t & /*last_idx*/,
                                              Cursor & /*output*/) {
   return 0;
@@ -90,7 +90,7 @@ inline size_t constexpr print_key_value_pair(uint32_t /*mask*/, size_t /*idx*/,
 // ── Cas récursif
 // ──────────────────────────────────────────────────────────────
 template <typename Cursor, typename T, typename... Rest>
-size_t constexpr print_key_value_pair(uint32_t mask, size_t idx, int8_t &last_idx,
+size_t constexpr print_key_value_pair(MaskType mask, size_t idx, int8_t &last_idx,
                                       Cursor &output, const char *key, T &value,
                                       Rest &&...rest) {
   size_t len = 0;
@@ -248,7 +248,7 @@ size_t constexpr print_hex_to(Cursor &output, T (&value)[N]) {
 // ── print_json
 // ────────────────────────────────────────────────────────────────
 template <typename Cursor, typename... Args>
-constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args) {
+constexpr size_t print_json(MaskType mask, Cursor &output, Args &&...args) {
   static_assert(sizeof...(Args) % 2 == 0, "Le nombre d'arguments doit être pair");
   size_t len = 0;
   int8_t last_index = get_last_bitwise_mask_index(mask);
@@ -264,7 +264,7 @@ constexpr size_t print_json(uint32_t mask, Cursor &output, Args &&...args) {
 
 // ── get_last_bitwise_mask_index
 // ───────────────────────────────────────────────
-constexpr int8_t get_last_bitwise_mask_index(uint32_t mask) {
+constexpr int8_t get_last_bitwise_mask_index(MaskType mask) {
   if (mask == 0)
     return -1;
 

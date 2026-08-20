@@ -10,6 +10,9 @@
 
 NAMESPACE_JSON_BEGIN
 
+// Runtime options
+inline bool PRINT_BUFFER_AS_HEX = false;
+
 #ifdef JSON_DEBUG_MEM
 static uint16_t GLOBAL_PARSER_SIZE = 0;
 static uint16_t MAX_GLOBAL_PARSER_SIZE = 0;
@@ -17,8 +20,10 @@ static uint16_t GLOBAL_STRING_POOL_SIZE = 0;
 static uint16_t GLOBAL_CONTEXT_STACK_SIZE = UINT16_MAX;
 #endif
 
+// Compile-time options
+constexpr uint8_t VERSION = 1;
 constexpr uint16_t YIELD_EVERY = 128;
-constexpr uint16_t STREAM_BUFFER_SIZE = 1 << 7;     // 128 octets
+constexpr uint16_t STREAM_WRITER_BUFFER_SIZE = 1 << 7;     // 128 octets
 constexpr uint16_t RING_BUFFER_SIZE = 1 << 8;       // 256 octets
 constexpr uint16_t MAX_STRING_POOL_SIZE = 1 << 12;  // 4096 octets
 constexpr uint32_t MAX_JSON_LENGTH = 1 << 24;       // 16777216 octets = 16MB
@@ -27,7 +32,7 @@ constexpr uint16_t MAX_NUMERIC_LENGTH = 25 ; // Pour les entiers et les flottant
 #ifdef ARDUINO
 constexpr uint16_t MAX_STRING_POOL_REUSE_COUNT = 0;
 constexpr uint16_t MAX_KEY_LENGTH   = 1 << 5;  // 32 octets
-constexpr uint16_t MAX_VALUE_LENGTH = 1 << 6;  // 64 octets
+constexpr uint16_t MAX_VALUE_LENGTH = 1 << 8;  // 256 octets
 #else
 constexpr uint16_t MAX_STRING_POOL_REUSE_COUNT = 0;
 constexpr uint16_t MAX_KEY_LENGTH   = 1 << 8;  // 256 octets
@@ -36,29 +41,67 @@ constexpr uint16_t MAX_VALUE_LENGTH = 1 << 8;  // 256 octets
 
 constexpr uint32_t MAX_ARRAY_LENGTH = 1 << 16;      // 65536 valeurs
 constexpr uint8_t MAX_KEY_VALUE_COUNT = 32;        // Maximum autorisé par la macro
-#if JSON_DEBUG_LEVEL > 0
-constexpr uint8_t DEBUG_COLUMN_WIDTH = 80;
-constexpr uint8_t VERSION = 1;
-#endif
+
 // Options
-constexpr bool ALLOW_FLOATING_POINT_INTEGERS = true;
+constexpr bool ALLOW_PARSING_INTEGER_AS_FLOAT = true;
 constexpr bool ALLOW_INTEGER_OVERFLOW = true;
 constexpr bool FROM_JSON_USES_UPDATES = true;
 
-inline bool PRINT_BUFFER_AS_HEX = false;
-inline uint16_t MAX_PRINTF_BUFFER_SIZE = 4096;
-inline uint32_t MAX_ITERATIONS = std::numeric_limits<uint32_t>::max();          // 4294967295 itérations maximum
-inline uint16_t MAX_JSON_DEPTH = 1 << 8; // 256 niveaux de profondeur maximum
+constexpr uint16_t MAX_PRINTF_BUFFER_SIZE = 4096;
+constexpr uint32_t MAX_ITERATIONS = std::numeric_limits<uint32_t>::max();          // 4294967295 itérations maximum
+constexpr uint16_t MAX_JSON_DEPTH = 1 << 8; // 256 niveaux de profondeur maximum
 
 NAMESPACE_JSON_END
 
-static char JSON_SPACE_CHARACTERS[4] = {' ', '\t', '\n', '\r'};
-static char JSON_HEX_CHARACTERS_RANGES[3][2] = {{'a', 'f'}, {'A', 'F'}, {'0', '9'}};
-static char JSON_KEY_CHARACTERS_RANGES[5][2] = {{'a', 'z'}, {'A', 'Z'}, {'0', '9'}, {'_', '_'}, {'$', '$'}};
-static char JSON_DIGIT_CHARACTERS_RANGES[1][2] = {{'0', '9'}};
+template <typename T, size_t N>
+constexpr T create_charset_mask(const char (&set)[N], const uint8_t offset) {
+    T mask = 0;
 
-static constexpr char JSON_START_CHARACTER = '{';
-static constexpr char JSON_END_CHARACTER = '}';
+    for (uint8_t i = 0; i < N; ++i) {
+        mask |= (1ULL << (static_cast<uint8_t>(set[i]) - offset));
+    }
+
+    return mask;
+}
+
+template <typename T>
+constexpr T create_char_range_mask(const uint8_t min, const uint8_t max) {
+    T mask = 0;
+
+    for (uint8_t i = 0; i <= max - min; i++) {
+        mask |= (1ULL << i);
+    }
+
+    return mask;
+}
+
+template <typename T>
+constexpr bool is_in_mask(const uint8_t c, const T mask) {
+    return (mask & (1ULL << c)) != 0ULL;
+}
+
+template <typename T, size_t N>
+constexpr uint8_t min_cxr(const T (&set)[N]) {
+    T min = std::numeric_limits<T>::max;
+    for (T i = 0; i < N; ++i) {
+        if (set[i] < min) {
+            min = set[i];
+        }
+    }
+    return min;
+}
+
+constexpr uint64_t JSON_SPACE_CHARACTERS_MASK = create_charset_mask<uint64_t>({' ', '\t', '\n', '\r'}, 0);
+// constexpr uint64_t ALPHA_LOWER_CHARACTERS_MASK = create_char_range_mask<uint64_t>('a', 'z');
+// constexpr uint64_t ALPHA_UPPER_CHARACTERS_MASK = create_char_range_mask<uint64_t>('A', 'Z');
+// constexpr uint64_t UND_DOL_CHARACTERS_MASK = create_charset_mask<uint64_t>({'$','_'}, '$');
+
+static constexpr char JSON_HEX_CHARACTERS_RANGES[3][2] = {{'a', 'f'}, {'A', 'F'}, {'0', '9'}};
+static constexpr char JSON_KEY_CHARACTERS_RANGES[5][2] = {{'a', 'z'}, {'A', 'Z'}, {'0', '9'}, {'_', '_'}, {'$', '$'} };
+static constexpr char JSON_DIGIT_CHARACTERS_RANGES[1][2] = {{'0', '9'}};
+
+static constexpr char JSON_OBJECT_START_CHARACTER = '{';
+static constexpr char JSON_OBJECT_END_CHARACTER = '}';
 static constexpr char JSON_ARRAY_START_CHARACTER = '[';
 static constexpr char JSON_ARRAY_END_CHARACTER = ']';
 static constexpr char JSON_COLON_CHARACTER = ':';
@@ -96,3 +139,6 @@ using arguments_types = type_list<JSONCallbackObject>;
 using arguments_array_types =
     type_list<int8_t, int16_t, int32_t, uint8_t, uint16_t, uint32_t, char, float>;
 using arguments_array_array_types = type_list<char>;
+
+using MaskType = uint32_t;
+

@@ -56,7 +56,7 @@ struct DemangledName {
   operator const char *() const { return str; }
 };
 template <typename Tuple, size_t... Is>
-void printf_impl(const char *format, Tuple &t, std::index_sequence<Is...>) {
+void printf_impl([[maybe_unused]] const char *format, [[maybe_unused]] Tuple &t, std::index_sequence<Is...>) {
   DEBUG_PRINTF(format, static_cast<const char *>(std::get<Is>(t))...);
 }
 #endif

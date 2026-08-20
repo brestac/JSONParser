@@ -27,6 +27,11 @@ public:
                        this, start, len);
   }
 
+  explicit constexpr PointerCursor(const char* start)
+      : _pos(start), _start(start), _end(start + str_length(start, MAX_JSON_LENGTH)) {
+    JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader %p created with const char* %p ", this, start);
+  }
+
   explicit constexpr PointerCursor(std::string_view& sv)
       : _pos(sv.data()), _start(sv.data()), _end(sv.data() + sv.length()) {
         JSON_DEBUG_COLOR(COLOR_BLUE,
@@ -34,10 +39,12 @@ public:
         sv.data(), sv.length());
   }
 
-  explicit constexpr PointerCursor(const char* buffer)
-      : _pos(buffer), _start(buffer), _end(buffer + str_length(buffer, MAX_JSON_LENGTH)) {
-      JSON_DEBUG_COLOR(COLOR_BLUE, "PointerCursor reader created with const char* buffer %p deducted size %zu\n", buffer, str_length(buffer, MAX_JSON_LENGTH));
-      }
+  explicit constexpr PointerCursor(std::string& str)
+    : _pos(str.c_str()), _start(str.c_str()), _end(str.c_str() + str.length()) {
+      JSON_DEBUG_COLOR(COLOR_BLUE,
+      "PointerCursor reader created with std::string %p size %zu\n",
+        str, str.length());
+}
 
   template <size_t N>
   explicit constexpr PointerCursor(T (&buffer)[N])
@@ -86,19 +93,17 @@ public:
   mutable uint8_t depth = 0;
 };
 
-// using PointerCursorReader = PointerCursor<const char>;
-// using PointerCursorWriter = PointerCursor<char>;
-
 class PointerCursorReader : public PointerCursor<const char> {
 public:
   using PointerCursor<const char>::PointerCursor;
   // --------------------------------------------------------
   // Méthodes de LECTURE
   // --------------------------------------------------------
-  bool advance(int n = 1) const;
-  bool go_to(const char* ptr) const;
-  int peek(int offset = 0) const;
+  bool advance() const;
+  bool advance(int n) const;
+  int peek() const;
   int read() const;
+  bool go_to(const char* ptr) const;
 
   PointerCursorReader() = delete;
   PointerCursorReader(const PointerCursorReader &) = delete;
@@ -128,18 +133,22 @@ public:
 
 // Avance le pointeur de n octets
 bool PointerCursorReader::advance(int n) const {
-  if (_pos + n < _start) {
-    JSON_DEBUG_WARNING("PointerCursor::advance: underflow\n");
-    _pos = _start;
-  } else if (_pos + n > _end) {
-    JSON_DEBUG_WARNING("PointerCursor::advance: overflow\n");
-    _pos = _end;
-  } else {
-    _pos += n;
-    return true;
+  if (_pos + n < _start || _pos + n > _end) {
+    JSON_DEBUG_WARNING("PointerCursor::advance: under/overflow\n");
+    return false;
   }
 
-  return false;
+  _pos += n;
+  return true;
+}
+
+bool PointerCursorReader::advance() const {
+  if (_pos >= _end) {
+    return false;
+  }
+  _pos++;
+
+  return true;
 }
 
 // Avance jusqu'au pointeur
@@ -153,12 +162,11 @@ bool PointerCursorReader::go_to(const char* ptr) const {
 }
 
 // Caractère courant sans avancer (-1 = fin)
-int PointerCursorReader::peek(int offset) const {
-  const char* p = _pos + offset;
-  if (p < _start || p >= _end)
+int PointerCursorReader::peek() const {
+  if (_pos >= _end)
     return -1;
 
-  return static_cast<unsigned char>(*p);
+  return static_cast<unsigned char>(*_pos);
 }
 
 // Lit et avance
