@@ -349,6 +349,18 @@ TEST_CASE( "TEST GEOJSON BIG", "[geojson][big][file][stream]" ) {
                  83.001663208f );
 }
 
+TEST_CASE( "TEST GEOJSON MEDIUM WITH SPACES", "[geojson][spaces][file][stream]" ) {
+  FeatureCollectionMultiPolygon fc;
+  File f = LittleFS.open( GEOJSON_MEDIUM_FILE_PATH, "r" );
+  if ( !f ) {
+    DEBUG_PRINTF( "Failed to open file for reading\n" );
+    REQUIRE( false );
+  }
+  JSON::ParseResult pr = fc.fromJSON( &f );
+
+  REQUIRE( pr.error == 0 );
+}
+
 TEST_CASE( "TEST GEOJSON PARSING BIG", "[geojson][big][buffer]" ) {
   FeatureCollectionPolygon fc;
   std::string json = read_file_to_string( GEOJSON_BIG_FILE_PATH );

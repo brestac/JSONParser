@@ -2,9 +2,7 @@
 
 // JSONParserBase.h
 
-#include <array>
 #include <limits>
-#include <vector>
 
 #include "PointerCursor.h"
 #include "StreamCursor.h"
@@ -38,35 +36,9 @@ static inline ParseValueResult assign( PV&& pv, V& v ) {
 
   return ParseValueResult::NO_RESULT;
 }
-/*
-template <size_t D, typename T>
-constexpr auto& get_element_at_path(T& container, const uint8_t* path) {
-  if constexpr (container_info<T>::is_container && container_info<T>::dimensions
-> D) { using Elem = typename container_info<T>::child_t; uint8_t index =
-path[0]; if constexpr(container_info<T>::kind == ContainerKind::STD_VECTOR) { if
-(index >= container.size()) { container.resize(index + 1);
-        //JSON_DEBUG_ERROR("Index %d out of bounds for container of size %d\n",
-index, container.size());
-      }
-    }
-    return get_element_at_path<D, Elem>(container[index], path + 1);
-  } else {
-    return container; // base_type atteint (ou char[N] traité comme feuille)
-  }
-}
 
-template <typename T>
-T& get_vector_element(std::vector<T>& container, uint8_t index) {
-  if (index >= container.size()) {
-    T value{};
-    container.push_back(value);
-  }
-
-  return container[index];
-}
-*/
-
-template <typename Cursor, bool UseMask> class JSONParserBase {
+template <typename Cursor, bool UseMask>
+class JSONParserBase {
   public:
   enum ParserState : uint8_t {
     START = 0,
@@ -97,10 +69,10 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
       _progress(),
       _automask( false ),
       _is_top_level_array( false ),
-      _is_geometry( false ),
       _lastError( ParserError::NO_ERROR ),
       _lastParseError( 0 ) {
     JSON_DEBUG_COLOR( COLOR_BLUE, "JSONParserBase created\n" );
+    GLOBAL_ITERATIONS = 0;
   }
 
   ~JSONParserBase() {
@@ -143,8 +115,6 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
   template <typename PV, typename V>
   ParseValueResult assign_null_ptr_to_pointer( PV& pv, V& v );
 
-  // template <typename V> ParseValueResult assign_array_to_array(V& pv, V& v);
-
   template <typename PV, typename V>
   ParseValueResult assign_not_handled( PV& pv, V& v );
 
@@ -165,27 +135,18 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
   template <typename TargetT, typename V>
   ParseValueResult parse_into_value( V& arg_value );
 
-  template <typename TargetT> ParseValueResult
+  template <typename TargetT, bool MultiPoint> ParseValueResult
   parse_into_array_at_index( JSONCallbackObject& cb, uint32_t index );
 
-  template <typename TargetT, typename T, size_t N>
-  ParseValueResult parse_into_array_at_index( T ( &array )[N], uint32_t index );
-
-  template <typename TargetT, typename T> ParseValueResult
-  parse_into_array_at_index( std::vector<T>& array, uint32_t index );
-
-  template <typename TargetT, typename T, size_t N> ParseValueResult
-  parse_into_array_at_index( std::array<T, N>& array, uint32_t index );
+  template <typename TargetT, bool MultiPoint, typename C>
+  std::enable_if_t<is_container_v<C>, ParseValueResult>
+  parse_into_array_at_index( C& array, uint32_t index );
 
   ParseValueResult parse_array( JSONCallbackObject& arg_value );
 
   template <typename TargetT, typename V>
   ParseValueResult parse_array( V& arg_value );
-  /*
-    template <typename TargetT, typename V>
-    enable_if_t<(container_info<V>::dimensions > 1U), ParseValueResult>
-    parse_array(V& arg_value);
-  */
+
   // Accessors
   size_t nParsed() { return _progress._nParsed; }
   size_t nMatched() { return _progress._nMatched; }
@@ -205,7 +166,6 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
   Progress _progress;
   bool _automask;
   bool _is_top_level_array;
-  bool _is_geometry;
   ParserError _lastError;
   ParseValueResult _lastParseError;
 
@@ -251,13 +211,10 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
   template <typename TargetT, typename V>
   bool scan_escaped_string( std::string_view& sv );
   template <typename TargetT, typename V> ParseValueResult parse_string( V& v );
-  // template <typename V, typename Type> ParseValueResult parse_numeric(V& v);
-  // template <typename V> ParseValueResult parse_floating_point(V& v);
-  // template <typename V> ParseValueResult parse_integer(V& v);
-  template <typename V> ParseValueResult parse_numeric( V& v );
 
   template <typename PV, typename V>
-  ParseValueResult parse_numeric_as( V& v );// ParseValueResult parse_numeric(JSONCallbackObject& v);
+  ParseValueResult parse_numeric_as( V& v );
+
   template <typename V> ParseValueResult parse_any_numeric( V& v );
   template <typename V> ParseValueResult parse_bool( V& v );
   template <typename V> ParseValueResult parse_null( V& v );
@@ -307,11 +264,13 @@ template <typename Cursor, bool UseMask> class JSONParserBase {
 
   void set_state( ParserState s );
 #if JSON_DEBUG_LEVEL > 0
+  std::string_view get_state_name();
   void print_state( size_t iteration );
 #endif
-  std::string_view get_state_name();
 };
-
+/*
+    END OF JSONPARSERBASE DECLARATION
+*/
 template <typename Cursor, bool UseMask>
 uint8_t JSONParserBase<Cursor, UseMask>::_key_length = 0;
 
@@ -373,11 +332,10 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
   // _nArgs = sizeof...(Args);
 
   while ( !_cursor.eof() ) {
-    CHECK_LOOP_VOID( MAX_ITERATIONS, _state = ERROR;
-                     _lastError = ParserError::TOO_MANY_ITERATIONS; )
+    CHECK_LOOP( MAX_ITERATIONS, _state = ERROR; _lastError = ParserError::TOO_MANY_ITERATIONS; return; )
 
-#if JSON_DEBUG_LEVEL > 0
-    print_state( iteration );
+#if JSON_DEBUG_LEVEL == 1
+    print_state( GLOBAL_ITERATIONS );
 #endif
     switch ( _state ) {
       case START:
@@ -407,7 +365,6 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
         } else if ( parse_key() ) {
           _progress._nParsed++;
           JSON_DEBUG_INFO( "nParsed=%zu\n", _progress._nParsed );
-          _is_geometry = strcmp( _s_key_buf, "geometry" ) == 0;
           set_state( COLON );
         } else {
           _state = ERROR;
@@ -496,7 +453,7 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
       case ERROR:
         JSON_DEBUG_ERROR( "JSONParserBase: error at byte %zu: %s\n", _cursor.bytesConsumed(), errorToString( _lastError ) );
 #if JSON_DEBUG_LEVEL > 0
-        print_state( iteration );
+        print_state( GLOBAL_ITERATIONS );
 #endif
         return;
       case STOPPED:
@@ -549,7 +506,7 @@ bool JSONParserBase<Cursor, UseMask>::parse_key() {
   uint8_t n = 0;
 
   while ( n < JSON::MAX_KEY_LENGTH ) {
-    CHECK_LOOP( MAX_ITERATIONS, false );
+    CHECK_LOOP( MAX_ITERATIONS, return false; );
 
     int c = _cursor.peek();
 
@@ -672,9 +629,9 @@ JSONParserBase<Cursor, UseMask>::parse_into_value( V& arg_value ) {
   } else if constexpr ( std::is_same_v<V, bool> ) {
     return parse_bool( arg_value );
   } else if constexpr ( std::is_floating_point_v<V> ) {
-    return parse_numeric( arg_value );
+    return parse_numeric_as<V>( arg_value );
   } else if constexpr ( std::is_integral_v<V> ) {
-    return parse_numeric( arg_value );
+    return parse_numeric_as<V>( arg_value );
   } else if constexpr ( std::is_same_v<V, std::string_view> ||
                         is_char_array_v<V> ) {
     return parse_string<TargetT>( arg_value );
@@ -729,7 +686,7 @@ JSONParserBase<Cursor, UseMask>::scan_escaped_string( std::string_view& sv ) {
   char* pool_start_ptr = Pool::current_pos();
 
   while ( true ) {
-    CHECK_LOOP( MAX_ITERATIONS, false );
+    CHECK_LOOP( MAX_ITERATIONS, return false; );
 
     int c = _cursor.peek();
 
@@ -831,12 +788,6 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_string( V& arg_value ) {
 
   return assign_parsed_value_to_value( parsed_value, arg_value ) |
          ParseValueResult::STRING_PARSED;
-}
-
-template <typename Cursor, bool UseMask>
-template <typename V> ParseValueResult
-JSONParserBase<Cursor, UseMask>::parse_numeric( V& arg_value ) {
-  return parse_numeric_as<V>( arg_value );
 }
 
 template <typename Cursor, bool UseMask>
@@ -1007,7 +958,33 @@ JSONParserBase<Cursor, UseMask>::parse_array( JSONCallbackObject& arg_value ) {
 
   return r;
 }
+/*
+template <size_t D, typename T>
+constexpr auto& get_element_at_path(T& container, const uint8_t* path) {
+  if constexpr (container_info<T>::is_container && container_info<T>::dimensions
+> D) { using Elem = typename container_info<T>::child_t; uint8_t index =
+path[0]; if constexpr(container_info<T>::kind == ContainerKind::STD_VECTOR) { if
+(index >= container.size()) { container.resize(index + 1);
+        //JSON_DEBUG_ERROR("Index %d out of bounds for container of size %d\n",
+index, container.size());
+      }
+    }
+    return get_element_at_path<D, Elem>(container[index], path + 1);
+  } else {
+    return container; // base_type atteint (ou char[N] traité comme feuille)
+  }
+}
 
+template <typename T>
+T& get_vector_element(std::vector<T>& container, uint8_t index) {
+  if (index >= container.size()) {
+    T value{};
+    container.push_back(value);
+  }
+
+  return container[index];
+}
+*/
 /*
 The following function is an optimization for parsing the geometry field in a
 geojson file. The geometry field is a nested containers
@@ -1085,24 +1062,6 @@ template <typename Cursor, bool UseMask> template <typename TargetT, typename V>
 ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array( V& arg_value ) {
   JSON_DEBUG_INFO( "JSONParserBase::parse_array\n" );
   LOG_STACK( "parse_array" );
-  /*
-  // Check if the number of opening brackets equals the dimensions of the
-  container if constexpr (container_info<V>::is_container &&
-  container_info<V>::dimensions > 1) { uint8_t n = 0; while (n <
-  JSON::MAX_JSON_DEPTH) { if (_cursor.peek(n) != JSON_ARRAY_START_CHARACTER) {
-        break;
-      }
-      n++;
-    }
-
-    if (n != container_info<V>::dimensions) {
-      JSON_DEBUG_WARNING("JSONParserBase::parse_array: number of opening
-  brackets %d does not match the dimensions of the container %d\n", n,
-  container_info<V>::dimensions); return
-  ParseValueResult::PARSE_ERROR_ARRAY_NO_START;
-    }
-  }
-  */
 
   if ( !is_array_start() ) {
     return ParseValueResult::PARSE_ERROR_ARRAY_NO_START;
@@ -1117,6 +1076,9 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array( V& arg_value ) {
                           ? static_cast<int>( container_info<V>::extent )
                           : max_array_length;
 
+  constexpr bool is_multipoint = container_info<V>::is_container &&
+                                 container_info<V>::dimensions == 2 &&
+                                 is_coords<typename container_info<V>::base_container_t>;
   while ( i < max ) {
 
     if ( i > max_array_length ) {
@@ -1128,8 +1090,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array( V& arg_value ) {
 
     SKIP_SPACES
 
-    ParseValueResult result =
-        parse_into_array_at_index<TargetT>( arg_value, i );
+    ParseValueResult result = parse_into_array_at_index<TargetT, is_multipoint>( arg_value, i );
 
     if constexpr ( is_callback<V> ) {
       if ( _state == STOPPED ) {
@@ -1176,9 +1137,9 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array( V& arg_value ) {
   return ParseValueResult::ARRAY_PARSED;
 }
 
-template <typename Cursor, bool UseMask> template <typename TargetT>
-ParseValueResult JSONParserBase<Cursor, UseMask>::parse_into_array_at_index(
-    JSONCallbackObject& cb, uint32_t index ) {
+template <typename Cursor, bool UseMask>
+template <typename TargetT, bool MultiPoint>
+ParseValueResult JSONParserBase<Cursor, UseMask>::parse_into_array_at_index( JSONCallbackObject& cb, uint32_t index ) {
   cb.setArrayIndex( index );
 
   if ( _is_top_level_array ) { return parse_object( cb ); }
@@ -1187,57 +1148,71 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_into_array_at_index(
 }
 
 template <typename Cursor, bool UseMask>
-template <typename TargetT, typename T, size_t N> ParseValueResult
-JSONParserBase<Cursor, UseMask>::parse_into_array_at_index( T ( &array )[N],
-                                                            uint32_t index ) {
+template <typename TargetT, bool MultiPoint, typename C>
+std::enable_if_t<is_container_v<C>, ParseValueResult>
+JSONParserBase<Cursor, UseMask>::parse_into_array_at_index( C& array, uint32_t index ) {
+  using ContainerInfo = container_info<C>;
 
-  if ( index >= N ) {
-    JSON_DEBUG_WARNING(
-        "JSONParserBase::parse_into_array_at_index: %zu overflow", index );
-    return ParseValueResult::PARSE_ERROR_OVERFLOW;
+  if constexpr ( ContainerInfo::fixed ) {
+    if ( index >= ContainerInfo::extent ) {
+      JSON_DEBUG_COLOR( COLOR_RED, "Array overflow at index %zu\n", index );
+      return ParseValueResult::PARSE_ERROR_OVERFLOW;
+    }
   }
 
-  return parse_into_value<TargetT>( array[index] );
-}
-
-template <typename Cursor, bool UseMask> template <typename TargetT, typename T>
-ParseValueResult JSONParserBase<Cursor, UseMask>::parse_into_array_at_index(
-    std::vector<T>& array, uint32_t index ) {
-  if constexpr ( is_coords<T> ) {
-    if ( _is_geometry && index % 100 == 0 ) { array.reserve( index + 100 ); }
+  if constexpr ( ContainerInfo::kind == ContainerKind::STD_VECTOR || ContainerInfo::kind == ContainerKind::STD_LIST ) {
+// Avoid memory fragmentation on Arduino by reserving memory in chunks of 100
+#ifdef ARDUINO
+    if constexpr ( MultiPoint ) {
+      if ( ((index + 1) % 100) == 0 ) { 
+        array.reserve( index + 100 );
+      }
+    }
+#endif
+    if ( index == array.size()) {
+      array.emplace_back();
+    }
   }
 
-  // if constexpr (std::is_default_constructible_v<T>) {
-  array.emplace_back();
-  return parse_into_value<TargetT>( array[index] );
-  // } else {
-  //   T value{};
-  //   ParseValueResult r = parse_into_value<TargetT>(value);
-  //   if (r.parsed()) {
-  //     array.emplace_back(value);
-  //   }
-
-  //   return r;
-  // }
-}
-
-template <typename Cursor, bool UseMask>
-template <typename TargetT, typename T, size_t N>
-ParseValueResult JSONParserBase<Cursor, UseMask>::parse_into_array_at_index(
-    std::array<T, N>& array, uint32_t index ) {
-
-  if ( index >= N ) {
-    JSON_DEBUG_COLOR( COLOR_RED, "Array overflow at index %zu\n", index );
-    return ParseValueResult::PARSE_ERROR_OVERFLOW;
-  }
-#ifdef __GXX_RTTI
+#if defined(__GXX_RTTI) && JSON_DEBUG_LEVEL > 0
+  using ElementType = typename ContainerInfo::child_t;
   JSON_DEBUG_COLOR( COLOR_GREEN,
                     "Parsing array at index %zu into %s\n",
                     index,
-                    typeid( T ).name() );
+                    typeid( ElementType ).name() );
 #endif
+  
   return parse_into_value<TargetT>( array[index] );
 }
+
+// template <typename Cursor, bool UseMask>
+// template <typename TargetT, typename C>
+// std::enable_if_t<is_c_array_v<C>, ParseValueResult>
+// JSONParserBase<Cursor, UseMask>::parse_into_array_at_index( C&array, uint32_t index ) {
+//   constexpr size_t N = container_info<C>::extent;
+
+//   if ( index >= N ) {
+//     JSON_DEBUG_WARNING(
+//         "JSONParserBase::parse_into_array_at_index: %zu overflow", index );
+//     return ParseValueResult::PARSE_ERROR_OVERFLOW;
+//   }
+
+//   return parse_into_value<TargetT>( array[index] );
+// }
+
+// template <typename Cursor, bool UseMask>
+// template <typename TargetT, typename C>
+// std::enable_if_t<is_vector_v<C>, ParseValueResult>
+// JSONParserBase<Cursor, UseMask>::parse_into_array_at_index( C& array, uint32_t index ) {
+//   using T = typename container_info<C>::base_t;
+
+//   if constexpr ( is_coords<T> ) {
+//     if ( _is_geometry && index % 100 == 0 ) { array.reserve( index + 100 ); }
+//   }
+
+//   array.emplace_back();
+//   return parse_into_value<TargetT>( array[index] );
+// }
 
 // ── parse_object ──────────────────────────────────────────────
 template <typename Cursor, bool UseMask> template <typename V>
@@ -1330,7 +1305,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_value() {
   bool escape = false;
 
   while ( true ) {
-    CHECK_LOOP( MAX_ITERATIONS, ParseValueResult::PARSE_ERROR_OVERFLOW );
+    CHECK_LOOP( MAX_ITERATIONS, return ParseValueResult::PARSE_ERROR_OVERFLOW; );
 
     int c = _cursor.peek();
 
@@ -1419,7 +1394,7 @@ JSONParserBase<Cursor, UseMask>::skip_value() {
   bool inString = true;
 
   while ( inString ) {
-    CHECK_LOOP( MAX_ITERATIONS, ParseValueResult::PARSE_ERROR_OVERFLOW );
+    CHECK_LOOP( MAX_ITERATIONS, return ParseValueResult::PARSE_ERROR_OVERFLOW; );
 
     int c = _cursor.peek();
 
@@ -1474,7 +1449,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_object_end() {
   // we find the end of the object
 
   while ( true ) {
-    CHECK_LOOP( MAX_ITERATIONS, ParseValueResult::PARSE_ERROR_OVERFLOW );
+    CHECK_LOOP( MAX_ITERATIONS, return ParseValueResult::PARSE_ERROR_OVERFLOW; );
 
     if ( is_object_end() ) { break; }
 
@@ -1498,7 +1473,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_object_end() {
           "JSONParserBase::skip_to_object_end: cannot parse value "
           "%s for key #%zu\n",
           errorToString( r ),
-          iteration );
+          GLOBAL_ITERATIONS );
       return r;
     }
   }
@@ -1526,7 +1501,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_array_end() {
   SKIP_SPACES
 
   while ( true ) {
-    CHECK_LOOP( MAX_ITERATIONS, ParseValueResult::PARSE_ERROR_OVERFLOW );
+    CHECK_LOOP( MAX_ITERATIONS, return ParseValueResult::PARSE_ERROR_OVERFLOW; );
 
     // Always use the generic skip_value() here.
     ParseValueResult r = skip_value();
@@ -1570,7 +1545,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_array_end_fast() {
   SKIP_SPACES
 
   while ( brackets_counter > 0 ) {
-    CHECK_LOOP( MAX_ITERATIONS, ParseValueResult::PARSE_ERROR_OVERFLOW );
+    CHECK_LOOP( MAX_ITERATIONS, return ParseValueResult::PARSE_ERROR_OVERFLOW; );
 
     if constexpr ( container_info<V>::dimensions == 1 ) {
       if ( is_array_end() ) { brackets_counter--; }
@@ -1829,6 +1804,7 @@ void JSONParserBase<Cursor, UseMask>::skip_spaces() {
 
   while ( iteration < MAX_ITERATIONS ) {
     if ( (JSON_SPACE_CHARACTERS_MASK & (1ULL << _cursor.peek())) == 0ULL ) break;
+    //if (c != ' ' && c != '\t' && c != '\n' && c != '\r') break;
     iteration++;
     _cursor.advance();
   }
@@ -1904,7 +1880,7 @@ void JSONParserBase<Cursor, UseMask>::print_state( size_t iteration ) {
       return;
     }
 
-    const char* color = ( _state == ERROR ) ? "\x1b[31m" : "\x1b[32m";
+    [[maybe_unused]] const char* color = ( _state == ERROR ) ? "\x1b[31m" : "\x1b[32m";
     char errors[128] = {0};
     if (_lastError != ParserError::NO_ERROR) {
       snprintf(errors, sizeof(errors), "error=%s ", errorToString(_lastError));
@@ -1917,12 +1893,12 @@ void JSONParserBase<Cursor, UseMask>::print_state( size_t iteration ) {
     const char* begin = std::max(_cursor.ptr() - DEBUG_OFFSET, _cursor.start());
     const char* end = std::min(_cursor.ptr() + DEBUG_OFFSET, _cursor.start() + _cursor.size());
     size_t json_size = end - begin;
-    int offset = _cursor.ptr() - begin;
+    [[maybe_unused]] int offset = _cursor.ptr() - begin;
     strncpy( json, begin, json_size );
 
     replace_endl( json, sizeof( json ));
-    std::string_view state = get_state_name();
-    JSON_DEBUG_INFO( "'%.*s'\n%s%*c[%zu]:%.*s %skey='%.*s' \x1b[0m\n",
+    [[maybe_unused]] std::string_view state = get_state_name();
+    JSON_DEBUG_ERROR( "'%.*s'\n%s%*c[%zu]:%.*s %skey='%.*s' \x1b[0m\n",
                      json_size,
                      json,
                      color,
@@ -1936,7 +1912,6 @@ void JSONParserBase<Cursor, UseMask>::print_state( size_t iteration ) {
                      _s_key_buf );
   //}
 }
-#endif
 
 template <typename Cursor, bool UseMask>
 std::string_view JSONParserBase<Cursor, UseMask>::get_state_name() {
@@ -1971,3 +1946,4 @@ std::string_view JSONParserBase<Cursor, UseMask>::get_state_name() {
       return "UNKNOWN";
   }
 }
+#endif

@@ -154,35 +154,25 @@ template <typename T, typename A> struct container_info<std::list<T, A>> {
 template <typename T>
 using base_container_t = typename container_info<T>::base_container_t;
 
-template <typename T>
-constexpr bool is_vector_v = container_info<remove_cv_ref_t<T>>::kind == ContainerKind::STD_VECTOR;
+template <typename T> constexpr bool is_container_v = container_info<T>::is_container;
 
 template <typename T>
-constexpr bool is_array_v = container_info<T>::kind == ContainerKind::STD_ARRAY;
+constexpr bool is_vector_v = is_container_v<T> && container_info<T>::kind == ContainerKind::STD_VECTOR;
+
+template <typename T>
+constexpr bool is_array_v = is_container_v<T> && container_info<T>::kind == ContainerKind::STD_ARRAY;
+
+template <typename T>
+constexpr bool is_c_array_v = is_container_v<T> && container_info<T>::kind == ContainerKind::C_ARRAY;
 
 // ==========================================
 // Container from list checker
 // ==========================================
-template <typename T> constexpr bool is_container_v = container_info<T>::is_container;
 
-template <typename T, typename TypeList> struct is_container_from_list : std::false_type {};
-
-// C-array
-template <typename T, size_t N, typename TypeList>
-struct is_container_from_list<T[N], TypeList> : is_in_type_list<typename container_info<T[N]>::base_t, TypeList> {};
-
-// std::array
-template <typename T, size_t N, typename TypeList>
-struct is_container_from_list<std::array<T, N>, TypeList>
-    : is_in_type_list<typename container_info<std::array<T, N>>::base_t, TypeList> {};
-
-// std::vector
+// Check if a type T is a container of a type in TypeList. A container needs to have container_info<T>::is_container == true
+// and the base type of the container needs to be in TypeList.
 template <typename T, typename TypeList>
-struct is_container_from_list<std::vector<T>, TypeList>
-    : is_in_type_list<typename container_info<std::vector<T>>::base_t, TypeList> {};
-
-template <typename T, typename TypeList>
-inline constexpr bool is_container_from_list_v = is_container_from_list<T, TypeList>::value;
+struct is_container_from_list : std::integral_constant<bool, container_info<T>::is_container && is_in_type_list<typename container_info<T>::base_t, TypeList>::value> {};
 
 // ==========================================
 // char array, char array array

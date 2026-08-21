@@ -16,8 +16,6 @@
 
 #include "macros.h"
 
-static inline uint64_t refill_duration = 0;
-
 NAMESPACE_JSON_BEGIN
 
 // ============================================================
@@ -48,7 +46,6 @@ public:
   void refill() {
     size_t space = N - available();
     if (space == 0) return;
-    uint64_t start = now();
 
     // Sur WiFiClient, available() peut retourner 0 entre deux paquets
     // alors que le stream n'est pas terminé. On se limite à ce qui est
@@ -69,8 +66,6 @@ public:
         n = _stream->readBytes(_buf, second);
         _head += n;
     }
-
-    refill_duration += now() - start;
   }
 
   

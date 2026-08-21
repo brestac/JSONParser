@@ -6,7 +6,6 @@
 #include <limits.h>
 
 #include "Stream.h"
-static uint64_t profile_read_bytes = 0;
 
 class File : public Stream {
 public:
@@ -80,6 +79,7 @@ public:
     long current_pos = ftell(_file);
     return current_pos < 0 ? 0 : (int)(_size - current_pos);
   }
+
   int read() override { return fgetc(_file); }
 
   size_t read(uint8_t* buffer, size_t maxLen) override {
@@ -87,11 +87,7 @@ public:
   }
 
   size_t readBytes(uint8_t* buffer, size_t length) override {
-
-    uint64_t start = _now();
-    size_t r = fread(buffer, 1, length, _file);
-    profile_read_bytes += _now() - start;
-    return r;
+    return fread(buffer, 1, length, _file);
   }
 
   int peek() override {

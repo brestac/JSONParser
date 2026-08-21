@@ -11,7 +11,8 @@
 NAMESPACE_JSON_BEGIN
 
 // Runtime options
-inline bool PRINT_BUFFER_AS_HEX = false;
+static inline bool PRINT_BUFFER_AS_HEX = false;
+static inline uint64_t GLOBAL_ITERATIONS = 0;
 
 #ifdef JSON_DEBUG_MEM
 static uint16_t GLOBAL_PARSER_SIZE = 0;
@@ -48,7 +49,7 @@ constexpr bool ALLOW_INTEGER_OVERFLOW = true;
 constexpr bool FROM_JSON_USES_UPDATES = true;
 
 constexpr uint16_t MAX_PRINTF_BUFFER_SIZE = 4096;
-constexpr uint32_t MAX_ITERATIONS = std::numeric_limits<uint32_t>::max();          // 4294967295 itérations maximum
+constexpr uint64_t MAX_ITERATIONS = std::numeric_limits<uint64_t>::max();          // 4294967295 itérations maximum
 constexpr uint16_t MAX_JSON_DEPTH = 1 << 8; // 256 niveaux de profondeur maximum
 
 NAMESPACE_JSON_END

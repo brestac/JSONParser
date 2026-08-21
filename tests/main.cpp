@@ -22,6 +22,8 @@
 #include "structs.h"
 //#include "../examples/JSONParserTest/test.h"
 #define GEOJSON_SMALL_FILE_PATH "./small.geojson"
+#define GEOJSON_MEDIUM_FILE_PATH "./medium.geojson"
+#define GEOJSON_BIG_FILE_PATH "./big.geojson"
 
 std::string read_file_to_string( const char* filename ) {
   std::ifstream file( filename );
@@ -33,12 +35,11 @@ std::string read_file_to_string( const char* filename ) {
 }
 
 int main() {
-  FeatureCollection<2> fc;
-  File input = LittleFS.open( GEOJSON_SMALL_FILE_PATH, "r" );
+  FeatureCollection<3> fc;
+  File input = LittleFS.open( GEOJSON_MEDIUM_FILE_PATH, "r" );
   // //std::string input = read_file_to_string( GEOJSON_SMALL_FILE_PATH );
   JSON::ParseResult r = fc.fromJSON( input );
   r.print();
-  std::printf("Refill total duration %.2f%% read bytes %.2f%%\n", ((float)refill_duration / r.elapsed) * 100.0f, ((float)profile_read_bytes / r.elapsed) * 100.0f);
   // std::printf( "error: %d %s\n", r.error, errorToString( r.error ) );
   
 #ifdef JSON_DEBUG_MEM
@@ -46,5 +47,6 @@ int main() {
   std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);
 #endif
 
+  std::printf("TOTAL ITERATIONS: %lu\n", JSON::GLOBAL_ITERATIONS);
   return 0;
 }
