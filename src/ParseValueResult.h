@@ -16,7 +16,7 @@ public:
     KEY_FOUND = 1 << 0,
     VALUE_CONVERTED = 1<< 1,
     VALUE_UPDATED = 1 << 2,
-    // BEGINING OF PARSED TYPE MASK
+    // BEGINING OF PARSE_MASK
     STRING_PARSED = 8, // parsed JSON type, no error
     INTEGER_PARSED = 16, // parsed JSON type, no error
     FLOAT_PARSED = 24,// parsed JSON type, no error
@@ -24,7 +24,7 @@ public:
     NULL_VALUE_PARSED = 40,// parsed JSON type, no error
     ARRAY_PARSED = 48,// parsed JSON type, no error
     OBJECT_PARSED = 56, // parsed JSON type, no error
-    // BEGINING OF ERROR MASK
+    // BEGINING OF ERROR_MASK
     PARSE_ERROR_STRING = 72, // error parsing JSON type String
     PARSE_ERROR_NUMERIC = 80, // error parsing JSON type Integer
     PARSE_ERROR_FLOAT = 88, // error parsing JSON type Float
