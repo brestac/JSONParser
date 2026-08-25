@@ -133,51 +133,28 @@ using pair_variant_t = typename to_variant<extracted_value_types_with_monospace_
 
 template <std::size_t PairIndex, typename Variant, typename Tuple>
 constexpr Variant make_dispatch_entry(Tuple& args) {
-    using value_type =
-        remove_cv_ref_t<decltype(std::get<PairIndex * 2 + 1>(args))>;
-    return Variant{RefType<value_type>{
+    using value_type = remove_cv_ref_t<decltype(std::get<PairIndex * 2 + 1>(args))>;
+
+    return Variant{
+      RefType<value_type>{
         std::string_view(std::get<PairIndex * 2>(args)),
-        std::get<PairIndex * 2 + 1>(args)}};
+        std::get<PairIndex * 2 + 1>(args)
+      }
+    };
 }
 
 template <typename Variant, typename Tuple, std::size_t... PairIndex>
-constexpr auto make_dispatch_table(
-    Tuple& args, std::index_sequence<PairIndex...>) {
-    return std::array<Variant, sizeof...(PairIndex)>{
-        make_dispatch_entry<PairIndex, Variant>(args)...};
+constexpr auto make_dispatch_table(Tuple& args, std::index_sequence<PairIndex...>) {
+    return std::array<Variant, sizeof...(PairIndex)>{ make_dispatch_entry<PairIndex, Variant>(args)...};
 }
-
-template<typename T>
-inline void fill_dispatch_table(T&& dispatch_table, size_t) {
-    // Base case: do nothing
-}
-
-template<typename T, typename V, typename... Args>
-void fill_dispatch_table(T&& dispatch_table, size_t idx, const char* key, V& value, Args &&...args) {
-      std::string_view key_sv(key);
-      dispatch_table.at(idx) = RefType<V>{key_sv, value};
-      //std::cout << "key: " << key << " value: " << value << " idx: " << idx << std::endl;
-      fill_dispatch_table(dispatch_table, idx+1, std::forward<Args>(args)...);
-}
-
-
-// template<typename... Args>
-// constexpr auto create_dispatch_table(Args &&...args) {
-//     constexpr size_t container_size = sizeof...(Args) / 2;
-//     using variant_t = pair_variant_t<remove_cv_ref_t<Args>...>;
-//     std::array<variant_t, container_size> dispatch_table{};
-//     size_t pair_index = 0;
-//     fill_dispatch_table(dispatch_table, pair_index, std::forward<Args>(args)...);
-//     return dispatch_table;
-// };
 
 template <typename... Args>
 constexpr auto create_dispatch_table(Args&&... args) {
     constexpr std::size_t N = sizeof...(args) / 2;
     using variant_t = pair_variant_t<remove_cv_ref_t<Args>...>;
     auto args_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
-    return make_dispatch_table<variant_t>(
-        args_tuple, std::make_index_sequence<N>{});
+
+    return make_dispatch_table<variant_t>(args_tuple, std::make_index_sequence<N>{});
 }
 
 template <typename VariableType, typename Table>
@@ -212,18 +189,17 @@ void dispatch(Table& dispatch_table, std::string_view var_name) {
 }
 
 #define CREATE_DISPATCH_TABLE( ... ) create_dispatch_table(MACRO(__VA_ARGS__))
-//auto dispatch_table_object = CREATE_DISPATCH_TABLE(name_1, height, name_2);
+auto dispatch_table_object = CREATE_DISPATCH_TABLE(name_1, height, name_2);
 constexpr auto dispatch_table_api = create_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
 
-using dispatch_table_variant = std::decay_t<decltype(dispatch_table_api[0])>;
-static_assert(std::is_same_v<std::variant_alternative_t<3, dispatch_table_variant>,
-                             RefType<float>>);
+static_assert(dispatch_table_api.size() == 4, "dispatch_table_api size is not 4");
+static_assert(std::holds_alternative<RefType<float>>(dispatch_table_api[3]), "dispatch_table_api[3] is not a RefType<float>");
 
 
 int main() {
 
-     // dispatch<std::string_view>(dispatch_table_object, "name_2");
-     // std::cout << name_2 << std::endl;
+     dispatch<std::string_view>(dispatch_table_object, "name_2");
+     std::cout << name_2 << std::endl;
 
     dispatch<std::string_view>(dispatch_table_api, "name_2");
     std::cout << name_2 << std::endl;
