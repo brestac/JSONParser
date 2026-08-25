@@ -1,34 +1,24 @@
 #pragma once
+
 #include <type_traits>
 #include <variant>
 #ifdef __EXCEPTIONS
 #include <stdexcept>
 #endif
+
 #include "constants.h"
+#include "types.h"
+#include "utils.h"
+
 #ifdef __GXX_RTTI
   #include "demangled.h"
 #endif
-#include "utils.h"
 
 // ---------------------------------------------------------------------------
 //   JSONValue
 // ---------------------------------------------------------------------------
-
-template <class T> using base_array_type = remove_cv_ref_t<std::remove_extent_t<remove_cv_ref_t<T>>>;
-
-template <class T> constexpr bool is_array_value = std::is_array_v<remove_cv_ref_t<T>>;
-
-template <class T> constexpr bool is_unsigned_value = std::is_unsigned_v<base_array_type<T>>;
-
-template <class T> constexpr bool is_uint_array_v = is_array_value<T> && is_unsigned_value<T>;
-
-template <typename TypeList> struct to_variant;
-
-template <typename... Ts> struct to_variant<type_list<Ts...>> {
-  using type = std::variant<Ts...>;
-};
-
-template <typename TypeList> class AnyValue {
+template <typename TypeList>
+class AnyValue {
   using to_variant_t = typename to_variant<TypeList>::type;
 
 public:
@@ -69,9 +59,10 @@ public:
 
   template <typename T> const T &get() const noexcept { return std::get<T>(data); }
 
-  // If data is a string_view, and value is an unsigned array, copy the hex
+  // If the parsed data is a string_view and the target value is an unsigned int array, copy the hex
   // string to the array
-  template <typename T> std::enable_if_t<is_uint_array_v<T>, void> copyTo(T &value) const noexcept {
+  template <typename T>
+  std::enable_if_t<is_uint_array_v<T>, void> copyTo(T &value) const noexcept {
     if (is<std::string_view>()) {
       copy_hex_be_to_h(value, get<std::string_view>().data(), get<std::string_view>().length());
     }
@@ -88,4 +79,4 @@ public:
   to_variant_t data;
 };
 
-using JSONValue = AnyValue<parsed_types>;
+using JSONValue = AnyValue<primitive_json_types>;

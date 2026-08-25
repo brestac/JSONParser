@@ -143,11 +143,9 @@ struct NaNType {};
 struct JSONCallbackObject;
 class Stream;
 
-using parsed_types = type_list<bool, int, float, double, std::string_view, NullType>;
-
+using primitive_json_types = type_list<bool, int, float, double, std::string_view, NullType>;
 using arguments_types = type_list<JSONCallbackObject>;
-using arguments_array_types =
-    type_list<int8_t, int16_t, int32_t, uint8_t, uint16_t, uint32_t, char, float>;
+using arguments_array_types = type_list<int8_t, int16_t, int32_t, uint8_t, uint16_t, uint32_t, char, float>;
 using arguments_array_array_types = type_list<char>;
 
 using MaskType = uint32_t;
