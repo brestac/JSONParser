@@ -1,22 +1,4 @@
 #pragma once
-/*
-Color   Code (foreground)
-Black   \x1b[30m
-Red     \x1b[31m
-Green   \x1b[32m
-Yellow  \x1b[33m
-Blue    \x1b[34m
-Magenta \x1b[35m
-Cyan    \x1b[36m
-White   \x1b[37m
-Bright variants: add 1; before the code (e.g., \x1b[1;31m for bright red) or use
-codes 90–97.
-Background colors: replace 3 with 4 (e.g., \x1b[41m for red background) or use
-100–107 for bright backgrounds. 256‑color mode: \x1b[38;5;<n>m (foreground) or
-\x1b[48;5;<n>m (background), where <n> is 0‑255. True‑color (24‑bit) mode:
-\x1b[38;2;<r>;<g>;<b>m (foreground) or \x1b[48;2;<r>;<g>;<b>m (background), with
-RGB values 0‑255.
-*/
 
 #define NAMESPACE_JSON_BEGIN namespace JSON {
 #define NAMESPACE_JSON_END }
@@ -37,11 +19,28 @@ RGB values 0‑255.
 #define TO_STRING( x ) #x
 
 #define CHECK_LOOP( MAX, STATEMENT )            \
-  if ( ++GLOBAL_ITERATIONS > MAX_ITERATIONS ) {            \
+  if ( ++GLOBAL_ITERATIONS > MAX_ITERATIONS ) { \
     JSON_DEBUG_ERROR( "Too many iterations\n" );\
     STATEMENT                                   \
   }
-
+/*
+Color   Code (foreground)
+Black   \x1b[30m
+Red     \x1b[31m
+Green   \x1b[32m
+Yellow  \x1b[33m
+Blue    \x1b[34m
+Magenta \x1b[35m
+Cyan    \x1b[36m
+White   \x1b[37m
+Bright variants: add 1; before the code (e.g., \x1b[1;31m for bright red) or use
+codes 90–97.
+Background colors: replace 3 with 4 (e.g., \x1b[41m for red background) or use
+100–107 for bright backgrounds. 256‑color mode: \x1b[38;5;<n>m (foreground) or
+\x1b[48;5;<n>m (background), where <n> is 0‑255. True‑color (24‑bit) mode:
+\x1b[38;2;<r>;<g>;<b>m (foreground) or \x1b[48;2;<r>;<g>;<b>m (background), with
+RGB values 0‑255.
+*/
 #define COLOR_BLACK 30
 #define COLOR_RED 31
 #define COLOR_GREEN 32
@@ -166,7 +165,6 @@ RGB values 0‑255.
 
 // Macro pour créer les paires
 #define PAIR( x ) #x, x
-#define PAIR_IDX( idx, x ) #x "[" #idx "]", x
 
 #define MACRO_1( a ) PAIR( a )
 #define MACRO_2( a, b ) PAIR( a ), PAIR( b )

@@ -70,18 +70,6 @@ template <typename T> struct container_info {
   static constexpr bool fixed = false;
 };
 
-// Callback object
-// template <> struct container_info<JSONCallbackObject> {
-//   using base_t = JSONCallbackObject;
-//   using base_container_t = JSONCallbackObject;
-//   using child_t = JSONCallbackObject;
-//   static constexpr size_t dimensions = 1;
-//   static constexpr ContainerKind kind = ContainerKind::CALLBACK_OBJECT;
-//   static constexpr size_t extent = UINT32_MAX;
-//   static constexpr bool is_container = false;
-//   static constexpr bool fixed = false;
-// };
-
 // C-array
 template <typename T, size_t N> struct container_info<T[N]> {
   using base_t = typename container_info<T>::base_t;
@@ -150,7 +138,6 @@ template <typename T, typename A> struct container_info<std::list<T, A>> {
   static constexpr bool fixed = false;
 };
 
-// alias pratique, comme base_array_type dans JSONValue.h
 template <typename T>
 using base_container_t = typename container_info<T>::base_container_t;
 
@@ -172,7 +159,10 @@ constexpr bool is_c_array_v = is_container_v<T> && container_info<T>::kind == Co
 // Check if a type T is a container of a type in TypeList. A container needs to have container_info<T>::is_container == true
 // and the base type of the container needs to be in TypeList.
 template <typename T, typename TypeList>
-struct is_container_from_list : std::integral_constant<bool, container_info<T>::is_container && is_in_type_list<typename container_info<T>::base_t, TypeList>::value> {};
+struct is_container_from_list : std::integral_constant<bool, 
+                                  container_info<T>::is_container &&
+                                  is_in_type_list<typename container_info<T>::base_t, TypeList>::value
+                                > {};
 
 // ==========================================
 // char array, char array array
@@ -306,7 +296,7 @@ bool constexpr key_value_checker_v =
     arg_is_valid<Args...> || key_value_checker<CastableTypeList, TypeList, ArrayTypeList, Args...>::value;
 
 template <typename... Args>
-constexpr bool is_valid_args_v = key_value_checker_v<parsed_types, arguments_types, arguments_array_types, Args...>;
+constexpr bool is_valid_args_v = key_value_checker_v<primitive_json_types, arguments_types, arguments_array_types, Args...>;
 
 #else
 
@@ -342,3 +332,23 @@ constexpr bool is_callback = std::is_same_v<JSONCallbackObject, remove_cv_ref_t<
 
 template<typename T>
 constexpr bool is_coords = container_info<T>::dimensions == 1 && container_info<T>::extent == 2 && std::is_floating_point_v<typename container_info<T>::base_t>;
+
+template <typename T>
+constexpr bool is_uint_array_v = container_info<T>::kind == ContainerKind::C_ARRAY &&
+                                 container_info<T>::dimensions == 1 &&
+                                 std::is_unsigned_v<typename container_info<T>::base_t>;
+/*
+  type_list utilities
+*/
+
+/*
+  Build variant types from a type list
+*/
+
+template <typename TypeList> struct to_variant;
+
+template <typename... Ts> struct to_variant<type_list<Ts...>> {
+  using type = std::variant<Ts...>;
+};
+
+
