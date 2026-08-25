@@ -54,7 +54,7 @@ struct RefType {
     size_t id;
     T& ref;
 
-    RefType(std::string_view& name, T& r) : id(hash_compile_time(name)), ref(r)  {}
+    RefType(std::string_view name, T& r) : id(hash_compile_time(name)), ref(r)  {}
 
    // // // move operator
      RefType(RefType&& other) : id(other.id), ref(other.ref) {}
@@ -131,12 +131,12 @@ using pair_variant_t = typename to_variant<extracted_value_types_with_monospace_
 // ---------------------------------------------------------------------------
 
 template<typename T>
-inline void fill_dispatch_table(T& dispatch_table, size_t) {
+inline void fill_dispatch_table(T&& dispatch_table, size_t) {
     // Base case: do nothing
 }
 
 template<typename T, typename V, typename... Args>
-void fill_dispatch_table(T& dispatch_table, size_t idx, const char* key, V& value, Args &&...args) {
+void fill_dispatch_table(T&& dispatch_table, size_t idx, const char* key, V& value, Args &&...args) {
       std::string_view key_sv(key);
       dispatch_table.at(idx) = RefType<V>{key_sv, value};
       //std::cout << "key: " << key << " value: " << value << " idx: " << idx << std::endl;
@@ -155,17 +155,12 @@ void fill_dispatch_table(T& dispatch_table, size_t idx, const char* key, V& valu
 // };
 
 template <typename... Args>
-constexpr auto create_dispatch_table(Args&&... args) {
+auto create_dispatch_table(Args&&... args) {
     constexpr std::size_t N = sizeof...(args) / 2;
     using variant_t = pair_variant_t<remove_cv_ref_t<Args>...>;
-    // Capture par référence [&]
-    return [&]() {
-        std::array<variant_t, N> arr{};
-        size_t pair_index = 0;
-        fill_dispatch_table(arr, pair_index, std::forward<Args>(args)...);
-
-        return arr;
-    }(); // Exécution immédiate : les références sont résolues ici
+    std::array<variant_t, N> arr{};
+    fill_dispatch_table(arr, 0, std::forward<Args>(args)...);
+    return arr;
 }
 
 template <typename VariableType, typename Table>
@@ -203,7 +198,9 @@ void dispatch(Table& dispatch_table, std::string_view var_name) {
 //auto dispatch_table_object = CREATE_DISPATCH_TABLE(name_1, height, name_2);
 auto dispatch_table_api = create_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
 
-//static_assert(std::holds_alternative<RefType<float>>(dispatch_table_object[1]) == true, "dispatch_table_object[1] should be a RefType<float>");]) 
+using dispatch_table_variant = std::decay_t<decltype(dispatch_table_api[0])>;
+static_assert(std::is_same_v<std::variant_alternative_t<3, dispatch_table_variant>,
+                             RefType<float>>);
 
 
 int main() {
