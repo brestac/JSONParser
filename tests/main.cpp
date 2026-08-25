@@ -40,7 +40,7 @@ float b = 2.0f;
 
 // I would like to build a constexpr mapping between the variable name and the variable itself
 // I already have a macro that transfroms (a,b,c) into ( "a", a, "b", b, "c", c )
-constexpr size_t hash_compile_time(std::string_view& str) {
+constexpr size_t hash_compile_time(std::string_view str) {
     size_t hash = 14695981039346656037ULL;
     for (char c : str) {
         hash ^= static_cast<size_t>(c);
@@ -54,14 +54,15 @@ struct RefType {
     size_t id;
     T& ref;
 
-    RefType(std::string_view name, T& r) : id(hash_compile_time(name)), ref(r)  {}
+    constexpr RefType(std::string_view name, T& r)
+        : id(hash_compile_time(name)), ref(r)  {}
 
    // // // move operator
-     RefType(RefType&& other) : id(other.id), ref(other.ref) {}
+     constexpr RefType(RefType&& other) : id(other.id), ref(other.ref) {}
    //  // copy operator
-     RefType(const RefType& other) : id(other.id), ref(other.ref) {}
+     constexpr RefType(const RefType& other) : id(other.id), ref(other.ref) {}
     // move assignment operator
-    RefType& operator=(RefType&& other) {
+    constexpr RefType& operator=(RefType&& other) {
         id = other.id;
         ref = other.ref;
         return *this;
@@ -130,6 +131,22 @@ using pair_variant_t = typename to_variant<extracted_value_types_with_monospace_
 //  Construit directement le std::variant<Value1, Value2, ...>
 // ---------------------------------------------------------------------------
 
+template <std::size_t PairIndex, typename Variant, typename Tuple>
+constexpr Variant make_dispatch_entry(Tuple& args) {
+    using value_type =
+        remove_cv_ref_t<decltype(std::get<PairIndex * 2 + 1>(args))>;
+    return Variant{RefType<value_type>{
+        std::string_view(std::get<PairIndex * 2>(args)),
+        std::get<PairIndex * 2 + 1>(args)}};
+}
+
+template <typename Variant, typename Tuple, std::size_t... PairIndex>
+constexpr auto make_dispatch_table(
+    Tuple& args, std::index_sequence<PairIndex...>) {
+    return std::array<Variant, sizeof...(PairIndex)>{
+        make_dispatch_entry<PairIndex, Variant>(args)...};
+}
+
 template<typename T>
 inline void fill_dispatch_table(T&& dispatch_table, size_t) {
     // Base case: do nothing
@@ -155,12 +172,12 @@ void fill_dispatch_table(T&& dispatch_table, size_t idx, const char* key, V& val
 // };
 
 template <typename... Args>
-auto create_dispatch_table(Args&&... args) {
+constexpr auto create_dispatch_table(Args&&... args) {
     constexpr std::size_t N = sizeof...(args) / 2;
     using variant_t = pair_variant_t<remove_cv_ref_t<Args>...>;
-    std::array<variant_t, N> arr{};
-    fill_dispatch_table(arr, 0, std::forward<Args>(args)...);
-    return arr;
+    auto args_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
+    return make_dispatch_table<variant_t>(
+        args_tuple, std::make_index_sequence<N>{});
 }
 
 template <typename VariableType, typename Table>
@@ -196,7 +213,7 @@ void dispatch(Table& dispatch_table, std::string_view var_name) {
 
 #define CREATE_DISPATCH_TABLE( ... ) create_dispatch_table(MACRO(__VA_ARGS__))
 //auto dispatch_table_object = CREATE_DISPATCH_TABLE(name_1, height, name_2);
-auto dispatch_table_api = create_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
+constexpr auto dispatch_table_api = create_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
 
 using dispatch_table_variant = std::decay_t<decltype(dispatch_table_api[0])>;
 static_assert(std::is_same_v<std::variant_alternative_t<3, dispatch_table_variant>,
