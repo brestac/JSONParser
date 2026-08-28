@@ -27,17 +27,16 @@ constexpr int16_t parse_int_constexpr(const char* str) {
 }
 
 // ---------------------------------------------------------------------------
-//   get_json_key_and_index — constexpr, sans strtol
+//   _get_json_key_and_index — constexpr, sans strtol
 //   Retourne {string_view sur la clé, index ou -1}
 // ---------------------------------------------------------------------------
 
 template <size_t N>
 constexpr std::pair<std::string_view, int16_t>
-get_json_key_and_index(const char (&raw_key)[N]) {
+_get_json_key_and_index(const char (&raw_key)[N]) {
   for (size_t i = 0; i < N; ++i) {
     if (raw_key[i] == '[') {
-      return {std::string_view(raw_key, i),
-              parse_int_constexpr(raw_key + i + 1)};
+      return {std::string_view(raw_key, i), parse_int_constexpr(raw_key + i + 1)};
     }
     if (raw_key[i] == '\0')
       break;
@@ -49,12 +48,12 @@ get_json_key_and_index(const char (&raw_key)[N]) {
 // liste d'initialisation du constructeur JSONKey)
 template <size_t N>
 constexpr std::string_view extract_key(const char (&raw_key)[N]) {
-  return get_json_key_and_index(raw_key).first;
+  return _get_json_key_and_index(raw_key).first;
 }
 
 template <size_t N>
 constexpr int extract_index(const char (&raw_key)[N]) {
-  return get_json_key_and_index(raw_key).second;
+  return _get_json_key_and_index(raw_key).second;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,17 +68,17 @@ constexpr bool is_generic_key(const char (&raw_key)[N]) {
   return true;
 }
 
-constexpr bool are_generic_keys() {
-  return true;
-}
+// constexpr bool are_generic_keys() {
+//   return true;
+// }
 
-template <typename Value>
-constexpr bool are_generic_keys(Value&) { return false; }
+// template <typename Value>
+// constexpr bool are_generic_keys(Value&) { return false; }
 
-template <typename Key, typename Value, typename... Rest>
-constexpr bool are_generic_keys(const Key& key, Value&, Rest&&... rest) {
-  return is_generic_key(key) && are_generic_keys(std::forward<Rest>(rest)...);
-}
+// template <typename Key, typename Value, typename... Rest>
+// constexpr bool are_generic_keys(const Key& key, Value&, Rest&&... rest) {
+//   return is_generic_key(key) && are_generic_keys(std::forward<Rest>(rest)...);
+// }
 
 // ---------------------------------------------------------------------------
 //   MultidimensionalArrayIndex

@@ -123,34 +123,39 @@ RGB values 0‑255.
 
 #define FROM_JSON_OVERRIDE( ... )                                 \
   template <typename T> JSON::ParseResult fromJSON( T&& input ) { \
+    auto dispatch = CREATE_DISPATCH_TABLE( __VA_ARGS__ ); \
     using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
     return JSON::_parse_impl<true, _SelfT>(                       \
-        this->updated, input, MACRO( __VA_ARGS__ ) );             \
+        this->updated, input, dispatch );             \
   }                                                               \
   template <typename T> JSON::ParseResult fromJSON( T* input ) {  \
-    using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
+  auto dispatch = CREATE_DISPATCH_TABLE( __VA_ARGS__ ); \
+  using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
     return JSON::_parse_impl<true, _SelfT>(                       \
-        this->updated, input, MACRO( __VA_ARGS__ ) );             \
+        this->updated, input, dispatch );             \
   }                                                               \
   JSON::ParseResult fromJSON( const char* input, size_t size ) {  \
-    using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
+  auto dispatch = CREATE_DISPATCH_TABLE( __VA_ARGS__ ); \
+  using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
     return JSON::_parse_impl<true, _SelfT>(            \
-        this->updated, input, size, MACRO( __VA_ARGS__ ) );       \
+        this->updated, input, size, dispatch );       \
   }
 #define TO_JSON_OVERRIDE( ... )                                                \
   template <typename T> size_t toJSON( T& output, bool updates = false ) {     \
     uint32_t mask = updates ? this->updated : 0;                               \
-    return JSON::print( mask, output, MACRO( __VA_ARGS__ ) );                  \
+    return JSON::print( mask, output, KV_LIST( __VA_ARGS__ ) );                  \
   }                                                                            \
   size_t toJSON( PointerCursorWriter& output, bool updates = false )           \
       override {                                                               \
     uint32_t mask = updates ? this->updated : 0;                               \
-    return JSON::_print( mask, output, MACRO( __VA_ARGS__ ) );                 \
+    return JSON::_print( mask, output, KV_LIST( __VA_ARGS__ ) );                 \
   }                                                                            \
   size_t toJSON( StreamCursorWriter& output, bool updates = false ) override { \
     uint32_t mask = updates ? this->updated : 0;                               \
-    return JSON::_print( mask, output, MACRO( __VA_ARGS__ ) );                 \
+    return JSON::_print( mask, output, KV_LIST( __VA_ARGS__ ) );                 \
   }
+
+#define CREATE_DISPATCH_TABLE( ... ) create_dispatch_table(KV_LIST(__VA_ARGS__))
 
 #define JSON_DECODER_IMPL( ... ) FROM_JSON_OVERRIDE( __VA_ARGS__ )
 
@@ -164,90 +169,90 @@ RGB values 0‑255.
   TO_JSON_OVERRIDE( __VA_ARGS__ )
 
 // Macro pour créer les paires
-#define PAIR( x ) #x, x
+#define KV_PAIR( x ) #x, x
 
-#define MACRO_1( a ) PAIR( a )
-#define MACRO_2( a, b ) PAIR( a ), PAIR( b )
-#define MACRO_3( a, b, c ) PAIR( a ), PAIR( b ), PAIR( c )
-#define MACRO_4( a, b, c, d ) PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d )
-#define MACRO_5( a, b, c, d, e ) \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e )
-#define MACRO_6( a, b, c, d, e, f ) \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f )
-#define MACRO_7( a, b, c, d, e, f, g ) \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g )
-#define MACRO_8( a, b, c, d, e, f, g, h )                                      \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h )
-#define MACRO_9( a, b, c, d, e, f, g, h, i )                                   \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i )
-#define MACRO_10( a, b, c, d, e, f, g, h, i, j )                               \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j )
-#define MACRO_11( a, b, c, d, e, f, g, h, i, j, k )                            \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k )
-#define MACRO_12( a, b, c, d, e, f, g, h, i, j, k, l )                         \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l )
-#define MACRO_13( a, b, c, d, e, f, g, h, i, j, k, l, m )                      \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m )
-#define MACRO_14( a, b, c, d, e, f, g, h, i, j, k, l, m, n )                   \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n )
-#define MACRO_15( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o )                \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o )
-#define MACRO_16( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p )             \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p )
-#define MACRO_17( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q )          \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q )
-#define MACRO_18( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r )       \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r )
-#define MACRO_19( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s )    \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s )
-#define MACRO_20( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t ) \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t )
-#define MACRO_21(                                                              \
+#define KV_LIST_1( a ) KV_PAIR( a )
+#define KV_LIST_2( a, b ) KV_PAIR( a ), KV_PAIR( b )
+#define KV_LIST_3( a, b, c ) KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c )
+#define KV_LIST_4( a, b, c, d ) KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d )
+#define KV_LIST_5( a, b, c, d, e ) \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e )
+#define KV_LIST_6( a, b, c, d, e, f ) \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f )
+#define KV_LIST_7( a, b, c, d, e, f, g ) \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g )
+#define KV_LIST_8( a, b, c, d, e, f, g, h )                                      \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h )
+#define KV_LIST_9( a, b, c, d, e, f, g, h, i )                                   \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i )
+#define KV_LIST_10( a, b, c, d, e, f, g, h, i, j )                               \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j )
+#define KV_LIST_11( a, b, c, d, e, f, g, h, i, j, k )                            \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k )
+#define KV_LIST_12( a, b, c, d, e, f, g, h, i, j, k, l )                         \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l )
+#define KV_LIST_13( a, b, c, d, e, f, g, h, i, j, k, l, m )                      \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m )
+#define KV_LIST_14( a, b, c, d, e, f, g, h, i, j, k, l, m, n )                   \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n )
+#define KV_LIST_15( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o )                \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o )
+#define KV_LIST_16( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p )             \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p )
+#define KV_LIST_17( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q )          \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q )
+#define KV_LIST_18( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r )       \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r )
+#define KV_LIST_19( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s )    \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s )
+#define KV_LIST_20( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t ) \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t )
+#define KV_LIST_21(                                                              \
     a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u )            \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u )
-#define MACRO_22(                                                              \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u )
+#define KV_LIST_22(                                                              \
     a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v )         \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v )
-#define MACRO_23(                                                              \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v )
+#define KV_LIST_23(                                                              \
     a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w )      \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v ), PAIR( w )
-#define MACRO_24(                                                              \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v ), KV_PAIR( w )
+#define KV_LIST_24(                                                              \
     a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x )   \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v ), PAIR( w ), PAIR( x )
-#define MACRO_25( a,                                                           \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v ), KV_PAIR( w ), KV_PAIR( x )
+#define KV_LIST_25( a,                                                           \
                   b,                                                           \
                   c,                                                           \
                   d,                                                           \
@@ -272,11 +277,11 @@ RGB values 0‑255.
                   w,                                                           \
                   x,                                                           \
                   y )                                                          \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v ), PAIR( w ), PAIR( x ), PAIR( y )
-#define MACRO_26( a,                                                           \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v ), KV_PAIR( w ), KV_PAIR( x ), KV_PAIR( y )
+#define KV_LIST_26( a,                                                           \
                   b,                                                           \
                   c,                                                           \
                   d,                                                           \
@@ -302,12 +307,12 @@ RGB values 0‑255.
                   x,                                                           \
                   y,                                                           \
                   z )                                                          \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v ), PAIR( w ), PAIR( x ), PAIR( y ),        \
-      PAIR( z )
-#define MACRO_27( a,                                                           \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v ), KV_PAIR( w ), KV_PAIR( x ), KV_PAIR( y ),        \
+      KV_PAIR( z )
+#define KV_LIST_27( a,                                                           \
                   b,                                                           \
                   c,                                                           \
                   d,                                                           \
@@ -334,12 +339,12 @@ RGB values 0‑255.
                   y,                                                           \
                   z,                                                           \
                   a2 )                                                         \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v ), PAIR( w ), PAIR( x ), PAIR( y ),        \
-      PAIR( z ), PAIR( a2 )
-#define MACRO_28( a,                                                           \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v ), KV_PAIR( w ), KV_PAIR( x ), KV_PAIR( y ),        \
+      KV_PAIR( z ), KV_PAIR( a2 )
+#define KV_LIST_28( a,                                                           \
                   b,                                                           \
                   c,                                                           \
                   d,                                                           \
@@ -367,12 +372,12 @@ RGB values 0‑255.
                   z,                                                           \
                   a2,                                                          \
                   b2 )                                                         \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v ), PAIR( w ), PAIR( x ), PAIR( y ),        \
-      PAIR( z ), PAIR( a2 ), PAIR( b2 )
-#define MACRO_29( a,                                                           \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v ), KV_PAIR( w ), KV_PAIR( x ), KV_PAIR( y ),        \
+      KV_PAIR( z ), KV_PAIR( a2 ), KV_PAIR( b2 )
+#define KV_LIST_29( a,                                                           \
                   b,                                                           \
                   c,                                                           \
                   d,                                                           \
@@ -401,12 +406,12 @@ RGB values 0‑255.
                   a2,                                                          \
                   b2,                                                          \
                   c2 )                                                         \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v ), PAIR( w ), PAIR( x ), PAIR( y ),        \
-      PAIR( z ), PAIR( a2 ), PAIR( b2 ), PAIR( c2 )
-#define MACRO_30( a,                                                           \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v ), KV_PAIR( w ), KV_PAIR( x ), KV_PAIR( y ),        \
+      KV_PAIR( z ), KV_PAIR( a2 ), KV_PAIR( b2 ), KV_PAIR( c2 )
+#define KV_LIST_30( a,                                                           \
                   b,                                                           \
                   c,                                                           \
                   d,                                                           \
@@ -436,12 +441,12 @@ RGB values 0‑255.
                   b2,                                                          \
                   c2,                                                          \
                   d2 )                                                         \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v ), PAIR( w ), PAIR( x ), PAIR( y ),        \
-      PAIR( z ), PAIR( a2 ), PAIR( b2 ), PAIR( c2 ), PAIR( d2 )
-#define MACRO_31( a,                                                           \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v ), KV_PAIR( w ), KV_PAIR( x ), KV_PAIR( y ),        \
+      KV_PAIR( z ), KV_PAIR( a2 ), KV_PAIR( b2 ), KV_PAIR( c2 ), KV_PAIR( d2 )
+#define KV_LIST_31( a,                                                           \
                   b,                                                           \
                   c,                                                           \
                   d,                                                           \
@@ -472,12 +477,12 @@ RGB values 0‑255.
                   c2,                                                          \
                   d2,                                                          \
                   e2 )                                                         \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v ), PAIR( w ), PAIR( x ), PAIR( y ),        \
-      PAIR( z ), PAIR( a2 ), PAIR( b2 ), PAIR( c2 ), PAIR( d2 ), PAIR( e2 )
-#define MACRO_32( a,                                                           \
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v ), KV_PAIR( w ), KV_PAIR( x ), KV_PAIR( y ),        \
+      KV_PAIR( z ), KV_PAIR( a2 ), KV_PAIR( b2 ), KV_PAIR( c2 ), KV_PAIR( d2 ), KV_PAIR( e2 )
+#define KV_LIST_32( a,                                                           \
                   b,                                                           \
                   c,                                                           \
                   d,                                                           \
@@ -509,14 +514,14 @@ RGB values 0‑255.
                   d2,                                                          \
                   e2,                                                          \
                   f2 )                                                         \
-  PAIR( a ), PAIR( b ), PAIR( c ), PAIR( d ), PAIR( e ), PAIR( f ), PAIR( g ), \
-      PAIR( h ), PAIR( i ), PAIR( j ), PAIR( k ), PAIR( l ), PAIR( m ),        \
-      PAIR( n ), PAIR( o ), PAIR( p ), PAIR( q ), PAIR( r ), PAIR( s ),        \
-      PAIR( t ), PAIR( u ), PAIR( v ), PAIR( w ), PAIR( x ), PAIR( y ),        \
-      PAIR( z ), PAIR( a2 ), PAIR( b2 ), PAIR( c2 ), PAIR( d2 ), PAIR( e2 ),   \
-      PAIR( f2 )
+  KV_PAIR( a ), KV_PAIR( b ), KV_PAIR( c ), KV_PAIR( d ), KV_PAIR( e ), KV_PAIR( f ), KV_PAIR( g ), \
+      KV_PAIR( h ), KV_PAIR( i ), KV_PAIR( j ), KV_PAIR( k ), KV_PAIR( l ), KV_PAIR( m ),        \
+      KV_PAIR( n ), KV_PAIR( o ), KV_PAIR( p ), KV_PAIR( q ), KV_PAIR( r ), KV_PAIR( s ),        \
+      KV_PAIR( t ), KV_PAIR( u ), KV_PAIR( v ), KV_PAIR( w ), KV_PAIR( x ), KV_PAIR( y ),        \
+      KV_PAIR( z ), KV_PAIR( a2 ), KV_PAIR( b2 ), KV_PAIR( c2 ), KV_PAIR( d2 ), KV_PAIR( e2 ),   \
+      KV_PAIR( f2 )
 
-#define GET_MACRO( _1,   \
+#define GET_KV_LIST( _1,   \
                    _2,   \
                    _3,   \
                    _4,   \
@@ -552,38 +557,38 @@ RGB values 0‑255.
                    ... ) \
   NAME
 
-#define MACRO( ... )      \
-  GET_MACRO( __VA_ARGS__, \
-             MACRO_32,    \
-             MACRO_31,    \
-             MACRO_30,    \
-             MACRO_29,    \
-             MACRO_28,    \
-             MACRO_27,    \
-             MACRO_26,    \
-             MACRO_25,    \
-             MACRO_24,    \
-             MACRO_23,    \
-             MACRO_22,    \
-             MACRO_21,    \
-             MACRO_20,    \
-             MACRO_19,    \
-             MACRO_18,    \
-             MACRO_17,    \
-             MACRO_16,    \
-             MACRO_15,    \
-             MACRO_14,    \
-             MACRO_13,    \
-             MACRO_12,    \
-             MACRO_11,    \
-             MACRO_10,    \
-             MACRO_9,     \
-             MACRO_8,     \
-             MACRO_7,     \
-             MACRO_6,     \
-             MACRO_5,     \
-             MACRO_4,     \
-             MACRO_3,     \
-             MACRO_2,     \
-             MACRO_1 )    \
+#define KV_LIST( ... )      \
+  GET_KV_LIST( __VA_ARGS__, \
+             KV_LIST_32,    \
+             KV_LIST_31,    \
+             KV_LIST_30,    \
+             KV_LIST_29,    \
+             KV_LIST_28,    \
+             KV_LIST_27,    \
+             KV_LIST_26,    \
+             KV_LIST_25,    \
+             KV_LIST_24,    \
+             KV_LIST_23,    \
+             KV_LIST_22,    \
+             KV_LIST_21,    \
+             KV_LIST_20,    \
+             KV_LIST_19,    \
+             KV_LIST_18,    \
+             KV_LIST_17,    \
+             KV_LIST_16,    \
+             KV_LIST_15,    \
+             KV_LIST_14,    \
+             KV_LIST_13,    \
+             KV_LIST_12,    \
+             KV_LIST_11,    \
+             KV_LIST_10,    \
+             KV_LIST_9,     \
+             KV_LIST_8,     \
+             KV_LIST_7,     \
+             KV_LIST_6,     \
+             KV_LIST_5,     \
+             KV_LIST_4,     \
+             KV_LIST_3,     \
+             KV_LIST_2,     \
+             KV_LIST_1 )    \
   ( __VA_ARGS__ )

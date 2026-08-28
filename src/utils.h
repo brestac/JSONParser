@@ -206,6 +206,7 @@ inline double multiplyByPowerOfTen(double value, int exponent) {
 
   return value;
 }
+
 /*
 // Table de puissances de 10 précalculée pour éviter l'appel coûteux à std::pow
 static const double POW10[] = {
