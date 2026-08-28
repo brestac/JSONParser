@@ -603,7 +603,7 @@ TEST_CASE( "TEST INDEXED PARSING", "" ) {
   int age;
 
   const char* json = "{ \"nom\":\"Bob\", \"age\":40, \"ville\":\"Paris\" }";
-  uint8_t mask = 0;
+  uint32_t mask = 0;
   JSON::ParseResult pr = JSON::parse( mask, json, "nom[0]", nom, "age[1]", age );
 
   REQUIRE( pr.error == 0 );
@@ -612,7 +612,7 @@ TEST_CASE( "TEST INDEXED PARSING", "" ) {
   REQUIRE( mask == 3 );
 
   Personne p;
-  pr = p.fromJSON( json, strlen(json) );
+  pr = p.fromJSON( json );
   REQUIRE( pr.error == 0 );
   REQUIRE( p.updated == ( 1 << 0 | 1 << 1 | 1 << 3 ) );
 }

@@ -44,7 +44,7 @@ std::string read_file_to_string( const char* filename ) {
   return buffer.str();
 }
 
-TEST_CASE( "Test string buffer", "[.][buffer]" ) {
+TEST_CASE( "Test string buffer", "[buffer]" ) {
   static uint8_t n = 0;
 
   auto path = GENERATE( as<std::string>{},

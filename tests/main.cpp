@@ -12,7 +12,8 @@
 #include <iostream>
 #include <string_view>
 #include <vector>
-#include <variant>
+// include std::any
+#include <any>
 
 #include "FileStream.h"
 #include "HardwareSerial.h"
@@ -20,8 +21,10 @@
 
 #include <JSONParser.h>
 #include <JSONPrinter.h>
-#include "structs.h"
-//#include "../examples/JSONParserTest/test.h"
+
+//#include "structs.h"
+#include "../src/Reflection.h"
+
 #define GEOJSON_SMALL_FILE_PATH "./small.geojson"
 #define GEOJSON_MEDIUM_FILE_PATH "./medium.geojson"
 #define GEOJSON_BIG_FILE_PATH "./big.geojson"
@@ -35,176 +38,118 @@ std::string read_file_to_string( const char* filename ) {
   return buffer.str();
 }
 
-int a = 1;
-float b = 2.0f;
-
-// I would like to build a constexpr mapping between the variable name and the variable itself
-// I already have a macro that transfroms (a,b,c) into ( "a", a, "b", b, "c", c )
-constexpr size_t hash_compile_time(std::string_view str) {
-    size_t hash = 14695981039346656037ULL;
-    for (char c : str) {
-        hash ^= static_cast<size_t>(c);
-        hash *= 1099511628211ULL;
-    }
-    return hash;
-}
-
-template <typename T>
-struct RefType {
-    size_t id;
-    T& ref;
-
-    constexpr RefType(std::string_view name, T& r)
-        : id(hash_compile_time(name)), ref(r)  {}
-
-   // // // move operator
-     constexpr RefType(RefType&& other) : id(other.id), ref(other.ref) {}
-   //  // copy operator
-     constexpr RefType(const RefType& other) : id(other.id), ref(other.ref) {}
-    // move assignment operator
-    constexpr RefType& operator=(RefType&& other) {
-        id = other.id;
-        ref = other.ref;
-        return *this;
-    }
-};
-// --- Vos types de données personnalisés ---
-
-// 4. Définition du Variant contenant vos types spécialisés
-
-// 5. Structure Wrapper pour le conteneur (Contient le Hash + le Variant)
-// struct ctxp_dispatch_tableEntry {
-//     size_t hash;
-//     ElementVariant value;
-// };
-
-// #define TO_STR(a) #a
-// #define _PAIR_(a) TO_STR(a), a
-
 std::string_view name_1 = "roger";
 std::string_view name_2 = "albert";
 int age = 45U;
 float height = 1.80f;
 
-// template <typename T, std::size_t N>
-// struct MonConteneurMacro {
-//     T data[N];
-//     constexpr std::size_t size() const { return N; }
-// };
-template <typename T, typename... Ts>
-inline constexpr bool is_in_v = (std::is_same_v<T, Ts> || ...);
+struct Personne : JSONObject {
+  std::string_view com;
+  int age;
 
-// Étape 2 : Ajouter conditionnellement le type T au début de la liste
-template <typename T, typename... Ts>
-using prepend_if_unique_t = std::conditional_t<
-    is_in_v<T, Ts...>, 
-    type_list<Ts...>,     // Si T est déjà présent, on garde la liste inchangée
-    type_list<T, Ts...>   // Si T n'est pas présent, on l'ajoute devant
->;
-
-template <typename T, typename List> struct type_list_prepend;
-
-template <typename T, typename... Ts>
-struct type_list_prepend<T, type_list<Ts...>> {
-  using type = prepend_if_unique_t<T, Ts...>;
-};
-
-template <typename... Args> struct extract_value_types {
-  using type = type_list<>; // cas de base : pack vide
-};
-
-template <typename Key, typename Value, typename... Rest>
-struct extract_value_types<Key, Value, Rest...> {
-  using type = typename type_list_prepend<RefType<Value>, typename extract_value_types<Rest...>::type>::type;
+  JSON_DECODER_IMPL( com, age );
 };
 
 template <typename... Args>
-using extract_value_types_t = typename extract_value_types<Args...>::type;
+void test_dispatch_table(Args... args) {
 
-template <typename... Args>
-using extracted_value_types_with_monospace_t = typename type_list_prepend<std::monostate, extract_value_types_t<Args...>>::type;
+  //constexpr auto dispatch_table_object = CREATE_DISPATCH_TABLE(name_1, height, name_2);
+  //constexpr auto dispatch_table_api = create_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
 
-template <typename... Args>
-using pair_variant_t = typename to_variant<extracted_value_types_with_monospace_t<Args...>>::type;
+  auto dispatch_table_api = create_dispatch_table((args)...);
+  static_assert(dispatch_table_api.size() == 4, "dispatch_table_api size is not 4");
+  // static_assert(dispatch_table_object.size() == 3, "dispatch_table_object size is not 3");
 
-// ---------------------------------------------------------------------------
-//  Construit directement le std::variant<Value1, Value2, ...>
-// ---------------------------------------------------------------------------
+  //  auto variant2 = find_entry(dispatch_table_object, "height");
 
-template <std::size_t PairIndex, typename Variant, typename Tuple>
-constexpr Variant make_dispatch_entry(Tuple& args) {
-    using value_type = remove_cv_ref_t<decltype(std::get<PairIndex * 2 + 1>(args))>;
+  // std::visit([](auto&& arg) {
+  //   using T = std::decay_t<decltype(arg)>;
 
-    return Variant{
-      RefType<value_type>{
-        std::string_view(std::get<PairIndex * 2>(args)),
-        std::get<PairIndex * 2 + 1>(args)
-      }
-    };
+  //   if constexpr (!std::is_same_v<T, std::monostate>) {
+  //     std::printf("Found entry height: %s\n", typeid(arg.ref).name());
+  //     if constexpr (std::is_same_v<remove_cv_ref_t<decltype(arg.ref)>, float>) {
+  //       std::cout << "height:" << arg.ref << std::endl;
+  //       arg.ref = 1.90f;
+  //       std::cout << "height:" << arg.ref << std::endl;
+  //     }
+  //   }
+  // }, variant2);
+
+  //  std::cout << "height:" << height << std::endl;
+
 }
 
-template <typename Variant, typename Tuple, std::size_t... PairIndex>
-constexpr auto make_dispatch_table(Tuple& args, std::index_sequence<PairIndex...>) {
-    return std::array<Variant, sizeof...(PairIndex)>{ make_dispatch_entry<PairIndex, Variant>(args)...};
+// void print_byte(uint8_t byte) {
+//   for (int i = 7; i >= 0; i--) {
+//     std::cout << ((byte >> i) & 1);
+//   }
+// }
+
+// void test(unsigned char c, unsigned char* array, size_t len) {
+//   std::printf("%*c ",9U, c);
+//   print_byte(c);
+//   std::printf(" is_for_sure_not_in_set: %.*s => %d\n",(int)len, array, is_for_sure_not_in_set(c, array, len));
+// }
+
+// void test_my_dumb_stuff() {
+//   unsigned char array[] = { 'f', 'p', 'n', 'v' };
+
+//   uint8_t common_0 = 0XFF;
+//   uint8_t common_1 = 0XFF;
+//   get_common_bits_equal_to_0_1(array, sizeof(array), common_0, common_1);
+//   std::printf("common_0: "); print_byte(common_0); std::cout << std::endl;
+//   std::printf("common_1: "); print_byte(common_1); std::cout << std::endl;
+
+//   uint8_t len = sizeof(array) / sizeof(uint8_t);
+//   for (uint8_t i = 'a'; i < 'z'; i++) {
+//     test(i, array, len);
+//   }
+// }
+
+struct Element {
+  size_t hash;
+
+  Element(size_t hash) : hash(hash) {}
+};
+
+template <size_t N>
+int find_lower_bound(const std::array<Element, N>& arr, size_t value) {
+  auto it = std::lower_bound(arr.begin(), arr.end(), value, [](const Element& a, size_t b) {
+    return a.hash < b;
+  });
+
+  if (it != arr.end() && it->hash == value) {
+    return it->hash;
+  }
+
+  return -1;
 }
-
-template <typename... Args>
-constexpr auto create_dispatch_table(Args&&... args) {
-    constexpr std::size_t N = sizeof...(args) / 2;
-    using variant_t = pair_variant_t<remove_cv_ref_t<Args>...>;
-    auto args_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
-
-    return make_dispatch_table<variant_t>(args_tuple, std::make_index_sequence<N>{});
-}
-
-template <typename VariableType, typename Table>
-void dispatch(Table& dispatch_table, std::string_view var_name) {
-    using ref_type = RefType<VariableType>;
-    size_t hash = hash_compile_time(var_name);
-
-    auto it = std::find_if(dispatch_table.begin(), dispatch_table.end(), [&hash](auto entry) {
-      return std::holds_alternative<ref_type>(entry) && std::get<ref_type>(entry).id == hash;
-    });
-
-    if (it != dispatch_table.end()) {
-      std::cout << "Found: " << std::get<RefType<VariableType>>(*it).ref << std::endl;
-    } else {
-      std::cout << "Aucune variable trouvée." << std::endl;
-    }
-
-/*
-    for (const auto& entry : dispatch_table) {
-      // check if the hash matches the hash of the entry
-      if ( std::holds_alternative<RefType<VariableType>>(entry) ) {
-        std::cout << "string_view" << std::endl;
-        if (std::get<RefType<VariableType>>(entry).id == hash_compile_time(var_name)) {
-          VariableType& var = std::get<RefType<VariableType>>(entry).ref;
-          std::cout << "Found: " << var << std::endl;
-          var = "new_value";
-          break;
-        }
-      }
-    }
-*/
-}
-
-#define CREATE_DISPATCH_TABLE( ... ) create_dispatch_table(MACRO(__VA_ARGS__))
-auto dispatch_table_object = CREATE_DISPATCH_TABLE(name_1, height, name_2);
-constexpr auto dispatch_table_api = create_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
-
-static_assert(dispatch_table_api.size() == 4, "dispatch_table_api size is not 4");
-static_assert(std::holds_alternative<RefType<float>>(dispatch_table_api[3]), "dispatch_table_api[3] is not a RefType<float>");
-
 
 int main() {
 
-     dispatch<std::string_view>(dispatch_table_object, "name_2");
-     std::cout << name_2 << std::endl;
+  // Test std::array find sorted with comparator
 
-    dispatch<std::string_view>(dispatch_table_api, "name_2");
-    std::cout << name_2 << std::endl;
+  std::array<Element, 1> arr = { 5 };
+  std::sort(arr.begin(), arr.end(), [](const Element& a, const Element& b) {
+    return a.hash < b.hash;
+  });
 
-    
+  int result = find_lower_bound(arr, 5);
+  std::cout << "Result: " << result << std::endl;
+
+  int result2 = find_lower_bound(arr, 6);
+  std::cout << "Result: " << result2 << std::endl;  
+
+  
+  // Personne p;
+  // p.fromJSON( "{ \"com\":\"Bob\", \"age\":40}" );
+  // std::printf("mask= %d\n", p.updated);
+
+    // test_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
+
+    // JSON::parse(0, "{\"name\":\"roger\"}", "name", name_1);
+  
+    // std::cout << "name:" << name_1 << std::endl;
   
 //   FeatureCollection<3> fc;
 //   File input = LittleFS.open( GEOJSON_MEDIUM_FILE_PATH, "r" );

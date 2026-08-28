@@ -8,7 +8,7 @@
 #include "StreamCursor.h"
 #include "JSONCallbackObject.h"
 #include "JSONObject.h"
-#include "ParseDispatchTable.h"
+#include "Reflection.h"
 #include "StringPool.h"
 #include "types.h"
 #include "utils.h"
@@ -87,11 +87,13 @@ class JSONParserBase {
 
   // ── API publique (identique à JSONParser) ─────────────────
 
-  template <typename TargetT, typename T>
-  enable_if_t<is_derived_json_data_container_v<T>, void>
-  parse( T& jsonObjects );
+  template <typename TargetT, typename Arg>
+  enable_if_t<!is_derived_json_data_container_v<TargetT>, void>
+  parse( Arg& args );
 
-  template <typename TargetT, typename... Args> void parse( Args&&... args );
+  template <typename TargetT, typename Arg>
+  enable_if_t<is_derived_json_data_container_v<TargetT>, void>
+  parse( Arg& jsonObjects );
 
   ParserState state() { return _state; }
   ParserError error() { return _lastError; }
@@ -191,21 +193,13 @@ class JSONParserBase {
   }
 
   void skip_spaces();
-
-  // ── Méthodes de parsing (logique identique à JSONParser) ───
-
   bool parse_key();
 
   template <typename TargetT>
   ParseValueResult parse_value( JSONCallbackObject& cb );
 
-  template <typename TargetT, typename TupleT, typename TableT>
-  std::enable_if_t<( std::tuple_size<TupleT>::value == 1 ), ParseValueResult>
-  parse_value( TableT& table, TupleT& args );
-
-  template <typename TargetT, typename TupleT, typename TableT>
-  std::enable_if_t<( std::tuple_size<TupleT>::value > 1 ), ParseValueResult>
-  parse_value( TableT& table, TupleT& args );
+  template <typename TargetT, typename TableT>
+  ParseValueResult parse_value( TableT& table);
 
   void _reset_key();
   template <typename TargetT, typename V>
@@ -302,9 +296,10 @@ void JSONParserBase<Cursor, UseMask>::reset() {
 //
 // ============================================================
 
-template <typename Cursor, bool UseMask> template <typename TargetT, typename T>
-enable_if_t<is_derived_json_data_container_v<T>, void>
-JSONParserBase<Cursor, UseMask>::parse( T& jsonObjects ) {
+template <typename Cursor, bool UseMask>
+template <typename TargetT, typename Arg>
+enable_if_t<is_derived_json_data_container_v<TargetT>, void>
+JSONParserBase<Cursor, UseMask>::parse( Arg& jsonObjects ) {
   JSON_DEBUG_INFO( "JSONParserBase::parse with derived JSONObject objects\n" );
   _is_top_level_array = true;
   parse_array<TargetT>( jsonObjects );
@@ -313,23 +308,11 @@ JSONParserBase<Cursor, UseMask>::parse( T& jsonObjects ) {
 
 // ── parse (boucle principale) ─────────────────────────────────
 template <typename Cursor, bool UseMask>
-template <typename TargetT, typename... Args>
-void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
-  static_assert( sizeof...( Args ) > 0, "::parse No arguments provided" );
+template <typename TargetT, typename Arg>
+enable_if_t<!is_derived_json_data_container_v<TargetT>, void>
+JSONParserBase<Cursor, UseMask>::parse( Arg& arg ) {
+
   _is_top_level_array = false;
-
-  using TupleT = std::tuple<Args&&...>;
-  constexpr size_t NPairs = sizeof...( Args ) / 2;
-
-  // Références runtime — reconstruites à chaque appel
-  TupleT refs( std::forward<Args>( args )... );
-
-  // Table statique — uniquement hash + index, pas de références
-  // static constexpr possible car ne dépend QUE des const char[N]
-  // qui sont des littéraux, stables pour toute la spécialisation
-  static const StaticDispatchTable<NPairs> table( refs );
-
-  // _nArgs = sizeof...(Args);
 
   while ( !_cursor.eof() ) {
     CHECK_LOOP( MAX_ITERATIONS, _state = ERROR; _lastError = ParserError::TOO_MANY_ITERATIONS; return; )
@@ -390,7 +373,7 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
           continue;
         }
 
-        ParseValueResult r = parse_value<TargetT>( table, refs );
+        ParseValueResult r = parse_value<TargetT>(arg);
 
         _progress._nMatched += r.keyFound() ? 1 : 0;
 
@@ -408,15 +391,14 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
           _lastParseError = r;
         }
 
-        if constexpr ( !std::is_same_v<remove_cv_ref_t<TargetT>,
-                                       JSONCallbackObject> ) {
-          if ( _progress._nMatched >= NPairs ) {
+        if constexpr ( !is_callback<TargetT> ) {
+          if ( _progress._nMatched >= arg.entries.size() ) {
             JSON_DEBUG_WARNING(
                 "JSONParserBase::parse: Parser depth %zu: "
                 "all keys found,(%zu/%zu) skiping to object end\n",
                 _cursor.depth,
                 _progress._nMatched,
-                NPairs );
+                arg.size() );
             _state = SKIP;
             break;
           }
@@ -457,8 +439,7 @@ void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
 #endif
         return;
       case STOPPED:
-        if constexpr ( std::is_same_v<remove_cv_ref_t<TargetT>,
-                                      JSONCallbackObject> ) {
+        if constexpr ( is_callback<TargetT> ) {
           JSON_DEBUG_INFO( "JSONParserBase: stopped by callback\n" );
           return;
         } else {
@@ -572,40 +553,39 @@ JSONParserBase<Cursor, UseMask>::parse_value( JSONCallbackObject& cb ) {
 }
 
 template <typename Cursor, bool UseMask>
-template <typename TargetT, typename TupleT, typename TableT>
-std::enable_if_t<( std::tuple_size<TupleT>::value == 1 ), ParseValueResult>
-JSONParserBase<Cursor, UseMask>::parse_value( TableT& /*table*/, TupleT& args ) {
-  return parse_value<TargetT>( std::get<0>( args ) );
-}
+template <typename TargetT, typename TableT>
+ParseValueResult JSONParserBase<Cursor, UseMask>::parse_value( TableT& table ) {
 
-template <typename Cursor, bool UseMask>
-template <typename TargetT, typename TupleT, typename TableT>
-std::enable_if_t<( std::tuple_size<TupleT>::value > 1 ), ParseValueResult>
-JSONParserBase<Cursor, UseMask>::parse_value( TableT& table, TupleT& args ) {
-  constexpr size_t NPairs = std::tuple_size<TupleT>::value / 2;
-  const std::string_view parsed_key( _s_key_buf, _key_length );
-  const StaticEntry* entry = table.find( hash32( parsed_key ) );
+  std::string_view parsed_key( _s_key_buf, _key_length );
+  auto entry = table.find_entry( parsed_key );
 
-  if ( !entry ) {
+  ParseValueResult result = ParseValueResult::NO_RESULT;
+  
+  std::visit( [&]( auto&& arg ) {
+    using T = std::decay_t<decltype(arg)>;
+    if constexpr ( !std::is_same_v<T, std::monostate> ) {
+      result |= ParseValueResult::KEY_FOUND;
+      result |= parse_into_value<TargetT>( arg.get() );
+    }
+  }, entry.variant);
+
+  if (!result.keyFound()) {
     JSON_DEBUG_WARNING( "JSONParserBase<Cursor, UseMask>::parse_value "
-                        "key '%.*s' not found\n",
-                        (int)parsed_key.length(),
-                        parsed_key.data() );
-    return ParseValueResult::NO_RESULT;
+    "key '%.*s' not found\n",
+    (int)parsed_key.length(),
+    parsed_key.data() );
+    
+    return result;
   }
-
-  ParseValueResult result;
-  result |= ParseValueResult::KEY_FOUND;
-
-  result |= dispatch_by_index<TargetT>(
-      entry->arg_index, *this, args, std::make_index_sequence<NPairs>{} );
 
   if ( result.updated() ) {
     if constexpr ( UseMask ) {
-      const size_t mask_idx = _automask
-                                  ? entry->arg_index
-                                  : static_cast<size_t>( entry->key_index );
-      _progress._keyMask |= ( 1u << mask_idx );
+
+      if (_automask) {
+        _progress._keyMask |= ( 1u << static_cast<MaskType>(entry.key_index) );
+      } else if (entry.mask_index >= 0) {
+        _progress._keyMask |= ( 1u << static_cast<MaskType>(entry.mask_index) );
+      }
     }
 
     _progress._nUpdated++;

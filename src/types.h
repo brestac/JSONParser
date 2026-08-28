@@ -23,6 +23,8 @@ struct JSONObject;
 struct JSONKey;
 struct JSONCallbackObject;
 struct ParseValueResult;
+//template <typename T> struct RefType;
+template <typename T, size_t N> struct DispatchInfo;
 
 using namespace JSON;
 // ---------------------------------------------------------------------------
@@ -304,28 +306,9 @@ template <typename... Args>
 constexpr bool is_valid_args_v = true;
 
 #endif
-// ---------------------------------------------------------------------------
-//  count_string_view_args_v<Args...>
-//  Compte le nombre de std::string_view aux positions impaires de Args
-//  (positions des valeurs dans les paires clé-valeur).
-//  Utilisé pour dimensionner le string pool du StreamCursor à la construction.
-// ---------------------------------------------------------------------------
-
-template <typename... Args>
-struct string_view_arg_counter { static constexpr size_t value = 0; };
-
-template <typename Key, typename Value, typename... Rest>
-struct string_view_arg_counter<Key, Value, Rest...> {
-    static constexpr size_t value =
-        (std::is_same_v<remove_cv_ref_t<Value>, std::string_view> ? 1 : 0) +
-        string_view_arg_counter<Rest...>::value;
-};
-
-template <typename... Args>
-constexpr size_t count_string_view_args_v = string_view_arg_counter<Args...>::value;
 
 template<typename T>
-constexpr bool is_basic_value = std::is_integral_v<T> || std::is_floating_point_v<T>;
+constexpr bool is_basic_value = std::is_integral_v<T> || std::is_floating_point_v<T>; // numbers, decimal numbers, booleans, null
 
 template<typename T>
 constexpr bool is_callback = std::is_same_v<JSONCallbackObject, remove_cv_ref_t<T>>;
@@ -337,6 +320,18 @@ template <typename T>
 constexpr bool is_uint_array_v = container_info<T>::kind == ContainerKind::C_ARRAY &&
                                  container_info<T>::dimensions == 1 &&
                                  std::is_unsigned_v<typename container_info<T>::base_t>;
+
+// Check if T is of type DispatchInfo<V,N> where V can be anything and N is a size_t
+
+template <typename T, typename = void>
+struct is_dispatch_info : std::false_type {};
+
+template <typename V, size_t N>
+struct is_dispatch_info<DispatchInfo<V, N>> : std::true_type {};
+
+template <typename T>
+constexpr bool is_dispatch_info_v = is_dispatch_info<remove_cv_ref_t<T>>::value;
+
 /*
   type_list utilities
 */
