@@ -42,7 +42,7 @@ ParseResult _parse_impl(M&& mask, JSONParserBase<Cursor, UseMask>* parser, Arg& 
   if constexpr (is_dispatch_info_v<Arg> && is_stream_cursor_reader_v<Cursor> && !is_callback<TargetT>) {
     StringPool<TargetT>::ensure_pool_size(arg.sv_count);
   }
-  
+
   if constexpr (is_dispatch_info_v<Arg> && UseMask) {
     parser->setAutomask(arg.is_generic_keys);
   }
@@ -88,8 +88,12 @@ ParseResult _parse_impl(M&& mask, const char* buffer, size_t size, Arg&& arg) {
 
 // parse — top-level object
 template <typename M, typename T, typename... Args>
-ParseResult parse(M&& mask, T& input, Args &&...args) {
-  auto dispatch_table = create_dispatch_table( std::forward<Args>( args )... );
+ParseResult parse(M&& mask, T& input, Args&& ...args) {
+  auto dispatch_table = [&args...] () constexpr -> auto {
+    return create_dispatch_table(std::forward<Args>(args)...);
+  } ();
+  
+  //create_dispatch_table( std::forward<Args>( args )... );
   return _parse_impl<true, void>(mask, input, dispatch_table);
 }
 

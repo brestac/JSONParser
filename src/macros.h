@@ -126,19 +126,19 @@ RGB values 0‑255.
     auto dispatch = CREATE_DISPATCH_TABLE( __VA_ARGS__ ); \
     using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
     return JSON::_parse_impl<true, _SelfT>(                       \
-        this->updated, input, dispatch );             \
+        updated, input, dispatch );             \
   }                                                               \
   template <typename T> JSON::ParseResult fromJSON( T* input ) {  \
-  auto dispatch = CREATE_DISPATCH_TABLE( __VA_ARGS__ ); \
-  using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
+    auto dispatch = CREATE_DISPATCH_TABLE( __VA_ARGS__ ); \
+    using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
     return JSON::_parse_impl<true, _SelfT>(                       \
-        this->updated, input, dispatch );             \
+        updated, input, dispatch );             \
   }                                                               \
   JSON::ParseResult fromJSON( const char* input, size_t size ) {  \
-  auto dispatch = CREATE_DISPATCH_TABLE( __VA_ARGS__ ); \
-  using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
+    auto dispatch = CREATE_DISPATCH_TABLE( __VA_ARGS__ ); \
+    using _SelfT = remove_cv_ref_t<decltype( *this )>;            \
     return JSON::_parse_impl<true, _SelfT>(            \
-        this->updated, input, size, dispatch );       \
+        updated, input, size, dispatch );       \
   }
 #define TO_JSON_OVERRIDE( ... )                                                \
   template <typename T> size_t toJSON( T& output, bool updates = false ) {     \
