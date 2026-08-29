@@ -18,6 +18,7 @@
 
 // template <typename Cursor, bool UseMask>
 // class JSONParserBase;
+using namespace JSON;
 
 struct JSONObject;
 struct JSONKey;
@@ -26,7 +27,6 @@ struct ParseValueResult;
 //template <typename T> struct RefType;
 template <typename T, size_t N> struct DispatchInfo;
 
-using namespace JSON;
 // ---------------------------------------------------------------------------
 //   Type checker
 // ---------------------------------------------------------------------------
@@ -323,7 +323,7 @@ constexpr bool is_uint_array_v = container_info<T>::kind == ContainerKind::C_ARR
 
 // Check if T is of type DispatchInfo<V,N> where V can be anything and N is a size_t
 
-template <typename T, typename = void>
+template <typename T>
 struct is_dispatch_info : std::false_type {};
 
 template <typename V, size_t N>
@@ -331,6 +331,8 @@ struct is_dispatch_info<DispatchInfo<V, N>> : std::true_type {};
 
 template <typename T>
 constexpr bool is_dispatch_info_v = is_dispatch_info<remove_cv_ref_t<T>>::value;
+
+static_assert(is_dispatch_info_v<DispatchInfo<std::variant<int, double>, 2>&>, "DispatchInfo should be detected");
 
 /*
   type_list utilities

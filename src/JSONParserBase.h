@@ -557,7 +557,7 @@ template <typename TargetT, typename TableT>
 ParseValueResult JSONParserBase<Cursor, UseMask>::parse_value( TableT& table ) {
 
   std::string_view parsed_key( _s_key_buf, _key_length );
-  auto entry = table.find_entry( parsed_key );
+  auto entry = find_entry( table, parsed_key );
 
   ParseValueResult result = ParseValueResult::NO_RESULT;
   
