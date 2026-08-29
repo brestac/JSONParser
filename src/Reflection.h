@@ -102,7 +102,7 @@ template <typename T> struct RefType {
   // constexpr operator T&() const {
   //     return ref;
   // }
-
+  //constexpr T*_ref() { return ref; }
   constexpr T &get() { return *ref; }
 
   // constexpr RefType& operator=(const RefType& other) {
@@ -112,6 +112,20 @@ template <typename T> struct RefType {
   // }
 };
 
+// template <typename T>
+// struct RefPointer {
+//   T* ref;
+//   using type = typename T::type;
+
+//   constexpr RefPointer(T& r) : ref(&r) {}
+//   constexpr RefPointer(const RefPointer&) = default;
+//   constexpr RefPointer(RefPointer&&) = default;
+//   constexpr RefPointer& operator=(const RefPointer&) = default;
+//   constexpr RefPointer& operator=(RefPointer&&) = default;
+
+//   constexpr T& get() { return *ref; }
+// };
+
 template <typename VariantType, size_t N> struct DispatchInfo {
   using entry_type = Entry<VariantType>;
 
@@ -119,8 +133,7 @@ template <typename VariantType, size_t N> struct DispatchInfo {
   bool is_generic_keys;
   size_t sv_count;
 
-  constexpr DispatchInfo(std::array<Entry<VariantType>, N> e, bool igk,
-                         size_t svc)
+  constexpr DispatchInfo(std::array<Entry<VariantType>, N> e, bool igk, size_t svc)
       : entries(e), is_generic_keys(igk), sv_count(svc) {}
 };
 
@@ -134,15 +147,18 @@ constexpr auto find_entry(TableInfo &info, std::string_view var_name) {
 
   size_t hash = hash_compile_time(var_name);
 
-#ifdef SORT_DISPATCH_TABLE
-  auto it = std::lower_bound(
-      info.entries.begin(), info.entries.end(), hash,
-      [&info](const EntryType &entry, size_t h) { return entry < h; });
-#else
-  auto it = std::find_if(
-      info.entries.begin(), info.entries.end(),
-      [hash, &info](const EntryType &entry) { return entry == hash; });
-#endif
+    auto it = info.entries.begin();
+
+    if (std::__is_constant_evaluated()) {
+        it = std::find_if(
+          info.entries.begin(), info.entries.end(),
+          [hash, &info](const EntryType &entry) { return entry == hash; });
+    } else {
+        it = std::lower_bound(
+          info.entries.begin(), info.entries.end(), hash,
+          [&info](const EntryType &entry, size_t h) { return entry < h; });
+    }
+
   if (it != info.entries.end() && it->hash == hash) {
     return *it;
   }
@@ -230,11 +246,12 @@ constexpr auto make_dispatch_table(bool &is_generic, size_t &sv_count,
   auto table = std::array<EntryType, sizeof...(PairIndex)>{
       make_dispatch_entry<PairIndex, VariantType>(is_generic, sv_count,
                                                   args)...};
-#ifdef SORT_DISPATCH_TABLE
-  std::sort(
-      table.begin(), table.end(),
-      [](const EntryType &a, const EntryType &b) { return a < b; });
-#endif
+    if (!std::__is_constant_evaluated()) {
+      std::sort(
+          table.begin(), table.end(),
+          [](const EntryType &a, const EntryType &b) { return a < b; });
+    }
+    
   return table;
 }
 
@@ -242,7 +259,7 @@ template <typename... Args>
 constexpr auto create_dispatch_table(Args &&...args) {
   static_assert(sizeof...(Args) > 0 && sizeof...(Args) % 2 == 0,
                 "Number of arguments must be even");
-
+  // uint64_t start = now();
   using variant_t = pair_variant_t<remove_cv_ref_t<Args>...>;
   constexpr std::size_t N = sizeof...(args) / 2;
 
@@ -253,5 +270,12 @@ constexpr auto create_dispatch_table(Args &&...args) {
   auto entries = make_dispatch_table<variant_t>(
       is_generic, sv_count, args_tuple, std::make_index_sequence<N>{});
 
-  return DispatchInfo<variant_t, N>(entries, is_generic, sv_count);
+    if (std::__is_constant_evaluated()) {
+        #warning "Dispatch table is evaluated at compile time"
+    } else {
+        JSON_DEBUG_WARNING("Dispatch table is evaluated at runtime\n");
+    }
+
+    return DispatchInfo<variant_t, N>(entries, is_generic, sv_count);
+    // JSON::TIME_PROFILER+=(now()-start);
 }

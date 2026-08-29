@@ -13,6 +13,7 @@ NAMESPACE_JSON_BEGIN
 // Runtime options
 static inline bool PRINT_BUFFER_AS_HEX = false;
 static inline uint64_t GLOBAL_ITERATIONS = 0;
+// static inline uint64_t TIME_PROFILER = 0;
 
 #ifdef JSON_DEBUG_MEM
 static uint16_t GLOBAL_PARSER_SIZE = 0;
