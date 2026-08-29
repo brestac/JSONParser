@@ -2,6 +2,7 @@
 #define DEBUG_ESP_PORT Serial
 #define JSON_DEBUG_LEVEL 0
 #define DISABLE_ARGS_CHECK 1
+#define SORT_DISPATCH_TABLE
 
 #include <array>
 #include <chrono>
@@ -38,10 +39,10 @@ std::string read_file_to_string( const char* filename ) {
   return buffer.str();
 }
 
-std::string_view name_1 = "roger";
-std::string_view name_2 = "albert";
-int age = 45U;
-float height = 1.80f;
+std::string_view name_1 = "unknown";
+std::string_view name_2 = "unknown";
+int age = 0U;
+float height = 0.0f;
 
 struct Personne : JSONObject {
   std::string_view com;
@@ -106,50 +107,19 @@ void test_dispatch_table(Args... args) {
 //   }
 // }
 
-struct Element {
-  size_t hash;
-
-  Element(size_t hash) : hash(hash) {}
-};
-
-template <size_t N>
-int find_lower_bound(const std::array<Element, N>& arr, size_t value) {
-  auto it = std::lower_bound(arr.begin(), arr.end(), value, [](const Element& a, size_t b) {
-    return a.hash < b;
-  });
-
-  if (it != arr.end() && it->hash == value) {
-    return it->hash;
-  }
-
-  return -1;
-}
-
 int main() {
 
-  // Test std::array find sorted with comparator
-
-  std::array<Element, 1> arr = { 5 };
-  std::sort(arr.begin(), arr.end(), [](const Element& a, const Element& b) {
-    return a.hash < b.hash;
-  });
-
-  int result = find_lower_bound(arr, 5);
-  std::cout << "Result: " << result << std::endl;
-
-  int result2 = find_lower_bound(arr, 6);
-  std::cout << "Result: " << result2 << std::endl;  
-
-  
   // Personne p;
   // p.fromJSON( "{ \"com\":\"Bob\", \"age\":40}" );
   // std::printf("mask= %d\n", p.updated);
 
     // test_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
 
-    // JSON::parse(0, "{\"name\":\"roger\"}", "name", name_1);
+    JSON::parse(0, "{\"name\":\"roger\"}", "name", name_1);
+    // constexpr auto dispatch_table = create_dispatch_table( "name", name_1, "age", age );
+    // JSON::_parse_impl<true, void>(0, "{\"name\":\"roger\"}", dispatch_table);
   
-    // std::cout << "name:" << name_1 << std::endl;
+    std::cout << "name:" << name_1 << std::endl;
   
 //   FeatureCollection<3> fc;
 //   File input = LittleFS.open( GEOJSON_MEDIUM_FILE_PATH, "r" );

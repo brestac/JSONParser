@@ -1,5 +1,6 @@
 #define DISABLE_ARGS_CHECK
 #define JSON_DEBUG_LEVEL 0
+#define SORT_DISPATCH_TABLE 1
 // #include <catch2/benchmark/catch_benchmark_all.hpp>
 // #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>

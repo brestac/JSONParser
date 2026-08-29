@@ -1,34 +1,38 @@
 ---
 Language: Cpp
 Standard: c++17
-
-AllowShortBlocksOnASingleLine: Always
-AllowShortEnumsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: All
-AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortLambdasOnASingleLine: Inline
-
-AccessModifierOffset: "-4"
-AlignEscapedNewlines: Left
-AllowAllConstructorInitializersOnNextLine: "true"
-BinPackArguments: false
-BinPackParameters: false
-ColumnWidth: 120
-BreakConstructorInitializers: AfterColon
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
-DerivePointerAlignment: "false"
-FixNamespaceComments: true
-IndentCaseLabels: true
-IndentPPDirectives: AfterHash
+BasedOnStyle: LLVM
 IndentWidth: 2
-NamespaceIndentation: All
-PointerAlignment: Left
-SpaceBeforeCtorInitializerColon: false
-SpaceInEmptyParentheses: "false"
-SpacesInParentheses: true
 TabWidth: 2
-UseTab: Never
+
+#BinPackArguments: false
+#BinPackParameters: false
 AlwaysBreakTemplateDeclarations: No
-SpaceAfterTemplateKeyword: true
-SortUsingDeclarations: true
-ReflowComments: true
+
+#AllowShortBlocksOnASingleLine: Always
+#AllowShortEnumsOnASingleLine: true
+#AllowShortFunctionsOnASingleLine: All
+#AllowShortIfStatementsOnASingleLine: WithoutElse
+#AllowShortLambdasOnASingleLine: Inline
+
+#AccessModifierOffset: "-4"
+#AlignEscapedNewlines: Left
+#AllowAllConstructorInitializersOnNextLine: "true"
+
+#BreakConstructorInitializers: AfterColon
+#ConstructorInitializerAllOnOneLineOrOnePerLine: true
+#DerivePointerAlignment: "false"
+#FixNamespaceComments: true
+#IndentCaseLabels: true
+#IndentPPDirectives: AfterHash
+#NamespaceIndentation: All
+#PointerAlignment: Left
+#SpaceBeforeCtorInitializerColon: false
+#SpaceInEmptyParentheses: "false"
+#SpacesInParentheses: true
+#TabWidth: 2
+#UseTab: Never
+
+#SpaceAfterTemplateKeyword: true
+#SortUsingDeclarations: true
+#ReflowComments: true
