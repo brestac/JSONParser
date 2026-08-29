@@ -17,6 +17,8 @@ set(jsonparser INTERFACE JSON_DEBUG_LEVEL_NONE 0)
 set(jsonparser INTERFACE JSON_DEBUG_LEVEL_INFO 1)
 set(jsonparser INTERFACE JSON_DEBUG_LEVEL_WARNING 2)
 set(jsonparser INTERFACE JSON_DEBUG_LEVEL_ERROR 3)
+target_compile_options(jsonparser INTERFACE
+)
 
 # Créer une bibliothèque d'en-têtes (interface)
 add_library(jsonparser-arduino INTERFACE)
@@ -46,7 +48,7 @@ Include(FetchContent)
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.15.3
+  GIT_TAG        v3.16.0
 )
 FetchContent_MakeAvailable(Catch2)
 
@@ -96,8 +98,8 @@ target_compile_options(rapidjson INTERFACE
 file(GLOB JSON_RESOURCES "${CMAKE_SOURCE_DIR}/examples/JSONParserTest/*.*json")
 
 add_compile_options(
-    -Wall
-    -Werror
+#    -Wall
+#    -Werror
     -Werror=unused-variable
 )
 
@@ -117,8 +119,11 @@ add_executable(main
 target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(main PRIVATE jsonparser)
 target_compile_options(main PRIVATE
+    -DCMAKE_CXX_COMPILER=clang++
     -O2
     -std=gnu++17
+    -Wno-unknown-pragmas
+    -Wno-error
 )
 copy_resources(main)
 
@@ -131,7 +136,7 @@ target_link_libraries(release PRIVATE Catch2::Catch2WithMain jsonparser)
 target_compile_options(release PRIVATE
     -O2
     -std=gnu++17
-    -ftemplate-backtrace-limit=0
+    -ftemplate-backtrace-limit=10
 )
 copy_resources(release)
 

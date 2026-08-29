@@ -1,4 +1,6 @@
 #include <cmath>
+#include <fstream>
+#include <iostream>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -11,12 +13,14 @@
 #include <JSONParser.h>
 #include <JSONPrinter.h>
 #include "structs.h"
+#include "geojson.h"
 
 #define GEOJSON_TEST_FILE_PATH "./generated.geojson"
 #define GEOJSON_BIG_FILE_PATH "./big.geojson"
 #define GEOJSON_MEDIUM_FILE_PATH "./medium.geojson"
 #define GEOJSON_SMALL_FILE_PATH "./small.geojson"
 #define REQUIRE_FLOAT( a, b ) REQUIRE_THAT( a, WithinULP( b, 1 ) );
+#define JSON_DEBUG_MEM
 
 using Catch::Matchers::WithinULP;
 // ---------------------------------------------------------------------------

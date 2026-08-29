@@ -1,8 +1,7 @@
 
 #define DEBUG_ESP_PORT Serial
-#define JSON_DEBUG_LEVEL 0
+#define JSON_DEBUG_LEVEL 2
 #define DISABLE_ARGS_CHECK 1
-#define SORT_DISPATCH_TABLE
 
 #include <array>
 #include <chrono>
@@ -24,6 +23,7 @@
 #include <JSONPrinter.h>
 
 //#include "structs.h"
+#include "geojson.h"
 #include "../src/Reflection.h"
 
 #define GEOJSON_SMALL_FILE_PATH "./small.geojson"
@@ -39,17 +39,24 @@ std::string read_file_to_string( const char* filename ) {
   return buffer.str();
 }
 
-std::string_view name_1 = "unknown";
+std::string_view name = "unknown";
 std::string_view name_2 = "unknown";
 int age = 0U;
 float height = 0.0f;
 
-struct Personne : JSONObject {
-  std::string_view com;
+constexpr auto truc() {
+  return true;
+}
+
+struct Personne {
+  std::string_view name;
   int age;
 
-  JSON_DECODER_IMPL( com, age );
+  JSON_DECODER_IMPL( name, age );
 };
+
+// std::string_view Personne::name = "unknown";
+// int Personne::age = 0U;
 
 template <typename... Args>
 void test_dispatch_table(Args... args) {
@@ -109,25 +116,30 @@ void test_dispatch_table(Args... args) {
 
 int main() {
 
-  // Personne p;
-  // p.fromJSON( "{ \"com\":\"Bob\", \"age\":40}" );
-  // std::printf("mask= %d\n", p.updated);
+  Personne p;
+  p.fromJSON( "{ \"name\":\"Bob\", \"age\":40}" );
+  std::printf("mask= %d name= %.*s\n", p.updated, (int)p.name.length(), p.name.data());
+
+  // p.fromJSON( "{ \"name\":\"Alice\", \"age\":30}" );
+  // std::printf("mask= %d name= %.*s\n", p.updated, (int)p.name.length(), p.name.data());
+
 
     // test_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
 
-    JSON::parse(0, "{\"name\":\"roger\"}", "name", name_1);
-    // constexpr auto dispatch_table = create_dispatch_table( "name", name_1, "age", age );
+    //JSON::parse(0, "{\"name\":\"roger\"}", "name", name);
+    // constexpr auto dispatch_table = CREATE_DISPATCH_TABLE(name, age);
+    // static_assert(dispatch_table.entries.size() == 2, "dispatch_table size is not 2");
     // JSON::_parse_impl<true, void>(0, "{\"name\":\"roger\"}", dispatch_table);
   
-    std::cout << "name:" << name_1 << std::endl;
+    // std::cout << "name:" << name << std::endl;
   
-//   FeatureCollection<3> fc;
-//   File input = LittleFS.open( GEOJSON_MEDIUM_FILE_PATH, "r" );
-//   // //std::string input = read_file_to_string( GEOJSON_SMALL_FILE_PATH );
-//   JSON::ParseResult r = fc.fromJSON( input );
-//   r.print();
-//   // std::printf( "error: %d %s\n", r.error, errorToString( r.error ) );
-  
+  // FeatureCollection<3> fc;
+  // File input = LittleFS.open( GEOJSON_MEDIUM_FILE_PATH, "r" );
+  // // //std::string input = read_file_to_string( GEOJSON_SMALL_FILE_PATH );
+  // JSON::ParseResult r = fc.fromJSON( input );
+  // r.print();
+  // std::printf( "error: %d %s\n", r.error, errorToString( r.error ) );
+  // std::printf("DISPATCH TABLE DURATION TOTAL: %lu\n", JSON::TIME_PROFILER);
 // #ifdef JSON_DEBUG_MEM
 //   std::printf("GLOBAL_STRING_POOL_SIZE=%zu\n", JSON::GLOBAL_STRING_POOL_SIZE);
 //   std::printf("MAX_GLOBAL_PARSER_SIZE=%zu\n", JSON::MAX_GLOBAL_PARSER_SIZE);

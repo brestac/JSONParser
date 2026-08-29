@@ -25,7 +25,7 @@
 #include "HardwareSerial.h"
 #include "StreamString.h"
 #include "globals.h"
-#include "structs.h"
+#include "geojson.h"
 
 #define GEOJSON_GENERATED_FILE_PATH "./generated.geojson"
 #define GEOJSON_BIG_FILE_PATH "./big.geojson"
@@ -64,14 +64,12 @@ TEST_CASE( "Test string buffer", "[buffer]" ) {
   if ( n == 1 ) {
     BENCHMARK_ADVANCED("ce parser")(Catch::Benchmark::Chronometer meter) {
       FeatureCollection<3> fc;
-      const char *json_cstr = json.c_str();
-      meter.measure([&fc, &json_cstr] { return fc.fromJSON( json_cstr ); });
+      meter.measure([&fc, &json] { return fc.fromJSON( json ); });
     };
   } else {
     BENCHMARK_ADVANCED( "ce parser" )(Catch::Benchmark::Chronometer meter) {
       FeatureCollection<2> fc;
-      const char *json_cstr = json.c_str();
-      meter.measure([&fc, &json_cstr] { return fc.fromJSON( json_cstr ); });
+      meter.measure([&fc, &json] { return fc.fromJSON( json ); });
     };
   }
   

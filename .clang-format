@@ -4,6 +4,7 @@ Standard: c++17
 BasedOnStyle: LLVM
 IndentWidth: 2
 TabWidth: 2
+PointerAlignment: Left
 
 #BinPackArguments: false
 #BinPackParameters: false
