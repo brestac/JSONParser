@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string_view>
-
+// include for std::is_constant_evaluated on c++17
 #include "JSONParserBase.h"
 #include "StringPool.h"
 #include "macros.h"
@@ -23,11 +23,11 @@ using enable_if_stream_compatible =
 
 // Implémentation interne unique, UseMask en template bool direct
 template <bool UseMask, typename TargetT, typename Cursor, typename M, typename Arg>
-ParseResult _parse_impl(M&& mask, JSONParserBase<Cursor, UseMask>* parser, Arg& arg) {
+ParseResult _parse_impl(M&& mask, JSONParserBase<Cursor, UseMask>* parser, Arg&& arg) {
   using MaskType = std::remove_reference_t<M>;
   
   static_assert(std::is_integral<MaskType>::value, "Mask must be an integral type");
-  
+
   JSON_DEBUG_COLOR(COLOR_RED, "Parser Cursor=%s TargetT=%s size=%zu\n",
                    typeid(Cursor).name(), typeid(TargetT).name(),
                    sizeof(parser));
@@ -89,11 +89,7 @@ ParseResult _parse_impl(M&& mask, const char* buffer, size_t size, Arg&& arg) {
 // parse — top-level object
 template <typename M, typename T, typename... Args>
 ParseResult parse(M&& mask, T& input, Args&& ...args) {
-  auto dispatch_table = [&args...] () constexpr -> auto {
-    return create_dispatch_table(std::forward<Args>(args)...);
-  } ();
-  
-  //create_dispatch_table( std::forward<Args>( args )... );
+  static const auto dispatch_table = create_dispatch_table(std::forward<Args>(args)...);
   return _parse_impl<true, void>(mask, input, dispatch_table);
 }
 

@@ -391,14 +391,14 @@ JSONParserBase<Cursor, UseMask>::parse( Arg& arg ) {
           _lastParseError = r;
         }
 
-        if constexpr ( !is_callback<TargetT> ) {
+        if constexpr ( is_dispatch_info_v<Arg> ) {
           if ( _progress._nMatched >= arg.entries.size() ) {
             JSON_DEBUG_WARNING(
                 "JSONParserBase::parse: Parser depth %zu: "
                 "all keys found,(%zu/%zu) skiping to object end\n",
                 _cursor.depth,
                 _progress._nMatched,
-                arg.size() );
+                arg.entries.size() );
             _state = SKIP;
             break;
           }
