@@ -6,11 +6,11 @@
 #if !defined(DEBUG_PRINTLN) && !defined(DEBUG_PRINTF) && !defined(DEBUG_PRINT)
 #if defined(DEBUG_ESP_PORT)
 #define DEBUG_PRINTLN(x) DEBUG_ESP_PORT.println(x)
-#define DEBUG_PRINTF(x...) DEBUG_ESP_PORT.printf(x)
+#define DEBUG_PRINTF(...) DEBUG_ESP_PORT.printf(__VA_ARGS__)
 #define DEBUG_PRINT(x) DEBUG_ESP_PORT.print(x)
 #else
 #define DEBUG_PRINTLN(x)
-#define DEBUG_PRINTF(x...)
+#define DEBUG_PRINTF(...)
 #define DEBUG_PRINT(x)
 #endif
 #endif
@@ -22,6 +22,16 @@
     JSON_DEBUG_ERROR("Too many iterations\n");                                 \
     STATEMENT                                                                  \
   }
+
+#if defined(__GNUC__) && !defined(__clang__)
+    #define COMPILER_NAME "GCC"
+    #define COMPILER_MAJOR_VERSION __GNUC__
+#elif defined(__clang__)
+    #define COMPILER_NAME "Clang"
+     #define COMPILER_MAJOR_VERSION __clang_major__
+#endif
+
+#define SUPPORTS_CONSTANT_EVALUATED COMPILER_MAJOR_VERSION >= 10
 /*
 Color   Code (foreground)
 Black   \x1b[30m
@@ -77,7 +87,7 @@ RGB values 0‑255.
 #endif
 
 #ifndef __GXX_RTTI
-#define JSON_DEBUG_TYPES
+#define JSON_DEBUG_TYPES(format, ...)
 #endif
 
 #ifdef ARDUINO

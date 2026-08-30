@@ -46,14 +46,14 @@
 //  Construit directement le std::variant<Value1, Value2, ...>
 // ---------------------------------------------------------------------------
 template <typename VariantType> struct Entry {
-  size_t hash;
+  uint32_t hash;
   VariantType variant;
   size_t key_index;
   int mask_index; // -1 si pas de mask pour les clés non indexées
 
   using variant_type = VariantType;
 
-  constexpr Entry(size_t h, VariantType v, size_t ki, int mi)
+  constexpr Entry(uint32_t h, VariantType v, size_t ki, int mi)
       : hash(h), variant(v), key_index(ki), mask_index(mi) {}
 
   constexpr Entry()
@@ -66,21 +66,18 @@ template <typename VariantType> struct Entry {
   constexpr Entry& operator=(const Entry& other) = default;
   constexpr Entry& operator=(Entry&& other) = default;
 
-  constexpr bool operator==(size_t other) const { return hash == other; }
+// Compare 2 Entry
+constexpr bool operator==(const Entry& other) const { return hash == other.hash; }
+constexpr bool operator!=(const Entry& other) const { return hash != other.hash; }
+constexpr bool operator<(const Entry& other) const { return hash < other.hash; }
+constexpr bool operator>(const Entry& other) const { return hash > other.hash; }
 
-  // constexpr bool operator!=(const Entry& other) const {
-  //     return hash != other.hash;
-  // }
+// Compare Entry and uint32_t hash
+constexpr bool operator==(uint32_t other_hash) const { return hash == other_hash; }
+constexpr bool operator!=(uint32_t other_hash) const { return hash != other_hash; }
+constexpr bool operator<(uint32_t other_hash) const { return hash < other_hash; }
+constexpr bool operator>(uint32_t other_hash) const { return hash > other_hash; }
 
-  constexpr bool operator<(const Entry& other) const {
-    return hash < other.hash;
-  }
-
-  constexpr bool operator<(size_t other) const { return hash < other; }
-
-  // constexpr bool operator>(const Entry& other) const {
-  //     return hash > other.hash;
-  // }
 };
 
 template <typename T> struct RefType {
@@ -107,30 +104,16 @@ template <typename T> struct RefType {
   // }
 };
 
-// template <typename T>
-// struct RefPointer {
-//   T* ref;
-//   using type = typename T::type;
-
-//   constexpr RefPointer(T& r) : ref(&r) {}
-//   constexpr RefPointer(const RefPointer&) = default;
-//   constexpr RefPointer(RefPointer&&) = default;
-//   constexpr RefPointer& operator=(const RefPointer&) = default;
-//   constexpr RefPointer& operator=(RefPointer&&) = default;
-
-//   constexpr T& get() { return *ref; }
-// };
-
 template <typename VariantType, size_t N> struct DispatchInfo {
   using entry_type = Entry<VariantType>;
 
   std::array<entry_type, N> entries;
   bool is_generic_keys;
   size_t sv_count;
+  bool is_sorted;
 
-  constexpr DispatchInfo(std::array<Entry<VariantType>, N> e, bool igk,
-                         size_t svc)
-      : entries(e), is_generic_keys(igk), sv_count(svc) {}
+  constexpr DispatchInfo(std::array<Entry<VariantType>, N> e, bool igk, size_t svc, bool is)
+      : entries(e), is_generic_keys(igk), sv_count(svc), is_sorted(is) {}
 };
 
 template <typename TableInfo>
@@ -141,26 +124,18 @@ constexpr auto find_entry(TableInfo& info, std::string_view var_name) {
     return EntryType();
   }
 
-  size_t hash = hash32(var_name);
+  uint32_t hash = hash32(var_name);
 
-  auto it = info.entries.begin();
-#ifdef ARDUINO
-  it = std::find_if(
-    info.entries.begin(), info.entries.end(),
-    [hash, &info](const EntryType& entry) { return entry == hash; });
-#else
-  if (std::__is_constant_evaluated()) {
-    it = std::find_if(
-        info.entries.begin(), info.entries.end(),
-        [hash, &info](const EntryType& entry) { return entry == hash; });
+  if (info.is_sorted) {
+    auto it = std::lower_bound(info.entries.begin(), info.entries.end(), hash);
+    if (it != info.entries.end() && it->hash == hash) {
+      return *it;
+    }
   } else {
-    it = std::lower_bound(
-        info.entries.begin(), info.entries.end(), hash,
-        [&info](const EntryType& entry, size_t h) { return entry < h; });
-  }
-#endif
-  if (it != info.entries.end() && it->hash == hash) {
-    return *it;
+    auto it = std::find_if(info.entries.begin(), info.entries.end(), [hash](const EntryType& entry) { return entry.hash == hash; });
+    if (it != info.entries.end()) {
+      return *it;
+    }
   }
 
   return EntryType();
@@ -214,7 +189,7 @@ constexpr std::pair<std::string_view, int32_t> get_key_and_mask_index(std::strin
   return {raw_key, -1};
 }
 
-template <std::size_t PairIndex, typename Variant, typename Tuple>
+template <size_t PairIndex, typename Variant, typename Tuple>
 constexpr auto make_dispatch_entry(bool& is_generic, size_t& sv_count,
                                    Tuple& args) {
   using value_type =
@@ -236,7 +211,7 @@ constexpr auto make_dispatch_entry(bool& is_generic, size_t& sv_count,
 }
 
 template <typename VariantType, typename Tuple, std::size_t... PairIndex>
-constexpr auto make_dispatch_table(bool& is_generic, size_t& sv_count,
+constexpr auto make_dispatch_table(bool& is_sorted, bool& is_generic, size_t& sv_count,
                                    Tuple& args,
                                    std::index_sequence<PairIndex...>) {
   using EntryType = Entry<VariantType>;
@@ -244,10 +219,10 @@ constexpr auto make_dispatch_table(bool& is_generic, size_t& sv_count,
   auto table = std::array<EntryType, sizeof...(PairIndex)>{
       make_dispatch_entry<PairIndex, VariantType>(is_generic, sv_count,
                                                   args)...};
-#ifndef ARDUINO
+#if SUPPORTS_CONSTANT_EVALUATED
   if (!std::__is_constant_evaluated()) {
-    std::sort(table.begin(), table.end(),
-              [](const EntryType& a, const EntryType& b) { return a < b; });
+    std::sort(table.begin(), table.end(), [](const EntryType& a, const EntryType& b) { return a < b; });
+    is_sorted = true;
   }
 #endif
   return table;
@@ -265,16 +240,16 @@ constexpr auto create_dispatch_table(Args&&... args) {
 
   bool is_generic = true;
   size_t sv_count = 0;
-  auto entries = make_dispatch_table<variant_t>(
-      is_generic, sv_count, args_tuple, std::make_index_sequence<N>{});
+  bool is_sorted = false;
+  auto entries = make_dispatch_table<variant_t>(is_sorted, is_generic, sv_count, args_tuple, std::make_index_sequence<N>{});
 
-#ifndef ARDUINO
+#if SUPPORTS_CONSTANT_EVALUATED
   if (std::__is_constant_evaluated()) {
-    #warning "Dispatch table is evaluated at compile time"
+    #pragma message("Dispatch table is evaluated at compile time")
   } else {
     JSON_DEBUG_WARNING("Dispatch table is evaluated at runtime\n");
   }
 #endif
-  return DispatchInfo<variant_t, N>(entries, is_generic, sv_count);
+  return DispatchInfo<variant_t, N>(entries, is_generic, sv_count, is_sorted);
   // JSON::TIME_PROFILER+=(now()-start);
 }

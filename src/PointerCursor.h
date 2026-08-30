@@ -2,6 +2,8 @@
 
 #include "constants.h"
 #include "macros.h"
+#include "utils.h"
+
 // ============================================================
 //  PointerCursor
 //  Wrapper autour de const char*& pour exposer la même interface
