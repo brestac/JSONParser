@@ -144,7 +144,11 @@ constexpr auto find_entry(TableInfo& info, std::string_view var_name) {
   size_t hash = hash32(var_name);
 
   auto it = info.entries.begin();
-
+#ifdef ARDUINO
+  it = std::find_if(
+    info.entries.begin(), info.entries.end(),
+    [hash, &info](const EntryType& entry) { return entry == hash; });
+#else
   if (std::__is_constant_evaluated()) {
     it = std::find_if(
         info.entries.begin(), info.entries.end(),
@@ -154,7 +158,7 @@ constexpr auto find_entry(TableInfo& info, std::string_view var_name) {
         info.entries.begin(), info.entries.end(), hash,
         [&info](const EntryType& entry, size_t h) { return entry < h; });
   }
-
+#endif
   if (it != info.entries.end() && it->hash == hash) {
     return *it;
   }
@@ -240,11 +244,12 @@ constexpr auto make_dispatch_table(bool& is_generic, size_t& sv_count,
   auto table = std::array<EntryType, sizeof...(PairIndex)>{
       make_dispatch_entry<PairIndex, VariantType>(is_generic, sv_count,
                                                   args)...};
+#ifndef ARDUINO
   if (!std::__is_constant_evaluated()) {
     std::sort(table.begin(), table.end(),
               [](const EntryType& a, const EntryType& b) { return a < b; });
   }
-
+#endif
   return table;
 }
 
@@ -263,12 +268,13 @@ constexpr auto create_dispatch_table(Args&&... args) {
   auto entries = make_dispatch_table<variant_t>(
       is_generic, sv_count, args_tuple, std::make_index_sequence<N>{});
 
+#ifndef ARDUINO
   if (std::__is_constant_evaluated()) {
-#warning "Dispatch table is evaluated at compile time"
+    #warning "Dispatch table is evaluated at compile time"
   } else {
     JSON_DEBUG_WARNING("Dispatch table is evaluated at runtime\n");
   }
-
+#endif
   return DispatchInfo<variant_t, N>(entries, is_generic, sv_count);
   // JSON::TIME_PROFILER+=(now()-start);
 }
