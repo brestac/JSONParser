@@ -207,6 +207,42 @@ inline double multiplyByPowerOfTen(double value, int exponent) {
   return value;
 }
 
+template <typename T>
+constexpr T create_char_range_mask(const uint8_t min, const uint8_t max) {
+    T mask = 0;
+
+    for (uint8_t i = 0; i <= max - min; i++) {
+        mask |= (1ULL << i);
+    }
+
+    return mask;
+}
+
+constexpr size_t strlen_ctx(const char* str, uint32_t max_len) {
+  uint32_t len = 0;
+  while (len < max_len && str[len] != '\0') {
+    ++len;
+  }
+
+  return len;
+}
+
+template <typename T>
+constexpr bool is_in_mask(const uint8_t c, const T mask) {
+    return (mask & (1ULL << c)) != 0ULL;
+}
+
+template <typename T, size_t N>
+constexpr uint8_t min_cxr(const T (&set)[N]) {
+    T min = std::numeric_limits<T>::max;
+    for (T i = 0; i < N; ++i) {
+        if (set[i] < min) {
+            min = set[i];
+        }
+    }
+    return min;
+}
+
 /*
 // Table de puissances de 10 précalculée pour éviter l'appel coûteux à std::pow
 static const double POW10[] = {

@@ -600,8 +600,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_value( TableT& table ) {
 template <typename Cursor, bool UseMask> template <typename TargetT, typename V>
 ParseValueResult
 JSONParserBase<Cursor, UseMask>::parse_into_value( V& arg_value ) {
-  JSON_DEBUG_TYPES( "JSONParserBase<Cursor, UseMask>::parse_into_value %s\n",
-                    arg_value );
+  JSON_DEBUG_TYPES( "JSONParserBase<Cursor, UseMask>::parse_into_value %s\n", arg_value );
   // LOG_STACK("parse_into_value");
 
   if constexpr ( is_callback<V> ) {
@@ -1697,8 +1696,8 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::assign_callback_object(
 
 template <typename Cursor, bool UseMask> template <typename PV, typename V>
 ParseValueResult
-JSONParserBase<Cursor, UseMask>::assign_not_handled( PV& /*pv*/, V& /*v*/ ) {
-  JSON_DEBUG_TYPES( "Could not assign value from %s to %s\n", "?", "?" );
+JSONParserBase<Cursor, UseMask>::assign_not_handled( PV& pv, V& v ) {
+  JSON_DEBUG_TYPES( "Could not assign value from %s to %s\n", pv, v );
   return ParseValueResult::NO_RESULT;
 }
 

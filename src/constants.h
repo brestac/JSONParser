@@ -8,6 +8,17 @@
 
 #include "macros.h"
 
+template <typename T, size_t N>
+constexpr T create_charset_mask(const char (&set)[N], const uint8_t offset) {
+    T mask = 0;
+
+    for (uint8_t i = 0; i < N; ++i) {
+        mask |= (1ULL << (static_cast<uint8_t>(set[i]) - offset));
+    }
+
+    return mask;
+}
+
 NAMESPACE_JSON_BEGIN
 
 // Runtime options
@@ -54,53 +65,6 @@ constexpr uint64_t MAX_ITERATIONS = std::numeric_limits<uint64_t>::max();       
 constexpr uint16_t MAX_JSON_DEPTH = 1 << 8; // 256 niveaux de profondeur maximum
 
 NAMESPACE_JSON_END
-
-template <typename T, size_t N>
-constexpr T create_charset_mask(const char (&set)[N], const uint8_t offset) {
-    T mask = 0;
-
-    for (uint8_t i = 0; i < N; ++i) {
-        mask |= (1ULL << (static_cast<uint8_t>(set[i]) - offset));
-    }
-
-    return mask;
-}
-
-template <typename T>
-constexpr T create_char_range_mask(const uint8_t min, const uint8_t max) {
-    T mask = 0;
-
-    for (uint8_t i = 0; i <= max - min; i++) {
-        mask |= (1ULL << i);
-    }
-
-    return mask;
-}
-
-constexpr size_t strlen_ctx(const char* str, uint32_t max_len) {
-  uint32_t len = 0;
-  while (len < max_len && str[len] != '\0') {
-    ++len;
-  }
-
-  return len;
-}
-
-template <typename T>
-constexpr bool is_in_mask(const uint8_t c, const T mask) {
-    return (mask & (1ULL << c)) != 0ULL;
-}
-
-template <typename T, size_t N>
-constexpr uint8_t min_cxr(const T (&set)[N]) {
-    T min = std::numeric_limits<T>::max;
-    for (T i = 0; i < N; ++i) {
-        if (set[i] < min) {
-            min = set[i];
-        }
-    }
-    return min;
-}
 
 constexpr uint64_t JSON_SPACE_CHARACTERS_MASK = create_charset_mask<uint64_t>({' ', '\t', '\n', '\r'}, 0);
 // constexpr uint64_t ALPHA_LOWER_CHARACTERS_MASK = create_char_range_mask<uint64_t>('a', 'z');

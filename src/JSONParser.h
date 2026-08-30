@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string_view>
-// include for std::is_constant_evaluated on c++17
 #include "JSONParserBase.h"
 #include "StringPool.h"
 #include "macros.h"
