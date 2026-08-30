@@ -3,7 +3,7 @@ project(JSONParserProject CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# -- set(CMAKE_CXX_COMPILER "clang++")
+#-- set(CMAKE_CXX_COMPILER "g++")
 
 # Créer une bibliothèque d'en-têtes (interface)
 add_library(jsonparser INTERFACE)
@@ -33,7 +33,6 @@ set(jsonparser-arduino INTERFACE JSON_DEBUG_LEVEL_INFO 1)
 set(jsonparser-arduino INTERFACE JSON_DEBUG_LEVEL_WARNING 2)
 set(jsonparser-arduino INTERFACE JSON_DEBUG_LEVEL_ERROR 3)
 target_compile_options(jsonparser-arduino INTERFACE
-    -DCMAKE_CXX_COMPILER=g++
     -Os
     -std=gnu++17
     -fno-rtti
@@ -90,6 +89,7 @@ set(rapidjson INTERFACE RAPIDJSON_BUILD_TERS OFF)
 set(rapidjson INTERFACE RAPIDJSON_BUILD_TESTS OFF)
 set(rapidjson INTERFACE RAPIDJSON_BUILD_EXAMPLES OFF)
 target_compile_options(rapidjson INTERFACE
+    -Wno-unknown-warning-option
     -Wno-deprecated-declarations
     -Wno-class-memaccess
 )
@@ -98,8 +98,8 @@ target_compile_options(rapidjson INTERFACE
 file(GLOB JSON_RESOURCES "${CMAKE_SOURCE_DIR}/examples/JSONParserTest/*.*json")
 
 add_compile_options(
-#    -Wall
-#    -Werror
+    -Wall
+    -Werror
     -Werror=unused-variable
 )
 
@@ -119,7 +119,6 @@ add_executable(main
 target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(main PRIVATE jsonparser)
 target_compile_options(main PRIVATE
-    -DCMAKE_CXX_COMPILER=clang++
     -O2
     -std=gnu++17
     -Wno-unknown-pragmas
@@ -166,12 +165,13 @@ target_link_libraries(debug PRIVATE Catch2::Catch2WithMain jsonparser)
 target_compile_options(debug PRIVATE
     -O0
     -std=gnu++17
-    -Wno-cpp
-    -Wno-variadic-macros
     -Wextra
     -Wpedantic
     -Wdangling-pointer
-     -error-limit=50
+    -Wno-unknown-warning-option
+    -Wno-variadic-macros
+    -Wno-gnu-zero-variadic-macro-arguments
+     -ferror-limit=50
 )
 foreach(res ${JSON_RESOURCES})
     get_filename_component(res_name "${res}" NAME)
@@ -186,8 +186,13 @@ add_executable(release-arduino
     tests/test.cpp
 )
 target_compile_options(release-arduino PRIVATE
-    -O2
+    -Os
     -std=gnu++17
+    -fno-rtti
+    -falign-functions=4
+    -ffunction-sections
+    -fdata-sections
+    -fno-exceptions
 )
 target_include_directories(release-arduino PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(release-arduino PRIVATE Catch2::Catch2WithMain jsonparser-arduino)

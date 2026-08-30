@@ -56,10 +56,10 @@ TEST_CASE( "Test string buffer", "[buffer]" ) {
   std::string json = read_file_to_string( path.c_str() );
   current_size = json.size();
 
-  std::printf( "#%d Testing file: %s with size %zu Bytes\n",
+  std::printf( "#%d Testing file: %s with size %zu Bytes - %s %s\n",
                n,
                path.c_str(),
-               current_size );
+               current_size, COMPILER_NAME, __VERSION__ );
 
   if ( n == 1 ) {
     BENCHMARK_ADVANCED("ce parser")(Catch::Benchmark::Chronometer meter) {

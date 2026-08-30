@@ -1,8 +1,9 @@
 { pkgs }: {
 	deps = [
+   pkgs.clang_18
    pkgs.cmake
     pkgs.nano
-		pkgs.clang
+		pkgs.llvmPackages.llvm
 		pkgs.gcc10
 		pkgs.ccls
 		pkgs.gdb
