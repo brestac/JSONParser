@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <functional>
 #include <stddef.h>
 #include <stdint.h>
 #include <string_view>
@@ -13,14 +12,14 @@
 
 //#define LOWER_ALPHA_MASK 0b11000000;
 
-constexpr size_t hash_compile_time(std::string_view str) {
-  size_t hash = 14695981039346656037ULL;
-  for (char c : str) {
-    hash ^= static_cast<size_t>(c);
-    hash *= 1099511628211ULL;
-  }
-  return hash;
-}
+// constexpr uint64_t hash_compile_time(std::string_view str) {
+//   uint64_t hash = 14695981039346656037ULL;
+//   for (char c : str) {
+//     hash ^= static_cast<uint64_t>(c);
+//     hash *= 1099511628211ULL;
+//   }
+//   return hash;
+// }
 
 // void get_common_bits_equal_to_0_1(unsigned char*bytes, size_t len, uint8_t&
 // common_0, uint8_t& common_1) {
@@ -62,26 +61,22 @@ template <typename VariantType> struct Entry {
 
   // Methods used by std::sort
 
-  constexpr Entry(const Entry &) = default;
-  constexpr Entry(Entry &&) = default;
-  constexpr Entry &operator=(const Entry &other) = default;
-  constexpr Entry &operator=(Entry &&other) = default;
+  constexpr Entry(const Entry&) = default;
+  constexpr Entry(Entry&&) = default;
+  constexpr Entry& operator=(const Entry& other) = default;
+  constexpr Entry& operator=(Entry&& other) = default;
 
-  constexpr bool operator==(size_t other) const {
-      return hash == other;
-  }
+  constexpr bool operator==(size_t other) const { return hash == other; }
 
   // constexpr bool operator!=(const Entry& other) const {
   //     return hash != other.hash;
   // }
 
   constexpr bool operator<(const Entry& other) const {
-      return hash < other.hash;
+    return hash < other.hash;
   }
 
-    constexpr bool operator<(size_t other) const {
-          return hash < other;
-      }
+  constexpr bool operator<(size_t other) const { return hash < other; }
 
   // constexpr bool operator>(const Entry& other) const {
   //     return hash > other.hash;
@@ -89,21 +84,21 @@ template <typename VariantType> struct Entry {
 };
 
 template <typename T> struct RefType {
-  T *ref;
+  T* ref;
 
-  constexpr RefType(T &r) : ref(&r) {}
-  constexpr RefType(const RefType &) = default;
-  constexpr RefType(RefType &&) = default;
-  constexpr RefType &operator=(const RefType &) = default;
-  constexpr RefType &operator=(RefType &&) = default;
+  constexpr RefType(T& r) : ref(&r) {}
+  constexpr RefType(const RefType&) = default;
+  constexpr RefType(RefType&&) = default;
+  constexpr RefType& operator=(const RefType&) = default;
+  constexpr RefType& operator=(RefType&&) = default;
 
   // constexpr RefType(const RefType& other) : ref(other.ref) {}
 
   // constexpr operator T&() const {
   //     return ref;
   // }
-  //constexpr T*_ref() { return ref; }
-  constexpr T &get() { return *ref; }
+  // constexpr T*_ref() { return ref; }
+  constexpr T& get() { return *ref; }
 
   // constexpr RefType& operator=(const RefType& other) {
   //     if (this != &other) {
@@ -133,31 +128,32 @@ template <typename VariantType, size_t N> struct DispatchInfo {
   bool is_generic_keys;
   size_t sv_count;
 
-  constexpr DispatchInfo(std::array<Entry<VariantType>, N> e, bool igk, size_t svc)
+  constexpr DispatchInfo(std::array<Entry<VariantType>, N> e, bool igk,
+                         size_t svc)
       : entries(e), is_generic_keys(igk), sv_count(svc) {}
 };
 
 template <typename TableInfo>
-constexpr auto find_entry(TableInfo &info, std::string_view var_name) {
+constexpr auto find_entry(TableInfo& info, std::string_view var_name) {
   using EntryType = typename TableInfo::entry_type;
 
   if (var_name.empty()) {
     return EntryType();
   }
 
-  size_t hash = hash_compile_time(var_name);
+  size_t hash = hash32(var_name);
 
-    auto it = info.entries.begin();
+  auto it = info.entries.begin();
 
-    if (std::__is_constant_evaluated()) {
-        it = std::find_if(
-          info.entries.begin(), info.entries.end(),
-          [hash, &info](const EntryType &entry) { return entry == hash; });
-    } else {
-        it = std::lower_bound(
-          info.entries.begin(), info.entries.end(), hash,
-          [&info](const EntryType &entry, size_t h) { return entry < h; });
-    }
+  if (std::__is_constant_evaluated()) {
+    it = std::find_if(
+        info.entries.begin(), info.entries.end(),
+        [hash, &info](const EntryType& entry) { return entry == hash; });
+  } else {
+    it = std::lower_bound(
+        info.entries.begin(), info.entries.end(), hash,
+        [&info](const EntryType& entry, size_t h) { return entry < h; });
+  }
 
   if (it != info.entries.end() && it->hash == hash) {
     return *it;
@@ -204,21 +200,19 @@ template <typename... Args> using extracted_value_types_with_monospace_t =
 template <typename... Args> using pair_variant_t =
     typename to_variant<extracted_value_types_with_monospace_t<Args...>>::type;
 
-constexpr std::pair<std::string_view, int32_t>
-get_key_and_mask_index(std::string_view &&raw_key) {
+constexpr std::pair<std::string_view, int32_t> get_key_and_mask_index(std::string_view&& raw_key) {
 
   size_t bracket_pos = raw_key.find('[');
   if (bracket_pos != std::string_view::npos) {
-    return {raw_key.substr(0, bracket_pos),
-            std::stoi(raw_key.substr(bracket_pos + 1).data())};
+    return {raw_key.substr(0, bracket_pos), std::atoi(raw_key.substr(bracket_pos + 1).data())};
   }
 
   return {raw_key, -1};
 }
 
 template <std::size_t PairIndex, typename Variant, typename Tuple>
-constexpr auto make_dispatch_entry(bool &is_generic, size_t &sv_count,
-                                   Tuple &args) {
+constexpr auto make_dispatch_entry(bool& is_generic, size_t& sv_count,
+                                   Tuple& args) {
   using value_type =
       remove_cv_ref_t<decltype(std::get<PairIndex * 2 + 1>(args))>;
 
@@ -232,31 +226,30 @@ constexpr auto make_dispatch_entry(bool &is_generic, size_t &sv_count,
     is_generic = false;
   }
 
-  return Entry<Variant>{hash_compile_time(key_index.first),
+  return Entry<Variant>{hash32(key_index.first),
                         RefType<value_type>{std::get<PairIndex * 2 + 1>(args)},
                         PairIndex, key_index.second};
 }
 
 template <typename VariantType, typename Tuple, std::size_t... PairIndex>
-constexpr auto make_dispatch_table(bool &is_generic, size_t &sv_count,
-                                   Tuple &args,
+constexpr auto make_dispatch_table(bool& is_generic, size_t& sv_count,
+                                   Tuple& args,
                                    std::index_sequence<PairIndex...>) {
   using EntryType = Entry<VariantType>;
 
   auto table = std::array<EntryType, sizeof...(PairIndex)>{
       make_dispatch_entry<PairIndex, VariantType>(is_generic, sv_count,
                                                   args)...};
-    if (!std::__is_constant_evaluated()) {
-      std::sort(
-          table.begin(), table.end(),
-          [](const EntryType &a, const EntryType &b) { return a < b; });
-    }
-    
+  if (!std::__is_constant_evaluated()) {
+    std::sort(table.begin(), table.end(),
+              [](const EntryType& a, const EntryType& b) { return a < b; });
+  }
+
   return table;
 }
 
 template <typename... Args>
-constexpr auto create_dispatch_table(Args &&...args) {
+constexpr auto create_dispatch_table(Args&&... args) {
   static_assert(sizeof...(Args) > 0 && sizeof...(Args) % 2 == 0,
                 "Number of arguments must be even");
   // uint64_t start = now();
@@ -270,12 +263,12 @@ constexpr auto create_dispatch_table(Args &&...args) {
   auto entries = make_dispatch_table<variant_t>(
       is_generic, sv_count, args_tuple, std::make_index_sequence<N>{});
 
-    if (std::__is_constant_evaluated()) {
-        #warning "Dispatch table is evaluated at compile time"
-    } else {
-        JSON_DEBUG_WARNING("Dispatch table is evaluated at runtime\n");
-    }
+  if (std::__is_constant_evaluated()) {
+#warning "Dispatch table is evaluated at compile time"
+  } else {
+    JSON_DEBUG_WARNING("Dispatch table is evaluated at runtime\n");
+  }
 
-    return DispatchInfo<variant_t, N>(entries, is_generic, sv_count);
-    // JSON::TIME_PROFILER+=(now()-start);
+  return DispatchInfo<variant_t, N>(entries, is_generic, sv_count);
+  // JSON::TIME_PROFILER+=(now()-start);
 }
