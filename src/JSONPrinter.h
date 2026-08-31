@@ -49,7 +49,7 @@ namespace JSON {
 
 // ── Surcharge pour StreamCursor / PointerCursorWriter ────────────────────────
 template <typename Cursor, typename... Args>
-enable_if_t<is_cursor_writer_v<Cursor> && is_valid_args_v<Args...>, size_t>
+std::enable_if_t<is_cursor_writer_v<Cursor> && is_valid_args_v<Args...>, size_t>
 _print(MaskType mask, Cursor &output, Args &&...args) {
     return print_json(mask, output, std::forward<Args>(args)...);
 }
@@ -157,11 +157,7 @@ size_t constexpr print_value_to(Cursor &output, T &value) {
       }
     }
   } else {
-#if defined(__EXCEPTIONS) && defined(__GXX_RTTI)
-    // static_assert(false, "cannot print type");
-#endif
-    JSON_DEBUG_TYPES("Cannot print type %s\n", value);
-    return output.write("null");
+    static_assert(false, "cannot print type");
   }
 }
 

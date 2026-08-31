@@ -62,9 +62,9 @@ struct ParseResult {
   uint64_t elapsed;
   bool stopped;
 
-  constexpr ParseResult() : length(0), nParsed(0), nMatched(0), nConverted(0), nUpdated(0), error(ParserError::NO_ERROR), parseError(ParseValueResult()), elapsed(0), stopped(false) {}
+  ParseResult() : length(0), nParsed(0), nMatched(0), nConverted(0), nUpdated(0), error(ParserError::NO_ERROR), parseError(ParseValueResult()), elapsed(0), stopped(false) {}
 
-  template <typename P> constexpr ParseResult(P* parser, uint64_t duration) {
+  template <typename P> ParseResult(P* parser, uint64_t duration) {
     length = parser->cursor().bytesConsumed();
     nParsed = parser->nParsed();
     nMatched = parser->nMatched();
@@ -76,7 +76,7 @@ struct ParseResult {
     stopped = parser->stopped();
   }
 
-  constexpr ParseResult(size_t length, size_t /*nKeys*/, uint8_t nParsed, uint8_t nMatched, uint8_t nConverted, uint8_t nUpdated, ParserError error, ParseValueResult parseError,
+  ParseResult(size_t length, size_t /*nKeys*/, uint8_t nParsed, uint8_t nMatched, uint8_t nConverted, uint8_t nUpdated, ParserError error, ParseValueResult parseError,
               uint64_t elapsed, bool stopped = false)
       : length(length), nParsed(nParsed), nMatched(nMatched), nConverted(nConverted), nUpdated(nUpdated), error(error), parseError(parseError),
         elapsed(elapsed), stopped(stopped) {}
@@ -92,6 +92,6 @@ void ParseResult::print() {
                length, nParsed, nMatched, nConverted, nUpdated, errorToString(error), errorToString(parseError), elapsed, stopped ? "true" : "false");
 }
 
-constexpr ParseResult NO_RESULT = ParseResult();
+ParseResult NO_RESULT = ParseResult();
 
 NAMESPACE_JSON_END
