@@ -184,6 +184,26 @@ constexpr uint32_t hash32(std::string_view key) {
   return hash32(key.data(), key.length());
 }
 
+constexpr std::pair<std::string_view, int32_t> get_key_and_mask_index(std::string_view&& raw_key) {
+ // !! Does not check if the key is valid nor if the index is an empty string.
+// It should have been checked before calling this function in the parser.
+// !! Does not check if the index is a valid number.
+
+  std::string_view key = raw_key;
+  
+  size_t bracket_pos = key.find('[');
+  if (bracket_pos != std::string_view::npos) {
+    int index = std::strtoul(key.data() + bracket_pos + 1, nullptr, 10);
+    if (index < 0) {
+      index = -1;
+    }
+    
+    return {key.substr(0, bracket_pos), index};
+  }
+
+  return {key, -1};
+}
+
 inline double multiplyByPowerOfTen(double value, int exponent) {
   if (exponent == 0) return value;
 

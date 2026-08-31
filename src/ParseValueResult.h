@@ -11,6 +11,9 @@
 
 struct ParseValueResult {
 public:
+  static uint8_t PARSE_MASK;
+  static uint8_t ERROR_MASK;
+
   enum State : uint8_t {
     NO_RESULT = 0,
     KEY_FOUND = 1 << 0,
@@ -45,41 +48,38 @@ public:
     PARSE_ERROR_UNKNOWN = 255 // unknown error
   };
 
-  static constexpr uint8_t PARSE_MASK = 0x03;
-  static constexpr uint8_t ERROR_MASK = 0xF8;
-
   // Constructeurs
-//  constexpr ParseValueResult(uint16_t r) : _result(r) {}
-  constexpr ParseValueResult() : _state(State::NO_RESULT) {}
-  constexpr ParseValueResult(State s) : _state(s) {}
-  constexpr ParseValueResult(uint8_t s) : _state(static_cast<State>(s)) {}
+//  ParseValueResult(uint16_t r) : _result(r) {}
+  ParseValueResult() : _state(State::NO_RESULT) {}
+  ParseValueResult(State s) : _state(s) {}
+  ParseValueResult(uint8_t s) : _state(static_cast<State>(s)) {}
 
-  constexpr bool keyFound() const {
+  bool keyFound() const {
     return (static_cast<uint8_t>(_state) & KEY_FOUND) != 0;
   }
 
-  constexpr bool parsed() const {
+  bool parsed() const {
     uint8_t error = static_cast<uint8_t>(_state) & ERROR_MASK;
     return error >= STRING_PARSED && error <= OBJECT_PARSED;
   }
 
-  constexpr bool converted() const {
+  bool converted() const {
     return (static_cast<uint8_t>(_state) & VALUE_CONVERTED) != 0;
   }
 
-  constexpr bool updated() const {
+  bool updated() const {
     return (static_cast<uint8_t>(_state) & VALUE_UPDATED) != 0;
   }
 
-  constexpr State error() const {
+  State error() const {
     return static_cast<State>(_state & ERROR_MASK);
   }
 
-  constexpr State state() const {
+  State state() const {
     return _state;
   }
 
-  constexpr State get_state(State otherState) const {
+  State get_state(State otherState) const {
     // In this situation, otherState is not a mask but one of the State enum values
     uint8_t state = static_cast<uint8_t>(_state);
     state |= (otherState & ~ERROR_MASK);
@@ -93,13 +93,13 @@ public:
 
   // Opérateur | (OR)
 
-  constexpr ParseValueResult
+  ParseValueResult
   operator|(const ParseValueResult &other) const {
     State state = get_state(other._state);
     return ParseValueResult(state);
   }
 
-  constexpr ParseValueResult
+  ParseValueResult
   operator|(const ParseValueResult::State &otherState) const {
     State state = get_state(otherState);
     return ParseValueResult(state);
@@ -107,31 +107,35 @@ public:
 
   // Opérateur |= (OR assignment)
 
-  constexpr ParseValueResult &operator|=(const ParseValueResult &other) {
+  ParseValueResult &operator|=(const ParseValueResult &other) {
     _state = get_state(other._state);
     return *this;
   }
 
-  constexpr ParseValueResult &operator|=(const ParseValueResult::State &otherState) {
+  ParseValueResult &operator|=(const ParseValueResult::State &otherState) {
     _state = get_state(otherState);
     return *this;
   }
 
-  constexpr bool operator==(const ParseValueResult &other) const {
+  bool operator==(const ParseValueResult &other) const {
     return _state == other._state;
   }
 
-  constexpr bool operator!=(const ParseValueResult &other) const {
+  bool operator!=(const ParseValueResult &other) const {
     return _state != other._state;
   }
 
-  void print() {
-
+  // I want the operator for when i am doing if(parseResult) to return true if the result is parsed()
+  explicit operator bool() const {
+    return parsed();
   }
 
 private:
   State _state;
 };
+
+uint8_t ParseValueResult::PARSE_MASK = 0x03;
+uint8_t ParseValueResult::ERROR_MASK = 0xF8;
 
 NAMESPACE_JSON_BEGIN
 

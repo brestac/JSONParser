@@ -35,16 +35,10 @@ JSON::ParseResult fromJSON(T* input);
     return cursor.write("null");
   }
 
-  JSONCallbackObject(JSONCallback callback, JSONKey& key)
-      : callback(callback), key(key), skip(JSON::SKIP::NONE) {
-    JSON_DEBUG_INFO("JSONCallbackObject created\n");
-  }
-
-  template <size_t N>
-  JSONCallbackObject(JSONCallback callback, const char (&keyStr)[N])
-      : callback(callback), key(keyStr), skip(JSON::SKIP::NONE) {
-    JSON_DEBUG_INFO("JSONCallbackObject created from string\n");
-  }
+JSONCallbackObject(const JSONCallback& callback, std::string_view keyStr)
+    : callback(callback), key(keyStr), skip(JSON::SKIP::NONE) {
+  JSON_DEBUG_INFO("JSONCallbackObject created from string\n");
+}
 
   void run(const JSONValue &value) {
     if (callback) {

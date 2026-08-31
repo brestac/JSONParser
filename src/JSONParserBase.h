@@ -381,7 +381,7 @@ JSONParserBase<Cursor, UseMask>::parse( Arg& arg ) {
           r = skip_value();
         }
 
-        if ( r.parsed() ) {
+        if ( r ) {
           set_state( COMMA );
         } else { // The key was found but the value was not parsed. This is an
                  // error.
@@ -444,7 +444,7 @@ JSONParserBase<Cursor, UseMask>::parse( Arg& arg ) {
         } else {
           ParseValueResult r = skip_to_object_end();
 
-          if ( r.parsed() ) {
+          if ( r ) {
             _state = END;
           } else {
             _state = ERROR;
@@ -456,7 +456,7 @@ JSONParserBase<Cursor, UseMask>::parse( Arg& arg ) {
       case SKIP: {
         JSON_DEBUG_INFO( "JSONParserBase: skip\n" );
         ParseValueResult r = skip_to_object_end();
-        if ( r.parsed() ) {
+        if ( r ) {
           _state = END;
         } else {
           _lastError = ParserError::SKIP_ERROR;
@@ -616,7 +616,7 @@ JSONParserBase<Cursor, UseMask>::parse_into_value( V& arg_value ) {
   } else if constexpr ( is_uint_array_v<V> ) {
     ParseValueResult result = parse_string<TargetT>( arg_value );
 
-    if ( result.parsed() ) { return result; }
+    if ( result ) { return result; }
 
     return parse_array<TargetT>( arg_value );
   } else if constexpr ( is_container_v<V> ) {
@@ -1068,7 +1068,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_array( V& arg_value ) {
       }
     }
 
-    if ( !result.parsed() ) {
+    if ( !result ) {
       JSON_DEBUG_WARNING(
           "JSONParserBase::parse_array: cannot parse value at index %zu\n", i );
       return result;
@@ -1244,9 +1244,9 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_any_keyword( JSONCallbac
 
   if (ch < 'I' || ch > 't') return result;
 
-  if (result = parse_bool( arg_value ); result.parsed()) return result;
-  if (result = parse_null( arg_value ); result.parsed()) return result;
-  if (result = parse_infinity( arg_value ); result.parsed()) return result;
+  if ((result = parse_bool( arg_value ))) return result;
+  if ((result = parse_null( arg_value ))) return result;
+  if ((result = parse_infinity( arg_value ))) return result;
 
   return result;
 }
@@ -1255,9 +1255,9 @@ template <typename Cursor, bool UseMask>
 ParseValueResult JSONParserBase<Cursor, UseMask>::parse_any( JSONCallbackObject& arg_value ) {
   ParseValueResult result = ParseValueResult::NO_RESULT;
 
-  if ( result = parse_string<JSONCallbackObject>( arg_value ); result.parsed() ) return result;
-  if ( result = parse_numeric_as<double, false>( arg_value ); result.parsed() ) return result;
-  if ( result = parse_any_keyword( arg_value ); result.parsed() ) return result;
+  if ( (result = parse_string<JSONCallbackObject>( arg_value ))) return result;
+  if ( (result = parse_numeric_as<double, false>( arg_value )) ) return result;
+  if ( (result = parse_any_keyword( arg_value )) ) return result;
   if ( is_array_start() ) return parse_array( arg_value );
   if ( is_object_start() ) return parse_object( arg_value );
 
@@ -1431,7 +1431,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_object_end() {
 
     ParseValueResult r = skip_value();
 
-    if ( r.parsed() ) {
+    if ( r ) {
       if ( is_object_end() ) {
         break;
       } else {
@@ -1482,7 +1482,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::skip_to_array_end() {
     // Always use the generic skip_value() here.
     ParseValueResult r = skip_value();
 
-    if ( r.parsed() ) {
+    if ( r ) {
       if ( is_array_end() ) {
         _cursor.advance();
         break;
@@ -1693,7 +1693,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::assign_callback_object(
 
 template <typename Cursor, bool UseMask> template <typename PV, typename V>
 ParseValueResult
-JSONParserBase<Cursor, UseMask>::assign_not_handled( PV& pv, V& v ) {
+JSONParserBase<Cursor, UseMask>::assign_not_handled([[maybe_unused]] PV& pv,[[maybe_unused]] V& v ) {
   JSON_DEBUG_TYPES( "Could not assign value from %s to %s\n", pv, v );
   return ParseValueResult::NO_RESULT;
 }

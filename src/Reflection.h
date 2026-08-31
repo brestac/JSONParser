@@ -9,6 +9,7 @@
 #include <variant>
 
 #include "macros.h"
+#include "utils.h"
 
 //#define LOWER_ALPHA_MASK 0b11000000;
 
@@ -178,16 +179,6 @@ template <typename... Args> using extracted_value_types_with_monospace_t =
 
 template <typename... Args> using pair_variant_t =
     typename to_variant<extracted_value_types_with_monospace_t<Args...>>::type;
-
-constexpr std::pair<std::string_view, int32_t> get_key_and_mask_index(std::string_view&& raw_key) {
-
-  size_t bracket_pos = raw_key.find('[');
-  if (bracket_pos != std::string_view::npos) {
-    return {raw_key.substr(0, bracket_pos), std::atoi(raw_key.substr(bracket_pos + 1).data())};
-  }
-
-  return {raw_key, -1};
-}
 
 template <size_t PairIndex, typename Variant, typename Tuple>
 constexpr auto make_dispatch_entry(bool& is_generic, size_t& sv_count,
