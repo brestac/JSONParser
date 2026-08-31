@@ -1,7 +1,7 @@
 
 #define DEBUG_ESP_PORT Serial
 #define JSON_DEBUG_LEVEL 0
-#define DISABLE_ARGS_CHECK 1
+#define DISABLE_ARGS_CHECK 0
 
 #include <array>
 #include <chrono>
@@ -39,8 +39,8 @@ std::string read_file_to_string( const char* filename ) {
   return buffer.str();
 }
 
-// static std::string_view name = "unknown";
-// static int age = 0U;
+static std::string_view name = "unknown";
+static int age = 0U;
 // float height = 0.0f;
 
 
@@ -84,6 +84,7 @@ std::string read_file_to_string( const char* filename ) {
 int main() {
 
     
+    
   // Personne p;
   // p.fromJSON( "{ \"name\":\"Bob\", \"age\":40}" );
   // std::printf("mask= %d name= %.*s\n", p.updated, (int)p.name.length(), p.name.data());
@@ -95,13 +96,12 @@ int main() {
     // test_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
 
     //JSON::parse(0, "{\"name\":\"roger\"}", "name", name);
-    // constexpr auto dispatch_table = CREATE_DISPATCH_TABLE(name, age);
-    // static_assert(dispatch_table.entries.size() == 2, "dispatch_table size is not 2");
-    // JSON::_parse_impl<true, void>(0, "{\"name\":\"roger\"}", dispatch_table);
+    constexpr auto dispatch_table = CREATE_DISPATCH_TABLE(name, age);
+    static_assert(dispatch_table.entries.size() == 2, "dispatch_table size is not 2");
+    JSON::_parse_impl<true, void>(0, "{\"name\":\"roger\"}", dispatch_table);
+    std::cout << "name:" << name << std::endl;
   
-    // std::cout << "name:" << name << std::endl;
   Personne personnes[3];
-
   // age of personnes[0] is Infinity — not a valid number, stays 0
   const char json[] = "[{\"nom\":\"Bob\",\"age\":Infinity},{\"nom\":\"Alice\","
                      "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";

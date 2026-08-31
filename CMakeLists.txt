@@ -165,13 +165,13 @@ target_link_libraries(debug PRIVATE Catch2::Catch2WithMain jsonparser)
 target_compile_options(debug PRIVATE
     -O0
     -std=gnu++17
+    -Wno-cpp
     -Wextra
     -Wpedantic
     -Wdangling-pointer
     -Wno-unknown-warning-option
     -Wno-variadic-macros
     -Wno-gnu-zero-variadic-macro-arguments
-     -ferror-limit=50
 )
 foreach(res ${JSON_RESOURCES})
     get_filename_component(res_name "${res}" NAME)
