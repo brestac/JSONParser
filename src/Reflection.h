@@ -245,7 +245,7 @@ constexpr auto create_dispatch_table(Args&&... args) {
 
 #if SUPPORTS_CONSTANT_EVALUATED
   if (std::__is_constant_evaluated()) {
-    #pragma message("Dispatch table is evaluated at compile time")
+    #pragma message "Dispatch table is evaluated at compile time"
   } else {
     JSON_DEBUG_WARNING("Dispatch table is evaluated at runtime\n");
   }

@@ -8,16 +8,16 @@
 
 #include "macros.h"
 
-template <typename T, size_t N>
-constexpr T create_charset_mask(const char (&set)[N], const uint8_t offset) {
-    T mask = 0;
+// template <typename T, size_t N>
+// constexpr T create_charset_mask(const char (&set)[N], const uint8_t offset) {
+//     T mask = 0;
 
-    for (uint8_t i = 0; i < N; ++i) {
-        mask |= (1ULL << (static_cast<uint8_t>(set[i]) - offset));
-    }
+//     for (uint8_t i = 0; i < N; ++i) {
+//         mask |= (1ULL << (static_cast<uint8_t>(set[i]) - offset));
+//     }
 
-    return mask;
-}
+//     return mask;
+// }
 
 NAMESPACE_JSON_BEGIN
 
@@ -66,10 +66,7 @@ constexpr uint16_t MAX_JSON_DEPTH = 1 << 8; // 256 niveaux de profondeur maximum
 
 NAMESPACE_JSON_END
 
-constexpr uint64_t JSON_SPACE_CHARACTERS_MASK = create_charset_mask<uint64_t>({' ', '\t', '\n', '\r'}, 0);
-// constexpr uint64_t ALPHA_LOWER_CHARACTERS_MASK = create_char_range_mask<uint64_t>('a', 'z');
-// constexpr uint64_t ALPHA_UPPER_CHARACTERS_MASK = create_char_range_mask<uint64_t>('A', 'Z');
-// constexpr uint64_t UND_DOL_CHARACTERS_MASK = create_charset_mask<uint64_t>({'$','_'}, '$');
+constexpr uint8_t SPACE_CHARACTERS_COMMON_LOW = 0b11010000; // ~(' ') & ~('\t') & ~('\n') & ~('\r');
 
 static constexpr char JSON_HEX_CHARACTERS_RANGES[3][2] = {{'a', 'f'}, {'A', 'F'}, {'0', '9'}};
 static constexpr char JSON_KEY_CHARACTERS_RANGES[5][2] = {{'a', 'z'}, {'A', 'Z'}, {'0', '9'}, {'_', '_'}, {'$', '$'} };
@@ -88,7 +85,7 @@ static constexpr char JSON_FALSE[5] = {'f', 'a', 'l', 's', 'e'};
 static constexpr char JSON_NULL[4] = {'n', 'u', 'l', 'l'};
 static constexpr char JSON_NAN[3] = {'N', 'a', 'N'};
 static constexpr char JSON_INFINITY[8] = {'I', 'n', 'f', 'i', 'n', 'i', 't', 'y'};
-static constexpr char JSON_DELIMITERS[8] = {',',  '}',  ']',  ' ', '\t', '\n', '\r', '\0'};
+//static constexpr char JSON_DELIMITERS[8] = {',',  '}',  ']',  ' ', '\t', '\n', '\r', '\0'};
 // ---------------------------------------------------------------------------
 //  équivalent C++17 de std::remove_cvref_t
 // ---------------------------------------------------------------------------
