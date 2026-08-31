@@ -1,6 +1,6 @@
 
 #define DEBUG_ESP_PORT Serial
-#define JSON_DEBUG_LEVEL 2
+#define JSON_DEBUG_LEVEL 0
 #define DISABLE_ARGS_CHECK 1
 
 #include <array>
@@ -22,7 +22,7 @@
 #include <JSONParser.h>
 #include <JSONPrinter.h>
 
-//#include "structs.h"
+#include "structs.h"
 #include "geojson.h"
 #include "../src/Reflection.h"
 
@@ -39,53 +39,20 @@ std::string read_file_to_string( const char* filename ) {
   return buffer.str();
 }
 
-static std::string_view name = "unknown";
-static int age = 0U;
+// static std::string_view name = "unknown";
+// static int age = 0U;
+// float height = 0.0f;
 
-float height = 0.0f;
 
-constexpr auto truc() {
-  return true;
-}
+// struct Personne {
+//   std::string_view name;
+//   int age;
 
-struct Personne {
-  std::string_view name;
-  int age;
-
-  JSON_DECODER_IMPL( name, age );
-};
+//   JSON_DECODER_IMPL( name, age );
+// };
 
 // std::string_view Personne::name = "unknown";
 // int Personne::age = 0U;
-
-template <typename... Args>
-void test_dispatch_table(Args... args) {
-
-  //constexpr auto dispatch_table_object = CREATE_DISPATCH_TABLE(name_1, height, name_2);
-  //constexpr auto dispatch_table_api = create_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
-
-  auto dispatch_table_api = create_dispatch_table((args)...);
-  static_assert(dispatch_table_api.size() == 4, "dispatch_table_api size is not 4");
-  // static_assert(dispatch_table_object.size() == 3, "dispatch_table_object size is not 3");
-
-  //  auto variant2 = find_entry(dispatch_table_object, "height");
-
-  // std::visit([](auto&& arg) {
-  //   using T = std::decay_t<decltype(arg)>;
-
-  //   if constexpr (!std::is_same_v<T, std::monostate>) {
-  //     std::printf("Found entry height: %s\n", typeid(arg.ref).name());
-  //     if constexpr (std::is_same_v<remove_cv_ref_t<decltype(arg.ref)>, float>) {
-  //       std::cout << "height:" << arg.ref << std::endl;
-  //       arg.ref = 1.90f;
-  //       std::cout << "height:" << arg.ref << std::endl;
-  //     }
-  //   }
-  // }, variant2);
-
-  //  std::cout << "height:" << height << std::endl;
-
-}
 
 // void print_byte(uint8_t byte) {
 //   for (int i = 7; i >= 0; i--) {
@@ -128,12 +95,38 @@ int main() {
     // test_dispatch_table("name_1", name_1, "name_2", name_2, "age", age, "height", height);
 
     //JSON::parse(0, "{\"name\":\"roger\"}", "name", name);
-    constexpr auto dispatch_table = CREATE_DISPATCH_TABLE(name, age);
-    static_assert(dispatch_table.entries.size() == 2, "dispatch_table size is not 2");
-    JSON::_parse_impl<true, void>(0, "{\"name\":\"roger\"}", dispatch_table);
+    // constexpr auto dispatch_table = CREATE_DISPATCH_TABLE(name, age);
+    // static_assert(dispatch_table.entries.size() == 2, "dispatch_table size is not 2");
+    // JSON::_parse_impl<true, void>(0, "{\"name\":\"roger\"}", dispatch_table);
   
-    std::cout << "name:" << name << std::endl;
-  
+    // std::cout << "name:" << name << std::endl;
+  Personne personnes[3];
+
+  // age of personnes[0] is Infinity — not a valid number, stays 0
+  const char json[] = "[{\"nom\":\"Bob\",\"age\":Infinity},{\"nom\":\"Alice\","
+                     "\"age\":30},{\"nom\":\"Roger\",\"age\":64}]";
+
+  JSON::ParseResult pr = JSON::parse(
+      json,
+      [&personnes](
+          const JSONKey& key, const JSONValue& value, JSON::SKIP& skip ) {
+        int arrayIndex = key.getArrayIndex();
+        if ( arrayIndex < 0 || arrayIndex > 2 ) return;
+
+        switch ( key ) {
+          case "nom"_hash:
+            personnes[arrayIndex].nom = value;
+            break;
+          case "age"_hash:
+            personnes[arrayIndex].age = value;
+            break;
+          default:
+            break;
+        }
+        if ( arrayIndex == 1 && key == "age" ) skip = JSON::SKIP::STOP;
+      } );
+
+    pr.print();
   // FeatureCollection<3> fc;
   // File input = LittleFS.open( GEOJSON_MEDIUM_FILE_PATH, "r" );
   // // //std::string input = read_file_to_string( GEOJSON_SMALL_FILE_PATH );

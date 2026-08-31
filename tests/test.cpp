@@ -281,7 +281,7 @@ TEST_CASE( "TEST CALLBACK", "" ) {
   REQUIRE( strcmp( p.liste[2], "c" ) == 0 );
 }
 
-TEST_CASE( "TEST ARRAY CALLBACK", "[.]" ) {
+TEST_CASE( "TEST ARRAY CALLBACK", "" ) {
 
   Personne personnes[3];
 
