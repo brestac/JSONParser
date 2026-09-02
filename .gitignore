@@ -10,5 +10,6 @@ build
 include
 scripts
 tests
+brouillons
 src/demangled.h
 JSONParser.trace
