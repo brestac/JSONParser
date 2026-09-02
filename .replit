@@ -140,6 +140,15 @@ author = 564070
 task = "shell.exec"
 args = "cmake --build build --target release-perf && cd build && ./release-perf -r perf-compare --benchmark-samples=250"
 
+[[workflows.workflow]]
+name = "Trace"
+mode = "sequential"
+author = 564070
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cmake --build build --target trace && cd build && ./trace"
+
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 60000

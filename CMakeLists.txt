@@ -126,6 +126,18 @@ target_compile_options(main PRIVATE
 )
 copy_resources(main)
 
+add_executable(trace
+    tests/main.cpp
+)
+target_include_directories(trace PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(trace PRIVATE jsonparser)
+target_compile_options(trace PRIVATE
+    -O2
+    -std=gnu++23
+    -ftime-trace
+)
+copy_resources(trace)
+
 # ── release (release, clang, O2) ────────────────────────────────────────
 add_executable(release
     tests/test.cpp
