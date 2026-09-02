@@ -28,10 +28,14 @@
     #define COMPILER_MAJOR_VERSION __GNUC__
 #elif defined(__clang__)
     #define COMPILER_NAME "Clang"
-     #define COMPILER_MAJOR_VERSION __clang_major__
+    #define COMPILER_MAJOR_VERSION __clang_major__
 #endif
 
+#ifdef ARDUINO
+#define SUPPORTS_CONSTANT_EVALUATED 0
+#else
 #define SUPPORTS_CONSTANT_EVALUATED COMPILER_MAJOR_VERSION >= 10
+#endif
 /*
 Color   Code (foreground)
 Black   \x1b[30m
@@ -128,7 +132,7 @@ RGB values 0‑255.
 #else
 #define JSON_DEBUG_ERROR(format, ...)
 #endif
- 
+
 #define FROM_JSON_OVERRIDE(...)                                                \
   MaskType updated = 0;                                                        \
   template <typename T> JSON::ParseResult fromJSON(T&& input) {                \
