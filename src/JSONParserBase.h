@@ -8,7 +8,8 @@
 #include "StreamCursor.h"
 #include "JSONCallbackObject.h"
 #include "JSONObject.h"
-#include "Reflection.h"
+//#include "Reflection.h"
+#include "Dispatch.h"
 #include "StringPool.h"
 #include "types.h"
 #include "utils.h"
@@ -67,7 +68,7 @@ class JSONParserBase {
       _cursor( cursor ),
       _state( START ),
       _progress(),
-      _automask( false ),
+      //_automask( false ),
       _is_top_level_array( false ),
       _lastError( ParserError::NO_ERROR ),
       _lastParseError( 0 ) {
@@ -155,8 +156,8 @@ class JSONParserBase {
   size_t nConverted() { return _progress._nConverted; }
   size_t nUpdated() { return _progress._nUpdated; }
   MaskType keyMask() { return _progress._keyMask; }
-  bool automask() { return _automask; }
-  void setAutomask( bool automask ) { _automask = automask; }
+  // bool automask() { return _automask; }
+  // void setAutomask( bool automask ) { _automask = automask; }
   bool stopped() { return _state == STOPPED; }
   size_t bytesConsumed() { return _cursor.bytesConsumed(); }
   void reset();
@@ -166,7 +167,7 @@ class JSONParserBase {
   Cursor& _cursor;
   ParserState _state;
   Progress _progress;
-  bool _automask;
+  //bool _automask;
   bool _is_top_level_array;
   ParserError _lastError;
   ParseValueResult _lastParseError;
@@ -283,7 +284,7 @@ void JSONParserBase<Cursor, UseMask>::reset() {
   //  _bytesConsumed = 0;
   _state = START;
   _progress = Progress();
-  _automask = false;
+  //_automask = false;
   _is_top_level_array = false;
   //  _lastError = ParserError::NO_ERROR;
   //  _lastParseError = ParseValueResult();
@@ -391,13 +392,13 @@ JSONParserBase<Cursor, UseMask>::parse( Arg& arg ) {
         }
 
         if constexpr ( is_dispatch_info_v<Arg> ) {
-          if ( _progress._nMatched >= arg.entries.size() ) {
+          if ( _progress._nMatched >= std::tuple_size<Arg>::value ) {
             JSON_DEBUG_WARNING(
                 "JSONParserBase::parse: Parser depth %zu: "
                 "all keys found,(%zu/%zu) skiping to object end\n",
                 _cursor.depth,
                 _progress._nMatched,
-                arg.entries.size() );
+                std::tuple_size<Arg>::value );
             _state = SKIP;
             break;
           }
@@ -483,11 +484,9 @@ bool JSONParserBase<Cursor, UseMask>::parse_key() {
   // Pour StreamCursor on doit copier la clé dans un buffer local.
   // Pour PointerCursor on peut pointer directement (comportement original).
   // On utilise un buffer statique court pour la clé.
-  uint8_t n = 0;
+  uint16_t n = 0;
 
-  while ( n < JSON::MAX_KEY_LENGTH ) {
-    CHECK_LOOP( MAX_ITERATIONS, return false; );
-
+  while ( n < MAX_KEY_LENGTH ) {
     int c = _cursor.peek();
 
     if ( c < 0 ) {
@@ -556,17 +555,24 @@ template <typename TargetT, typename TableT>
 ParseValueResult JSONParserBase<Cursor, UseMask>::parse_value( TableT& table ) {
 
   std::string_view parsed_key( _s_key_buf, _key_length );
-  auto entry = find_entry( table, parsed_key );
+  //auto entry = find_entry( table, parsed_key );
 
   ParseValueResult result = ParseValueResult::NO_RESULT;
   
-  std::visit( [&]( auto&& arg ) {
-    using T = std::decay_t<decltype(arg)>;
-    if constexpr ( !std::is_same_v<T, std::monostate> ) {
-      result |= ParseValueResult::KEY_FOUND;
-      result |= parse_into_value<TargetT>( arg.get() );
-    }
-  }, entry.variant);
+  // std::visit( [&]( auto&& arg ) {
+  //   using T = std::decay_t<decltype(arg)>;
+  //   if constexpr ( !std::is_same_v<T, std::monostate> ) {
+  //     result |= ParseValueResult::KEY_FOUND;
+  //     result |= parse_into_value<TargetT>( arg.get() );
+  //   }
+  // }, entry.variant);
+  size_t key_index = 0;
+
+  dispatch_by_key( table, parsed_key, [&]( auto&& arg, size_t index ) {
+    result |= ParseValueResult::KEY_FOUND;
+    result |= parse_into_value<TargetT>( arg );
+    key_index = index;
+  });  
 
   if (!result.keyFound()) {
     JSON_DEBUG_WARNING( "JSONParserBase<Cursor, UseMask>::parse_value "
@@ -580,11 +586,11 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_value( TableT& table ) {
   if ( result.updated() ) {
     if constexpr ( UseMask ) {
 
-      if (_automask) {
-        _progress._keyMask |= ( 1u << static_cast<MaskType>(entry.key_index) );
-      } else if (entry.mask_index >= 0) {
-        _progress._keyMask |= ( 1u << static_cast<MaskType>(entry.mask_index) );
-      }
+//      if (_automask) {
+        _progress._keyMask |= ( 1u << static_cast<MaskType>(key_index) );
+      // } else if (entry.mask_index >= 0) {
+      //   _progress._keyMask |= ( 1u << static_cast<MaskType>(entry.mask_index) );
+      // }
     }
 
     _progress._nUpdated++;

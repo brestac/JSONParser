@@ -50,22 +50,22 @@ template <typename VariantType> struct Entry {
   uint32_t hash;
   VariantType variant;
   size_t key_index;
-  int mask_index; // -1 si pas de mask pour les clés non indexées
+//  int mask_index; // -1 si pas de mask pour les clés non indexées
 
   using variant_type = VariantType;
 
-  constexpr Entry(uint32_t h, VariantType v, size_t ki, int mi)
-      : hash(h), variant(v), key_index(ki), mask_index(mi) {}
+  constexpr Entry(uint32_t h, VariantType v, size_t ki/*, int mi*/)
+      : hash(h), variant(v), key_index(ki)/*, mask_index(mi)*/ {}
 
   constexpr Entry()
-      : hash(0), variant(std::monostate()), key_index(0), mask_index(-1) {}
+      : hash(0), variant(std::monostate()), key_index(0)/*, mask_index(-1)*/ {}
 
   // Methods used by std::sort
 
-  constexpr Entry(const Entry&) = default;
-  constexpr Entry(Entry&&) = default;
-  constexpr Entry& operator=(const Entry& other) = default;
-  constexpr Entry& operator=(Entry&& other) = default;
+  //constexpr Entry(const Entry&) = default;
+  //constexpr Entry(Entry&&) = default;
+  //constexpr Entry& operator=(const Entry& other) = default;
+  //constexpr Entry& operator=(Entry&& other) = default;
 
 // Compare 2 Entry
 constexpr bool operator==(const Entry& other) const { return hash == other.hash; }
@@ -81,14 +81,14 @@ constexpr bool operator>(uint32_t other_hash) const { return hash > other_hash; 
 
 };
 
-template <typename T> struct RefType {
+template <typename T> struct ref_wrapper {
   T* ref;
 
-  constexpr RefType(T& r) : ref(&r) {}
-  constexpr RefType(const RefType&) = default;
-  constexpr RefType(RefType&&) = default;
-  constexpr RefType& operator=(const RefType&) = default;
-  constexpr RefType& operator=(RefType&&) = default;
+  constexpr ref_wrapper(T& r) : ref(&r) {}
+  constexpr ref_wrapper(const ref_wrapper&) = default;
+  constexpr ref_wrapper(ref_wrapper&&) = default;
+  constexpr ref_wrapper& operator=(const ref_wrapper&) = default;
+  constexpr ref_wrapper& operator=(ref_wrapper&&) = default;
 
   // constexpr RefType(const RefType& other) : ref(other.ref) {}
 
@@ -109,12 +109,12 @@ template <typename VariantType, size_t N> struct DispatchInfo {
   using entry_type = Entry<VariantType>;
 
   std::array<entry_type, N> entries;
-  bool is_generic_keys;
+  //bool is_generic_keys;
   size_t sv_count;
   bool is_sorted;
 
-  constexpr DispatchInfo(std::array<Entry<VariantType>, N> e, bool igk, size_t svc, bool is)
-      : entries(e), is_generic_keys(igk), sv_count(svc), is_sorted(is) {}
+  constexpr DispatchInfo(std::array<Entry<VariantType>, N> e, /*bool igk,*/ size_t svc, bool is)
+      : entries(e)/*, is_generic_keys(igk)*/, sv_count(svc), is_sorted(is) {}
 };
 
 template <typename TableInfo>
@@ -167,7 +167,7 @@ template <typename... Args> struct extract_value_types {
 template <typename Key, typename Value, typename... Rest>
 struct extract_value_types<Key, Value, Rest...> {
   using type = typename type_list_prepend<
-      RefType<Value>, typename extract_value_types<Rest...>::type>::type;
+      ref_wrapper<Value>, typename extract_value_types<Rest...>::type>::type;
 };
 
 template <typename... Args> using extract_value_types_t =
@@ -181,8 +181,7 @@ template <typename... Args> using pair_variant_t =
     typename to_variant<extracted_value_types_with_monospace_t<Args...>>::type;
 
 template <size_t PairIndex, typename Variant, typename Tuple>
-constexpr auto make_dispatch_entry(bool& is_generic, size_t& sv_count,
-                                   Tuple& args) {
+constexpr auto make_dispatch_entry(/*bool& is_generic,*/ size_t& sv_count, Tuple& args) {
   using value_type =
       remove_cv_ref_t<decltype(std::get<PairIndex * 2 + 1>(args))>;
 
@@ -190,25 +189,28 @@ constexpr auto make_dispatch_entry(bool& is_generic, size_t& sv_count,
     sv_count++;
   }
 
-  auto key_index = get_key_and_mask_index(std::get<PairIndex * 2>(args));
+  //auto key_index_pair = get_key_and_mask_index(std::get<PairIndex * 2>(args));
 
-  if (key_index.second >= 0) {
-    is_generic = false;
-  }
+  // if (key_index_pair.second >= 0) {
+  //   is_generic = false;
+  // }
 
-  return Entry<Variant>{hash32(key_index.first),
-                        RefType<value_type>{std::get<PairIndex * 2 + 1>(args)},
-                        PairIndex, key_index.second};
+  return Entry<Variant>{
+          hash32(std::get<PairIndex * 2>(args)),
+          ref_wrapper<value_type>{std::get<PairIndex * 2 + 1>(args)},
+          PairIndex/*,
+          key_index_pair.second*/
+        };
 }
 
 template <typename VariantType, typename Tuple, std::size_t... PairIndex>
-constexpr auto make_dispatch_table(bool& is_sorted, bool& is_generic, size_t& sv_count,
+constexpr auto make_dispatch_table(bool& is_sorted/*, bool& is_generic*/, size_t& sv_count,
                                    Tuple& args,
                                    std::index_sequence<PairIndex...>) {
   using EntryType = Entry<VariantType>;
 
   auto table = std::array<EntryType, sizeof...(PairIndex)>{
-      make_dispatch_entry<PairIndex, VariantType>(is_generic, sv_count,
+      make_dispatch_entry<PairIndex, VariantType>(/*is_generic,*/ sv_count,
                                                   args)...};
 #if SUPPORTS_CONSTANT_EVALUATED
   if (!std::__is_constant_evaluated()) {
@@ -229,10 +231,10 @@ constexpr auto create_dispatch_table(Args&&... args) {
 
   auto args_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
 
-  bool is_generic = true;
+  //bool is_generic = true;
   size_t sv_count = 0;
   bool is_sorted = false;
-  auto entries = make_dispatch_table<variant_t>(is_sorted, is_generic, sv_count, args_tuple, std::make_index_sequence<N>{});
+  auto entries = make_dispatch_table<variant_t>(is_sorted/*, is_generic*/, sv_count, args_tuple, std::make_index_sequence<N>{});
 
 #if SUPPORTS_CONSTANT_EVALUATED
   if (std::__is_constant_evaluated()) {
@@ -241,6 +243,120 @@ constexpr auto create_dispatch_table(Args&&... args) {
     JSON_DEBUG_WARNING("Dispatch table is evaluated at runtime\n");
   }
 #endif
-  return DispatchInfo<variant_t, N>(entries, is_generic, sv_count, is_sorted);
+  return DispatchInfo<variant_t, N>(entries/*, is_generic*/, sv_count, is_sorted);
   // JSON::TIME_PROFILER+=(now()-start);
 }
+
+// Alternative dispatch table.
+// find(key) -> entry (type_index, ptr) -> std::tuple<Types...> -> Type &ref = *(const_cast<Type*>(ptr))
+// struct DispatchEntry {
+//   size_t hash;
+//   size_t type_index;
+//   void *value;
+//   //void (*callback)(std::any&);
+//   // std::any value;
+// };
+
+// template <typename... Args>
+// struct IndexedTypeList {
+//   using tuple = std::tuple<Args...>;
+// };
+
+// template <size_t N, typename TypeList>
+// using get_type_at_index = std::tuple_element_t<N, typename TypeList::tuple>;
+
+// template <size_t I, typename TypeList>
+// bool call_at(const DispatchEntry& entry) {
+//     if (I != entry.type_index) return false;
+//     using ValueType = get_type_at_index<I, TypeList>;
+//     ValueType& value = (*static_cast<ValueType*>(entry.value));
+//     value = 2;
+
+//     std::cout << "Dispatch value " << value << " at index " << I << std::endl;
+//     return true;
+// }
+
+// template <typename TypeList, size_t... I>
+// void _dispatch_by_entry(const DispatchEntry& entry, std::index_sequence<I...>) {
+//     (call_at<I, TypeList>(entry) || ...);
+// }
+
+// template <typename TypeList>
+// void dispatch_by_entry(const DispatchEntry& entry) {
+//   constexpr size_t N = std::tuple_size<typename TypeList::tuple>::value;
+//   _dispatch_by_entry<TypeList>(entry, std::make_index_sequence<N>{});
+// }
+
+
+// template <typename T, typename Tuple>
+// struct type_index;
+
+// // Spécialisation pour trouver l'index
+// template <typename T, typename... Types>
+// struct type_index<T, IndexedTypeList<Types...>> {
+//     static_assert((std::is_same_v<T, Types> + ...) == 1, "Le type doit apparaître exactement une fois dans le tuple.");
+
+//     static constexpr std::size_t value = []() {
+//         std::size_t index = 0;
+//         bool found = false;
+//         ((found ? 0 : (std::is_same_v<T, Types> ? (found = true, 0) : ++index)), ...);
+//         return index;
+//     }();
+// };
+
+// // Raccourci pour simplifier l'utilisation
+// template <typename T, typename Tuple>
+// inline constexpr std::size_t type_index_v = type_index<T, Tuple>::value;
+
+// template <typename T, typename... Ts>
+// inline constexpr bool exists_v = (std::is_same_v<T, Ts> || ...);
+
+// template <bool Unique, typename T, typename... Ts>
+// struct _append_type;
+
+// template <bool Unique, typename T, typename... Ts>
+// struct _append_type<Unique, IndexedTypeList<Ts...>, T> {
+//   using type = std::conditional_t<
+//     Unique && exists_v<T, Ts...>,
+//     IndexedTypeList<Ts...>, // Si T est déjà présent, on garde la liste inchangée
+//     IndexedTypeList<Ts..., T> // Si T n'est pas présent, on l'ajoute après
+//   >;
+// };
+
+// template <typename TypeList, typename T>
+// using append_type = _append_type<false, TypeList, T>;
+
+// template <typename TypeList, typename T>
+// using append_type_unique = _append_type<true, TypeList, T>;
+
+// // Exemple d'utilisation :
+// using new_list1 = append_type<IndexedTypeList<>, int>::type; // IndexedTypeList<int>
+// using new_list2 = append_type<new_list1, float>::type;
+// using new_list3 = append_type_unique<new_list2, float>::type;
+
+// using empty_list = IndexedTypeList<>;
+
+
+// int main() {  
+
+  // std::cout << "tuple size is " << std::tuple_size<new_list3::tuple>::value << std::endl;
+  // std::cout << "tuple type at 1 is " << typeid(get_type_at_index<1, new_list3>).name() << std::endl;
+  // std::cout << "index for type float is " << type_index_v<float, new_list3> << std::endl;
+
+  // // dispatch_by_index<new_list3>(0);
+  // // dispatch_by_index<new_list3>(1);
+
+  // static int a = 1;
+
+  // // Add type to the list
+  // using dispatch_types_list = append_type_unique<empty_list, int>::type;
+  // // Create DispatchEntry
+  // constexpr auto entry = DispatchEntry{ hash32("a"), type_index_v<int, dispatch_types_list>, &a };
+
+  // std::cout << "entry.hash: " << entry.hash << std::endl;
+
+  // // get variable back from the entry
+  // dispatch_by_entry<dispatch_types_list>(entry);
+
+  // std::cout << "a=" << a << std::endl;
+//  }

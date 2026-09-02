@@ -8,6 +8,19 @@
 //   hash32 — FNV-1a 32 bits, constexpr
 // ---------------------------------------------------------------------------
 
+constexpr uint32_t hash32(const char* str, size_t len) {
+  uint32_t hash = 2166136261u;
+  for (size_t i = 0; i < len; ++i) {
+    hash ^= static_cast<uint32_t>(str[i]);
+    hash *= 16777619u;
+  }
+  return hash;
+}
+
+constexpr uint32_t hash32(std::string_view key) {
+  return hash32(key.data(), key.length());
+}
+
 constexpr uint32_t operator""_hash(const char* str, size_t len) {
   return hash32(str, len);
 }
@@ -71,20 +84,13 @@ struct MultidimensionalArrayIndex {
 
 struct JSONKey {
   std::string_view _key;
-  int16_t          _index;
+  // int16_t          _index;
   uint32_t         _hash;
   MultidimensionalArrayIndex<10> _array_index;
 
-  JSONKey()
-      : _key(""), _index(-1), _hash(0), _array_index() {}
+  JSONKey() : _key(""), /*_index(-1),*/ _hash(0), _array_index() {}
 
-  // Constructeur depuis littéral — tout calculé à la compilation via
-  // la liste d'initialisation (obligatoire en C++17 pour constexpr)
-  JSONKey(std::string_view key) {
-    auto pair = get_key_and_mask_index(std::string_view(key));
-    _key = pair.first;
-    _index = pair.second;
-    _hash = hash32(_key);
+  JSONKey(std::string_view key) : _key(key), /*_index(-1),*/ _hash(hash32(_key)), _array_index() {
     _array_index.reset();
     JSON_DEBUG_WARNING("Created key from const char [N] ");
 #if JSON_DEBUG_LEVEL > 0
@@ -129,8 +135,8 @@ struct JSONKey {
     _hash = hash32(_key);
   }
 
-  int16_t getIndex()       const { return _index; }
-  void setIndex(int16_t i)       { _index = i; }
+  // int16_t getIndex()       const { return _index; }
+  // void setIndex(int16_t i)       { _index = i; }
 
   int16_t getArrayIndex(int8_t depth)  const { return _array_index.getIndex(depth); }
 
@@ -140,7 +146,7 @@ struct JSONKey {
 
   void setArrayIndex(int16_t i) { _array_index.setIndex(i); }
 
-  bool is_indexed() const { return _index >= 0; }
+  //bool is_indexed() const { return _index >= 0; }
 
 #if JSON_DEBUG_LEVEL > 0
   void print() const {
@@ -153,7 +159,7 @@ struct JSONKey {
 
     array_index_buf[offset] = '\0';
     
-    DEBUG_PRINTF("JSONKey: %.*s index=%d hash=%u array_index=%s\n", (int)length(), data(), _index, _hash, array_index_buf);
+    DEBUG_PRINTF("JSONKey: %.*s hash=%u array_index=%s\n", (int)length(), data(), _hash, array_index_buf);
   }
 #endif
 };

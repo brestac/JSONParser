@@ -6,7 +6,7 @@
 #include "PointerCursor.h"
 #include "StreamCursor.h"
 #include "constants.h"
-#include "macros.h"
+#include "macros.h"  
 #include "utils.h"
 
 NAMESPACE_JSON_BEGIN

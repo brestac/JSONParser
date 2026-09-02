@@ -185,7 +185,6 @@ public:
     ~StreamCursor() {}
 
     int peek();
-    //size_t peekToken(char* out, size_t maxLen);
     bool advance(int n = 1);
     int read();
     size_t readBytes(uint8_t* buf, size_t len);
@@ -244,34 +243,6 @@ int StreamCursorReader::read() {
   return c;
 }
 
-// Extrait au plus maxLen octets dans out[] en s'arrêtant sur un
-// délimiteur JSON. Ne consomme PAS les octets (lecture seule via peek).
-// Retourne le nombre d'octets copiés.
-/*
-size_t StreamCursorReader::peekToken(char *out, size_t maxLen) {
-  size_t n = 0;
-  while (n < maxLen) {
-    CHECK_LOOP(MAX_ITERATIONS, 0);
-    int c = _ring.peek(n);
-    if (c < 0)
-      break;
-    char ch = static_cast<char>(c);
-    bool isDelim = false;
-    for (char d : JSON_DELIMITERS) {
-      if (ch == d) {
-        isDelim = true;
-        break;
-      }
-    }
-    if (isDelim)
-      break;
-    out[n++] = ch;
-  }
-  if (n < maxLen)
-    out[n] = '\0';
-  return n;
-}
-*/
 // --------------------------------------------------------
 // IMPLEMENTATION DES Méthodes d'écriture
 // --------------------------------------------------------

@@ -160,7 +160,7 @@ RGB values 0‑255.
     return JSON::_print(mask, output, KV_LIST(__VA_ARGS__));                   \
   }
 
-#define CREATE_DISPATCH_TABLE(...) create_dispatch_table(KV_LIST(__VA_ARGS__))
+#define CREATE_DISPATCH_TABLE(...) create_dispatch_tuple(KV_LIST(__VA_ARGS__))
 
 #define JSON_DECODER_IMPL(...) FROM_JSON_OVERRIDE(__VA_ARGS__)
 

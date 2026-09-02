@@ -50,9 +50,9 @@ public:
 
   // Constructeurs
 //  ParseValueResult(uint16_t r) : _result(r) {}
-  ParseValueResult() : _state(State::NO_RESULT) {}
-  ParseValueResult(State s) : _state(s) {}
-  ParseValueResult(uint8_t s) : _state(static_cast<State>(s)) {}
+  constexpr ParseValueResult() : _state(State::NO_RESULT) {}
+  constexpr ParseValueResult(State s) : _state(s) {}
+  constexpr ParseValueResult(uint8_t s) : _state(static_cast<State>(s)) {}
 
   bool keyFound() const {
     return (static_cast<uint8_t>(_state) & KEY_FOUND) != 0;

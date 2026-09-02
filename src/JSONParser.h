@@ -22,7 +22,7 @@ using enable_if_stream_compatible =
 
 // Implémentation interne unique, UseMask en template bool direct
 template <bool UseMask, typename TargetT, typename Cursor, typename M, typename Arg>
-ParseResult _parse_impl(M&& mask, JSONParserBase<Cursor, UseMask>* parser, Arg&& arg) {
+constexpr ParseResult _parse_impl(M&& mask, JSONParserBase<Cursor, UseMask>* parser, Arg&& arg) {
   using MaskType = std::remove_reference_t<M>;
   
   static_assert(std::is_integral<MaskType>::value, "Mask must be an integral type");
@@ -39,12 +39,12 @@ ParseResult _parse_impl(M&& mask, JSONParserBase<Cursor, UseMask>* parser, Arg&&
   // Si le curseur est un StreamCursor et que la cible est une structure avec
   // des string_view, on doit allouer un pool de mémoire pour les string_view
   if constexpr (is_dispatch_info_v<Arg> && is_stream_cursor_reader_v<Cursor> && !is_callback<TargetT>) {
-    StringPool<TargetT>::ensure_pool_size(arg.sv_count);
+    StringPool<TargetT>::ensure_pool_size(10);
   }
 
-  if constexpr (is_dispatch_info_v<Arg> && UseMask) {
-    parser->setAutomask(arg.is_generic_keys);
-  }
+  // if constexpr (is_dispatch_info_v<Arg> && UseMask) {
+  //   parser->setAutomask(arg.is_generic_keys);
+  // }
 
   parser->template parse<TargetT>(arg);
 
@@ -87,9 +87,16 @@ ParseResult _parse_impl(M&& mask, const char* buffer, size_t size, Arg&& arg) {
 
 // parse — top-level object
 template <typename M, typename T, typename... Args>
-ParseResult parse(M&& mask, T& input, Args&& ...args) {
-  static const auto dispatch_table = create_dispatch_table(std::forward<Args>(args)...);
-  return _parse_impl<true, void>(mask, input, dispatch_table);
+std::enable_if_t<(sizeof...(Args) > 1), ParseResult>
+parse(M&& mask, T& input, Args&& ...args) {
+  static const auto dispatch_tuple = create_dispatch_tuple(std::forward<Args>(args)...);
+  return _parse_impl<true, void>(mask, input, dispatch_tuple);
+}
+
+template <typename M, typename T, typename Tuple>
+std::enable_if_t<is_tuple_v<Tuple>, ParseResult>
+parse(M&& mask, T& input, Tuple&& tuple) {
+  return _parse_impl<true, void>(mask, input, tuple);
 }
 
 // Parse — top-level array of objects
