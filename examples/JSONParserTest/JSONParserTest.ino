@@ -1,5 +1,5 @@
 #define JSON_DEBUG_LEVEL 0
-#define JSON_DEBUG_MEM 1
+#define JSON_DEBUG_MEM 0
 
 #include <StreamString.h>
 #include "src/JSONParser.h"

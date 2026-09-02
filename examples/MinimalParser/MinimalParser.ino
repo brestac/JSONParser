@@ -68,7 +68,7 @@ void loop() {
 ╚══ IROM     239300   code in flash   
 */
 /*
-commit c67cc2d72ed2a34e5417900ec7de9fef666ceaff
+commit c67cc2d
 . Variables and constants in RAM (global, static), used 28340 / 80192 bytes (35%)
 ║   SEGMENT  BYTES    DESCRIPTION
 ╠══ DATA     1496     initialized variables
@@ -81,7 +81,65 @@ commit c67cc2d72ed2a34e5417900ec7de9fef666ceaff
 . Code in flash (default, ICACHE_FLASH_ATTR), used 239300 / 1048576 bytes (22%)
 ║   SEGMENT  BYTES    DESCRIPTION
 ╚══ IROM     239300   code in flash
+/*
+commit 56834a8
+. Variables and constants in RAM (global, static), used 28320 / 80192 bytes (35%)
+║   SEGMENT  BYTES    DESCRIPTION
+╠══ DATA     1496     initialized variables
+╠══ RODATA   984      constants       
+╚══ BSS      25840    zeroed variables
+. Instruction RAM (IRAM_ATTR, ICACHE_RAM_ATTR), used 59771 / 65536 bytes (91%)
+║   SEGMENT  BYTES    DESCRIPTION
+╠══ ICACHE   32768    reserved space for flash instruction cache
+╚══ IRAM     27003    code in IRAM    
+. Code in flash (default, ICACHE_FLASH_ATTR), used 239268 / 1048576 bytes (22%)
+║   SEGMENT  BYTES    DESCRIPTION
+╚══ IROM     239268   code in flash   
+*
 */
+/*
+Commit 8cc622cbb0
+. Variables and constants in RAM (global, static), used 28500 / 80192 bytes (35%)
+║   SEGMENT  BYTES    DESCRIPTION
+╠══ DATA     1496     initialized variables
+╠══ RODATA   1188     constants       
+╚══ BSS      25816    zeroed variables
+. Instruction RAM (IRAM_ATTR, ICACHE_RAM_ATTR), used 59771 / 65536 bytes (91%)
+║   SEGMENT  BYTES    DESCRIPTION
+╠══ ICACHE   32768    reserved space for flash instruction cache
+╚══ IRAM     27003    code in IRAM    
+. Code in flash (default, ICACHE_FLASH_ATTR), used 240084 / 1048576 bytes (22%)
+║   SEGMENT  BYTES    DESCRIPTION
+╚══ IROM     240084   code in flash 
+*/
+/*
+Commit 7d2901539
+. Variables and constants in RAM (global, static), used 28344 / 80192 bytes (35%)
+║   SEGMENT  BYTES    DESCRIPTION
+╠══ DATA     1500     initialized variables
+╠══ RODATA   996      constants       
+╚══ BSS      25848    zeroed variables
+. Instruction RAM (IRAM_ATTR, ICACHE_RAM_ATTR), used 59747 / 65536 bytes (91%)
+║   SEGMENT  BYTES    DESCRIPTION
+╠══ ICACHE   32768    reserved space for flash instruction cache
+╚══ IRAM     26979    code in IRAM    
+. Code in flash (default, ICACHE_FLASH_ATTR), used 239892 / 1048576 bytes (22%)
+║   SEGMENT  BYTES    DESCRIPTION
+╚══ IROM     239892   code in flash */
+/*
+Commit 4b62092
+. Variables and constants in RAM (global, static), used 28300 / 80192 bytes (35%)
+║   SEGMENT  BYTES    DESCRIPTION
+╠══ DATA     1500     initialized variables
+╠══ RODATA   984      constants       
+╚══ BSS      25816    zeroed variables
+. Instruction RAM (IRAM_ATTR, ICACHE_RAM_ATTR), used 59747 / 65536 bytes (91%)
+║   SEGMENT  BYTES    DESCRIPTION
+╠══ ICACHE   32768    reserved space for flash instruction cache
+╚══ IRAM     26979    code in IRAM    
+. Code in flash (default, ICACHE_FLASH_ATTR), used 239060 / 1048576 bytes (22%)
+║   SEGMENT  BYTES    DESCRIPTION
+╚══ IROM     239060   code in flash */
 // ------------------------------------- //
 // ARDUINOJSON LIBRARY                   //
 // ------------------------------------- //
