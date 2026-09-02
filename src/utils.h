@@ -17,6 +17,8 @@
 #include "constants.h"
 #include "macros.h"
 
+NAMESPACE_JSON_BEGIN
+
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T (&dst)[N], uint8_t *src, size_t src_size);
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T dst, uint8_t (&src)[N]);
 template <typename T, size_t N> constexpr bool copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size);
@@ -171,39 +173,6 @@ template <size_t N, size_t M> void replace_str(char (&input)[N], char (&oldChars
 }
 #endif
 
-constexpr uint32_t hash32(const char* str, size_t len) {
-  uint32_t hash = 2166136261u;
-  for (size_t i = 0; i < len; ++i) {
-    hash ^= static_cast<uint32_t>(str[i]);
-    hash *= 16777619u;
-  }
-  return hash;
-}
-
-constexpr uint32_t hash32(std::string_view key) {
-  return hash32(key.data(), key.length());
-}
-
-constexpr std::pair<std::string_view, int32_t> get_key_and_mask_index(std::string_view&& raw_key) {
- // !! Does not check if the key is valid nor if the index is an empty string.
-// It should have been checked before calling this function in the parser.
-// !! Does not check if the index is a valid number.
-
-  std::string_view key = raw_key;
-  
-  size_t bracket_pos = key.find('[');
-  if (bracket_pos != std::string_view::npos) {
-    int index = std::strtoul(key.data() + bracket_pos + 1, nullptr, 10);
-    if (index < 0) {
-      index = -1;
-    }
-    
-    return {key.substr(0, bracket_pos), index};
-  }
-
-  return {key, -1};
-}
-
 inline double multiplyByPowerOfTen(double value, int exponent) {
   if (exponent == 0) return value;
 
@@ -227,16 +196,16 @@ inline double multiplyByPowerOfTen(double value, int exponent) {
   return value;
 }
 
-template <typename T>
-constexpr T create_char_range_mask(const uint8_t min, const uint8_t max) {
-    T mask = 0;
+// template <typename T>
+// constexpr T create_char_range_mask(const uint8_t min, const uint8_t max) {
+//     T mask = 0;
 
-    for (uint8_t i = 0; i <= max - min; i++) {
-        mask |= (1ULL << i);
-    }
+//     for (uint8_t i = 0; i <= max - min; i++) {
+//         mask |= (1ULL << i);
+//     }
 
-    return mask;
-}
+//     return mask;
+// }
 
 constexpr size_t strlen_ctx(const char* str, uint32_t max_len) {
   uint32_t len = 0;
@@ -247,21 +216,23 @@ constexpr size_t strlen_ctx(const char* str, uint32_t max_len) {
   return len;
 }
 
-template <typename T>
-constexpr bool is_in_mask(const uint8_t c, const T mask) {
-    return (mask & (1ULL << c)) != 0ULL;
-}
+NAMESPACE_JSON_END
 
-template <typename T, size_t N>
-constexpr uint8_t min_cxr(const T (&set)[N]) {
-    T min = std::numeric_limits<T>::max;
-    for (T i = 0; i < N; ++i) {
-        if (set[i] < min) {
-            min = set[i];
-        }
-    }
-    return min;
-}
+// template <typename T>
+// constexpr bool is_in_mask(const uint8_t c, const T mask) {
+//     return (mask & (1ULL << c)) != 0ULL;
+// }
+
+// template <typename T, size_t N>
+// constexpr uint8_t min_ctx(const T (&set)[N]) {
+//     T min = std::numeric_limits<T>::max;
+//     for (T i = 0; i < N; ++i) {
+//         if (set[i] < min) {
+//             min = set[i];
+//         }
+//     }
+//     return min;
+// }
 
 /*
 // Table de puissances de 10 précalculée pour éviter l'appel coûteux à std::pow

@@ -12,6 +12,7 @@
 #include <string_view>
 #include <type_traits>
 #include <variant>
+#include <tuple>
 
 #include "constants.h"
 #include "macros.h"
@@ -323,16 +324,25 @@ constexpr bool is_uint_array_v = container_info<T>::kind == ContainerKind::C_ARR
 
 // Check if T is of type DispatchInfo<V,N> where V can be anything and N is a size_t
 
+// template <typename T>
+// struct is_dispatch_info : std::false_type {};
+
+// template <typename V, size_t N>
+// struct is_dispatch_info<DispatchInfo<V, N>> : std::true_type {};
+
+template<typename T>
+struct is_tuple : std::false_type {};
+
+// Spécialisation pour std::tuple<...>
+template<typename... Args>
+struct is_tuple<std::tuple<Args...>> : std::true_type {};
+
+// Version C++17 avec _v
+template<typename T>
+inline constexpr bool is_tuple_v = is_tuple<remove_cv_ref_t<T>>::value;
+
 template <typename T>
-struct is_dispatch_info : std::false_type {};
-
-template <typename V, size_t N>
-struct is_dispatch_info<DispatchInfo<V, N>> : std::true_type {};
-
-template <typename T>
-constexpr bool is_dispatch_info_v = is_dispatch_info<remove_cv_ref_t<T>>::value;
-
-static_assert(is_dispatch_info_v<DispatchInfo<std::variant<int, double>, 2>&>, "DispatchInfo should be detected");
+constexpr bool is_dispatch_info_v = is_tuple_v<T>;
 
 /*
   type_list utilities
