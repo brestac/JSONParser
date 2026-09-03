@@ -27,6 +27,19 @@ template <typename T> bool get_unsigned_integral_fromHexString(T &value, const c
 template <typename T> constexpr T be_to_h(T value);
 unsigned long long now();
 
+constexpr uint32_t hash32(const char* str, size_t len) {
+  uint32_t hash = 2166136261u;
+  for (size_t i = 0; i < len; ++i) {
+    hash ^= static_cast<uint32_t>(str[i]);
+    hash *= 16777619u;
+  }
+  return hash;
+}
+
+constexpr uint32_t hash32(std::string_view key) {
+  return hash32(key.data(), key.length());
+}
+
 template<uint8_t N>
 constexpr bool is_in_ranges(char c, const char (&ranges)[N][2]) {
   for (uint8_t i = 0; i < N; i++) {
