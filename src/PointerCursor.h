@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "constants.h"
 #include "macros.h"
 #include "utils.h"
@@ -215,7 +217,7 @@ template <size_t N> size_t PointerCursorWriter::write(char (&buf)[N]) const {
   return write(buf, N - 1);
 }
 
-template <typename... Args> 
+template <typename... Args>
 std::enable_if_t<(sizeof...(Args) > 0), size_t> PointerCursorWriter::printf(const char* format,
                                                        Args &&...args) const {
   size_t len =
