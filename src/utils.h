@@ -21,13 +21,17 @@ NAMESPACE_JSON_BEGIN
 
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T (&dst)[N], uint8_t *src, size_t src_size);
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T dst, uint8_t (&src)[N]);
-template <typename T, size_t N> constexpr bool copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size);
+template <typename T, size_t N>
+std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, bool>
+copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size);
 bool get_byte_fromHexString(uint8_t &value, const char* src, size_t src_size);
 template <typename T> bool get_unsigned_integral_fromHexString(T &value, const char* src, size_t src_size);
 template <typename T> constexpr T be_to_h(T value);
 unsigned long long now();
 
 constexpr uint32_t hash32(const char* str, size_t len) {
+  if (len == 0) return 0;
+
   uint32_t hash = 2166136261u;
   for (size_t i = 0; i < len; ++i) {
     hash ^= static_cast<uint32_t>(str[i]);
@@ -39,6 +43,34 @@ constexpr uint32_t hash32(const char* str, size_t len) {
 constexpr uint32_t hash32(std::string_view key) {
   return hash32(key.data(), key.length());
 }
+
+template <typename... Args>
+struct count_string_views_in_even_args;
+
+template <>
+struct count_string_views_in_even_args<> : std::integral_constant<size_t, 0> {};
+
+template <typename Key, typename Value, typename... Rest>
+struct count_string_views_in_even_args<Key, Value, Rest...> : std::integral_constant<size_t, std::is_same_v<remove_cv_ref_t<Value>, std::string_view> + count_string_views_in_even_args<Rest...>::value> {
+  
+};
+
+template <typename... Args>
+constexpr size_t count_string_views = count_string_views_in_even_args<Args...>::value;
+
+// template <typename Key, typename Value>
+// inline size_t count_string_views(size_t &count) {
+//   return count;
+// }
+
+// template <typename Key, typename Value, typename...Args>
+// size_t count_string_views(size_t &count, Key &key, Value& value, Args&&... args) {
+//   if constexpr (std::is_same_v<remove_cv_ref_t<Value>, std::string_view>) {
+//     count++;
+//   }
+
+//   return count_string_views(count, std::forward<Args>(args)...);
+// }
 
 template<uint8_t N>
 constexpr bool is_in_ranges(char c, const char (&ranges)[N][2]) {
@@ -111,40 +143,41 @@ template <typename T> bool get_unsigned_integral_fromHexString(T &value, const c
   return true;
 }
 
-template <typename T, size_t N> constexpr bool copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size) {
-  //
-  // size_t dst_element_size = sizeof(T);
-  // size_t dst_elements_count = N;
-  // size_t dst_size = dst_element_size * dst_elements_count;
-  //
-  // if (dst_size == 0 || src_size == 0) {
-  //   return false;
-  // }
-  //
-  // bool modified = false;
-  //
-  // size_t max_elements_count = std::min(dst_elements_count, src_size / dst_element_size);
-  //
-  // for (size_t i = 0; i < max_elements_count; i++) {
-  //   T new_element_value = 0;
-  //   if (get_unsigned_integral_fromHexString(new_element_value, src + i * dst_element_size * 2,
-  //                                           src_size - i * dst_element_size * 2)) {
-  //     if (dst[i] != new_element_value) {
-  //       dst[i] = new_element_value;
-  //       modified = true;
-  //     }
-  //   }
-  // }
-  //
-  // size_t dst_final_size = max_elements_count * dst_element_size;
-  //
-  // if (dst_final_size > src_size) {
-  //   memset((uint8_t *)dst + dst_final_size, 0, dst_final_size - src_size);
-  //   modified = true;
-  // }
-  //
-  // return modified;
-  return false;
+template <typename T, size_t N>
+std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, bool>
+copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size) {
+  
+  size_t dst_element_size = sizeof(T);
+  size_t dst_elements_count = N;
+  size_t dst_size = dst_element_size * dst_elements_count;
+  
+  if (dst_size == 0 || src_size == 0) {
+    return false;
+  }
+  
+  bool modified = false;
+  
+  size_t max_elements_count = std::min(dst_elements_count, src_size / dst_element_size);
+  
+  for (size_t i = 0; i < max_elements_count; i++) {
+    T new_element_value = 0;
+    if (get_unsigned_integral_fromHexString(new_element_value, src + i * dst_element_size * 2,
+                                            src_size - i * dst_element_size * 2)) {
+      if (dst[i] != new_element_value) {
+        dst[i] = new_element_value;
+        modified = true;
+      }
+    }
+  }
+  
+  size_t dst_final_size = max_elements_count * dst_element_size;
+  
+  if (dst_final_size > src_size) {
+    memset((uint8_t *)dst + dst_final_size, 0, dst_final_size - src_size);
+    modified = true;
+  }
+  
+  return modified;
 }
 
 void print_bitwise_mask([[maybe_unused]] size_t mask, size_t count) {

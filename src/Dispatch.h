@@ -21,6 +21,11 @@ constexpr inline Tuple _create_dispatch_tuple(Tuple& tuple) {
   return tuple;
 }
 
+template <typename Tuple, typename T>
+constexpr Tuple _create_dispatch_tuple(Tuple& tuple, T& single) {
+  return tuple;
+}
+
 template <typename Tuple, typename Value, typename... Args>
 constexpr auto _create_dispatch_tuple(Tuple& tuple, std::string_view key, Value& value, Args&&... args) {
 

@@ -138,17 +138,17 @@ RGB values 0‑255.
   template <typename T> JSON::ParseResult fromJSON(T&& input) {                \
     using _SelfT = remove_cv_ref_t<decltype(*this)>;                           \
     return JSON::_parse_impl<true, _SelfT>(                                    \
-        updated, input, CREATE_DISPATCH_TABLE(__VA_ARGS__));                   \
+        updated, input, KV_LIST(__VA_ARGS__));                                       \
   }                                                                            \
-  template <typename T> JSON::ParseResult fromJSON(T* input) {                 \
+  template <typename Parser> JSON::ParseResult _fromJSON(Parser* parser) {                 \
     using _SelfT = remove_cv_ref_t<decltype(*this)>;                           \
     return JSON::_parse_impl<true, _SelfT>(                                    \
-        updated, input, CREATE_DISPATCH_TABLE(__VA_ARGS__));                   \
+        updated, parser, KV_LIST(__VA_ARGS__));                                       \
   }                                                                            \
   JSON::ParseResult fromJSON(const char* input, size_t size) {                 \
     using _SelfT = remove_cv_ref_t<decltype(*this)>;                           \
     return JSON::_parse_impl<true, _SelfT>(                                    \
-        updated, input, size, CREATE_DISPATCH_TABLE(__VA_ARGS__));             \
+        updated, input, size, KV_LIST(__VA_ARGS__));                                 \
   }
 #define TO_JSON_OVERRIDE(...)                                                  \
   template <typename T> size_t toJSON(T& output, bool updates = false) {       \
