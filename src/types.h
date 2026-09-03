@@ -185,19 +185,6 @@ struct is_char_array_array<T[N][M]> : std::integral_constant<bool, std::is_same_
 template <typename T> inline constexpr bool is_char_array_array_v = is_char_array_array<T>::value;
 
 // ==========================================
-// JSONObject
-// ==========================================
-template <typename T> struct is_derived_json_data : std::is_base_of<JSONObject, remove_cv_ref_t<T>> {};
-
-template <typename T> struct is_derived_json_data<T *> : is_derived_json_data<T> {};
-
-template <typename T> inline constexpr bool is_derived_json_data_v = is_derived_json_data<remove_cv_ref_t<T>>::value;
-
-template <typename T>
-constexpr bool is_derived_json_data_container_v =
-    container_info<T>::is_container && is_derived_json_data<typename container_info<T>::base_t>::value;
-
-// ==========================================
 // Cursor
 // ==========================================
 
@@ -248,7 +235,17 @@ template <typename T> inline constexpr bool is_stream_cursor_reader_v = std::is_
 
 // template <typename T>
 // struct is_convertible_to_indexed_key<T, std::void_t<decltype(JSONIndexedKey(std::declval<T>()))>> : std::true_type {};
-#if !defined(DISABLE_ARGS_CHECK)
+#ifndef DISABLE_ARGS_CHECK
+
+template <typename T> struct is_derived_json_data : std::is_base_of<JSONObject, remove_cv_ref_t<T>> {};
+
+template <typename T> struct is_derived_json_data<T *> : is_derived_json_data<T> {};
+
+template <typename T> inline constexpr bool is_derived_json_data_v = is_derived_json_data<remove_cv_ref_t<T>>::value;
+
+template <typename T>
+constexpr bool is_derived_json_data_container_v =
+    container_info<T>::is_container && is_derived_json_data<typename container_info<T>::base_t>::value;
 
 template <typename CastableTypeList, typename TypeList, typename ArrayTypeList,
           /*typename ArrayArrayTypeList,*/ typename Value>

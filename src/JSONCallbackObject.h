@@ -19,7 +19,7 @@ struct JSONCallbackObject {
 
   template <typename T> JSON::ParseResult fromJSON(T& input);
 
-  template <typename T> JSON::ParseResult fromJSON(T* input);
+  template <typename T> JSON::ParseResult _fromJSON(T* parser);
 
   size_t toJSON(JSON::PointerCursorWriter& cursor, bool /*updates*/ = true) {
     return cursor.write("null");

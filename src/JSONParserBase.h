@@ -74,6 +74,8 @@ class JSONParserBase {
       _lastParseError( 0 ) {
     JSON_DEBUG_COLOR( COLOR_BLUE, "JSONParserBase created\n" );
     GLOBAL_ITERATIONS = 0;
+    strncpy(_s_key_buf, "$", 2);
+    _key_length = 1;
   }
 
   ~JSONParserBase() {
@@ -88,13 +90,12 @@ class JSONParserBase {
 
   // ── API publique (identique à JSONParser) ─────────────────
 
-  template <typename TargetT, typename Arg>
-  enable_if_t<!is_derived_json_data_container_v<TargetT>, void>
-  parse( Arg& args );
+  template <typename TargetT, typename... Args>
+  void parse( Args&&... args );
 
-  template <typename TargetT, typename Arg>
-  enable_if_t<is_derived_json_data_container_v<TargetT>, void>
-  parse( Arg& jsonObjects );
+  // template <typename TargetT, typename Arg>
+  // enable_if_t<is_derived_json_data_container_v<TargetT>, void>
+  // parse( Arg& jsonObjects );
 
   ParserState state() { return _state; }
   ParserError error() { return _lastError; }
@@ -262,6 +263,7 @@ class JSONParserBase {
   void print_state( size_t iteration );
 #endif
 };
+
 /*
     END OF JSONPARSERBASE DECLARATION
 */
@@ -296,21 +298,22 @@ void JSONParserBase<Cursor, UseMask>::reset() {
 //
 // ============================================================
 
-template <typename Cursor, bool UseMask>
-template <typename TargetT, typename Arg>
-enable_if_t<is_derived_json_data_container_v<TargetT>, void>
-JSONParserBase<Cursor, UseMask>::parse( Arg& jsonObjects ) {
-  JSON_DEBUG_INFO( "JSONParserBase::parse with derived JSONObject objects\n" );
-  _is_top_level_array = true;
-  parse_array<TargetT>( jsonObjects );
-  _state = END;
-}
+// template <typename Cursor, bool UseMask>
+// template <typename TargetT, typename Arg>
+// enable_if_t<is_derived_json_data_container_v<TargetT>, void>
+// JSONParserBase<Cursor, UseMask>::parse( Arg& jsonObjects ) {
+//   JSON_DEBUG_INFO( "JSONParserBase::parse with derived JSONObject objects\n" );
+//   _is_top_level_array = true;
+//   parse_array<TargetT>( jsonObjects );
+//   _state = END;
+// }
 
 // ── parse (boucle principale) ─────────────────────────────────
 template <typename Cursor, bool UseMask>
-template <typename TargetT, typename Arg>
-enable_if_t<!is_derived_json_data_container_v<TargetT>, void>
-JSONParserBase<Cursor, UseMask>::parse( Arg& arg ) {
+template <typename TargetT, typename... Args>
+void JSONParserBase<Cursor, UseMask>::parse( Args&&... args ) {
+  
+  const auto dispatch_table = create_dispatch_tuple(std::forward<Args>(args)...);
 
   _is_top_level_array = false;
 
@@ -372,8 +375,14 @@ JSONParserBase<Cursor, UseMask>::parse( Arg& arg ) {
           //_cursor.advance();
           continue;
         }
-
-        ParseValueResult r = parse_value<TargetT>(arg);
+        
+        ParseValueResult r;
+        
+        if constexpr (is_callback<TargetT>) {
+          r = parse_value<TargetT>(std::forward<Args>(args)...);
+        } else {
+          r = parse_value<TargetT>(dispatch_table);
+        }
 
         _progress._nMatched += r.keyFound() ? 1 : 0;
 
@@ -391,14 +400,14 @@ JSONParserBase<Cursor, UseMask>::parse( Arg& arg ) {
           _lastParseError = r;
         }
 
-        if constexpr ( is_dispatch_info_v<Arg> ) {
-          if ( _progress._nMatched >= std::tuple_size<Arg>::value ) {
+        if constexpr ( !is_callback<TargetT> ) {
+          if ( _progress._nMatched >= (sizeof...(Args) / 2) ) {
             JSON_DEBUG_WARNING(
                 "JSONParserBase::parse: Parser depth %zu: "
                 "all keys found,(%zu/%zu) skiping to object end\n",
                 _cursor.depth,
                 _progress._nMatched,
-                std::tuple_size<Arg>::value );
+                sizeof...(Args) / 2 );
             _state = SKIP;
             break;
           }
@@ -535,9 +544,9 @@ bool JSONParserBase<Cursor, UseMask>::parse_comma() {
 }
 
 // ── parse_value (callback) ────────────────────────────────────
-template <typename Cursor, bool UseMask> template <typename TargetT>
-ParseValueResult
-JSONParserBase<Cursor, UseMask>::parse_value( JSONCallbackObject& cb ) {
+template <typename Cursor, bool UseMask>
+template <typename TargetT>
+ParseValueResult JSONParserBase<Cursor, UseMask>::parse_value( JSONCallbackObject& cb ) {
   JSON_DEBUG_WARNING("JSONParserBase<Cursor, UseMask>::parse_value with callback %c\n", _cursor.peek());
 
   cb.setKey( _s_key_buf, _key_length );
@@ -554,18 +563,12 @@ template <typename Cursor, bool UseMask>
 template <typename TargetT, typename TableT>
 ParseValueResult JSONParserBase<Cursor, UseMask>::parse_value( TableT& table ) {
 
-  std::string_view parsed_key( _s_key_buf, _key_length );
-  //auto entry = find_entry( table, parsed_key );
-
   ParseValueResult result = ParseValueResult::NO_RESULT;
-  
-  // std::visit( [&]( auto&& arg ) {
-  //   using T = std::decay_t<decltype(arg)>;
-  //   if constexpr ( !std::is_same_v<T, std::monostate> ) {
-  //     result |= ParseValueResult::KEY_FOUND;
-  //     result |= parse_into_value<TargetT>( arg.get() );
-  //   }
-  // }, entry.variant);
+
+  if (_key_length == 0) return result;
+
+  std::string_view parsed_key( _s_key_buf, _key_length );
+
   size_t key_index = 0;
 
   dispatch_by_key( table, parsed_key, [&]( auto&& arg, size_t index ) {
@@ -1210,7 +1213,7 @@ ParseValueResult JSONParserBase<Cursor, UseMask>::parse_object( V& arg_value ) {
 
   reset();
   _cursor.depth++;
-  JSON::ParseResult r = arg_value.fromJSON( this );
+  JSON::ParseResult r = arg_value._fromJSON( this );
   _cursor.depth--;
 
   _progress = progress;
