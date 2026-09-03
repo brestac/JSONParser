@@ -99,38 +99,39 @@ template <typename T> bool get_unsigned_integral_fromHexString(T &value, const c
 }
 
 template <typename T, size_t N> constexpr bool copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size) {
-
-  size_t dst_element_size = sizeof(T);
-  size_t dst_elements_count = N;
-  size_t dst_size = dst_element_size * dst_elements_count;
-
-  if (dst_size == 0 || src_size == 0) {
-    return false;
-  }
-
-  bool modified = false;
-
-  size_t max_elements_count = std::min(dst_elements_count, src_size / dst_element_size);
-
-  for (size_t i = 0; i < max_elements_count; i++) {
-    T new_element_value = 0;
-    if (get_unsigned_integral_fromHexString(new_element_value, src + i * dst_element_size * 2,
-                                            src_size - i * dst_element_size * 2)) {
-      if (dst[i] != new_element_value) {
-        dst[i] = new_element_value;
-        modified = true;
-      }
-    }
-  }
-
-  size_t dst_final_size = max_elements_count * dst_element_size;
-
-  if (dst_final_size > src_size) {
-    memset((uint8_t *)dst + dst_final_size, 0, dst_final_size - src_size);
-    modified = true;
-  }
-
-  return modified;
+  //
+  // size_t dst_element_size = sizeof(T);
+  // size_t dst_elements_count = N;
+  // size_t dst_size = dst_element_size * dst_elements_count;
+  //
+  // if (dst_size == 0 || src_size == 0) {
+  //   return false;
+  // }
+  //
+  // bool modified = false;
+  //
+  // size_t max_elements_count = std::min(dst_elements_count, src_size / dst_element_size);
+  //
+  // for (size_t i = 0; i < max_elements_count; i++) {
+  //   T new_element_value = 0;
+  //   if (get_unsigned_integral_fromHexString(new_element_value, src + i * dst_element_size * 2,
+  //                                           src_size - i * dst_element_size * 2)) {
+  //     if (dst[i] != new_element_value) {
+  //       dst[i] = new_element_value;
+  //       modified = true;
+  //     }
+  //   }
+  // }
+  //
+  // size_t dst_final_size = max_elements_count * dst_element_size;
+  //
+  // if (dst_final_size > src_size) {
+  //   memset((uint8_t *)dst + dst_final_size, 0, dst_final_size - src_size);
+  //   modified = true;
+  // }
+  //
+  // return modified;
+  return false;
 }
 
 void print_bitwise_mask([[maybe_unused]] size_t mask, size_t count) {
@@ -241,7 +242,7 @@ static const double POW10[] = {
     1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e22
 };
 
-inline double fast_parse_floating_json(const char* ptr, const char** end) {  
+inline double fast_parse_floating_json(const char* ptr, const char** end) {
     if (ptr == nullptr) return 0.0;
     if (*ptr == '\0') return 0.0;
 

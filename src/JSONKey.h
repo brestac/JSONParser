@@ -57,13 +57,13 @@ struct MultidimensionalArrayIndex {
   }
 
   int16_t getIndex(int8_t depth) const {
-    
+
     if (depth < 0) {
       depth = _depth + depth;
     }
-    
+
     if (depth > _depth || depth < 0) return -1;
-    
+
     return _index[static_cast<uint8_t>(depth)];
   }
 
@@ -108,14 +108,14 @@ struct JSONKey {
   bool operator==(const std::string_view& other_sv) const {
     return _key == other_sv;
   }
-  
+
   template <size_t N>
   bool operator!=(const char (&key)[N]) const {
     return std::strncmp(key, _key.data(), N - 1) != 0;
   }
-  
+
   bool operator!=(const JSONKey& other) const { return _hash != other._hash; }
-  
+
   bool operator!=(const std::string_view& other_sv) const {
     return _key != other_sv;
   }
@@ -158,8 +158,10 @@ struct JSONKey {
     }
 
     array_index_buf[offset] = '\0';
-    
+
     DEBUG_PRINTF("JSONKey: %.*s hash=%u array_index=%s\n", (int)length(), data(), _hash, array_index_buf);
   }
+#else
+  void print() {}
 #endif
 };

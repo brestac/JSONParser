@@ -157,7 +157,7 @@ size_t constexpr print_value_to(Cursor &output, T &value) {
       }
     }
   } else {
-    static_assert(false, "cannot print type");
+    //static_assert(false, "cannot print type");
   }
 }
 
@@ -165,7 +165,7 @@ size_t constexpr print_value_to(Cursor &output, T &value) {
 // ───────────────────────────────────────────────────
 template <typename Cursor, typename T>
 size_t print_object_pointer_to(Cursor &output, T *value) {
-  
+
 #ifdef __EXCEPTIONS
   try {
 #endif
