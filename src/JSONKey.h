@@ -8,21 +8,9 @@
 //   hash32 — FNV-1a 32 bits, constexpr
 // ---------------------------------------------------------------------------
 
-constexpr uint32_t hash32(const char* str, size_t len) {
-  uint32_t hash = 2166136261u;
-  for (size_t i = 0; i < len; ++i) {
-    hash ^= static_cast<uint32_t>(str[i]);
-    hash *= 16777619u;
-  }
-  return hash;
-}
-
-constexpr uint32_t hash32(std::string_view key) {
-  return hash32(key.data(), key.length());
-}
 
 constexpr uint32_t operator""_hash(const char* str, size_t len) {
-  return hash32(str, len);
+  return JSON::hash32(str, len);
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +78,7 @@ struct JSONKey {
 
   JSONKey() : _key(""), /*_index(-1),*/ _hash(0), _array_index() {}
 
-  JSONKey(std::string_view key) : _key(key), /*_index(-1),*/ _hash(hash32(_key)), _array_index() {
+  JSONKey(std::string_view key) : _key(key), /*_index(-1),*/ _hash(JSON::hash32(_key)), _array_index() {
     _array_index.reset();
     JSON_DEBUG_WARNING("Created key from const char [N] ");
 #if JSON_DEBUG_LEVEL > 0
@@ -132,7 +120,7 @@ struct JSONKey {
 
   void setKey(const std::string_view& key) {
     _key  = key;
-    _hash = hash32(_key);
+    _hash = JSON::hash32(_key);
   }
 
   // int16_t getIndex()       const { return _index; }

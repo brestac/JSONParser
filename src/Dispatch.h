@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <cstdint>
 #include <tuple>
 #include <string_view>
 
@@ -23,7 +24,7 @@ constexpr inline Tuple _create_dispatch_tuple(Tuple& tuple) {
 template <typename Tuple, typename Value, typename... Args>
 constexpr auto _create_dispatch_tuple(Tuple& tuple, std::string_view key, Value& value, Args&&... args) {
 
-  auto pair = std::pair<std::string_view, decltype(value)>{key, value};
+  auto pair = std::pair<uint32_t, decltype(value)>{hash32(key), value};
 
   auto new_tuple = std::tuple_cat(tuple, std::make_tuple(pair));
 
@@ -37,9 +38,9 @@ constexpr auto create_dispatch_tuple(Args&&... args) {
 }
 
 template <size_t I, typename Tuple, typename Callback>
-bool call_at(Tuple&& tuple, std::string_view search_key, Callback& callback) {
-    auto& [key, value] = std::get<I>(tuple);
-    if (key != search_key) return false;
+bool call_at(Tuple&& tuple, uint32_t search_key_hash, Callback& callback) {
+    auto& [key_hash, value] = std::get<I>(tuple);
+    if (key_hash != search_key_hash) return false;
 
     callback(value, I);
 
@@ -47,15 +48,15 @@ bool call_at(Tuple&& tuple, std::string_view search_key, Callback& callback) {
 }
 
 template <typename Tuple, typename Callback, size_t... I>
-void _dispatch_by_key(Tuple& tuple, std::string_view search_key, Callback& callback,
+void _dispatch_by_key(Tuple& tuple, uint32_t search_key_hash, Callback& callback,
                        std::index_sequence<I...>) {
-    (call_at<I>(tuple, search_key, callback) || ...);
+    (call_at<I>(tuple, search_key_hash, callback) || ...);
 }
 
 template <typename Tuple, typename Callback>
 void dispatch_by_key(Tuple& tuple, std::string_view search_key, Callback&& callback) {
   constexpr size_t N = std::tuple_size<remove_cv_ref_t<Tuple>>::value;
-  _dispatch_by_key(tuple, search_key, callback, std::make_index_sequence<N>{});
+  _dispatch_by_key(tuple, hash32(search_key), callback, std::make_index_sequence<N>{});
 }
 
 NAMESPACE_JSON_END
