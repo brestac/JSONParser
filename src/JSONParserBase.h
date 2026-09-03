@@ -1581,25 +1581,18 @@ JSONParserBase<Cursor, UseMask>::assign_parsed_value_to_value( PV& pv, V& v ) {
   } else if constexpr ( std::is_convertible_v<PV, V> &&
                         std::is_floating_point_v<PV> ) {
     result |= assign_convertible( pv, v ) | ParseValueResult::VALUE_CONVERTED;
-  } else if constexpr ( std::is_same_v<PV, std::string_view> &&
-                        is_char_array_v<V> ) {
-    result |= assign_string_view_to_char_array( pv, v ) |
-              ParseValueResult::VALUE_CONVERTED;
+  } else if constexpr ( std::is_same_v<PV, std::string_view> && is_char_array_v<V> ) {
+    result |= assign_string_view_to_char_array( pv, v ) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr ( std::is_same_v<PV, NullType> && std::is_pointer_v<V> ) {
-    result |=
-        assign_null_ptr_to_pointer( pv, v ) | ParseValueResult::VALUE_CONVERTED;
+    result |= assign_null_ptr_to_pointer( pv, v ) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr ( std::is_same_v<PV, NaNType> ) {
     return result;
   } else if constexpr ( std::is_same_v<PV, InfinityType> ) {
-    result |= assign_infinity_to_integral( pv, v ) |
-              ParseValueResult::VALUE_CONVERTED;
-  } else if constexpr ( std::is_same_v<PV, std::string_view> &&
-                        is_uint_array_v<V> ) {
-    result |= assign_string_view_to_unsigned_array( pv, v ) |
-              ParseValueResult::VALUE_CONVERTED;
+    result |= assign_infinity_to_integral( pv, v ) | ParseValueResult::VALUE_CONVERTED;
+  } else if constexpr ( std::is_same_v<PV, std::string_view> && is_uint_array_v<V> ) {
+    result |= assign_string_view_to_unsigned_array( pv, v ) | ParseValueResult::VALUE_CONVERTED;
   } else if constexpr ( std::is_same_v<V, JSONCallbackObject> ) {
-    result |=
-        assign_callback_object( pv, v ) | ParseValueResult::VALUE_CONVERTED;
+    result |= assign_callback_object( pv, v ) | ParseValueResult::VALUE_CONVERTED;
   } else {
     result |= assign_not_handled( pv, v );
   }

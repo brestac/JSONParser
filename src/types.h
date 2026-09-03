@@ -317,7 +317,7 @@ constexpr bool is_coords = container_info<T>::dimensions == 1 && container_info<
 template <typename T>
 constexpr bool is_uint_array_v = container_info<T>::kind == ContainerKind::C_ARRAY &&
                                  container_info<T>::dimensions == 1 &&
-                                 std::is_unsigned_v<typename container_info<T>::base_t>;
+                                 std::is_same_v<uint8_t, typename container_info<T>::base_t>;
 
 // Check if T is of type DispatchInfo<V,N> where V can be anything and N is a size_t
 

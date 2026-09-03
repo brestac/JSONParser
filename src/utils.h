@@ -22,8 +22,7 @@ NAMESPACE_JSON_BEGIN
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T (&dst)[N], uint8_t *src, size_t src_size);
 template <typename T, size_t N> constexpr bool copy_bytes_be_to_h(T dst, uint8_t (&src)[N]);
 template <typename T, size_t N>
-std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, bool>
-copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size);
+bool copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size);
 bool get_byte_fromHexString(uint8_t &value, const char* src, size_t src_size);
 template <typename T> bool get_unsigned_integral_fromHexString(T &value, const char* src, size_t src_size);
 template <typename T> constexpr T be_to_h(T value);
@@ -144,8 +143,7 @@ template <typename T> bool get_unsigned_integral_fromHexString(T &value, const c
 }
 
 template <typename T, size_t N>
-std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, bool>
-copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size) {
+bool copy_hex_be_to_h(T (&dst)[N], const char* src, size_t src_size) {
   
   size_t dst_element_size = sizeof(T);
   size_t dst_elements_count = N;
